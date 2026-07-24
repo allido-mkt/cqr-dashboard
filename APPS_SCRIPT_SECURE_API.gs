@@ -76,6 +76,11 @@ function isAllowed_(email) {
   return CONFIG.ALLOWED_EMAILS.map(String).map(v => v.toLowerCase()).includes(String(email || '').toLowerCase());
 }
 
+function authorizeOnce() {
+  UrlFetchApp.fetch('https://www.googleapis.com');
+  DriveApp.getFileById(CONFIG.DATA_FILE_ID).getName();
+}
+
 function readDashboardData_() {
   if (!CONFIG.DATA_FILE_ID) {
     throw new Error('CONFIG.DATA_FILE_ID is not set.');
