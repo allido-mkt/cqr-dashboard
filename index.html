@@ -222,7 +222,7 @@ td{vertical-align:middle;}
 
 </style>
 </head>
-<body class="auth-ready">
+<body class="auth-locked">
 
 <div class="auth-screen" id="authScreen">
   <div class="auth-card">
@@ -384,7 +384,14 @@ td{vertical-align:middle;}
 const AUTH_CONFIG = {
   clientId: '496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com',
   appsScriptUrl: 'https://script.google.com/macros/s/AKfycbznAComgV78zZUi0gbceCAkU7QkFp92ySZU5Z_pH3oHFEVjUaCeE31JJSJt9-9xMhQ0/exec',
-  presentationMode: true
+  presentationMode: true,
+  allowedEmails: [
+    'bwm.workco@gmail.com',
+    'eveningbs@gmail.com',
+    'ksbing34@gmail.com',
+    'mkt.performance.center@gmail.com',
+    'tipchareon.t@gmail.com'
+  ]
 };
 
 function decodeJwtPayload(token){
@@ -405,13 +412,21 @@ function showAuthError(message){
 function getSavedSession(){
   try{
     const saved = JSON.parse(sessionStorage.getItem('cqr_auth') || 'null');
-    if(!saved || !saved.email || !saved.idToken || !saved.exp || saved.exp * 1000 <= Date.now()) return null;
+    if(!saved || !saved.email || !saved.exp || saved.exp * 1000 <= Date.now()) return null;
+    if(AUTH_CONFIG.presentationMode && !AUTH_CONFIG.allowedEmails.includes(saved.email.toLowerCase())) return null;
+    if(!AUTH_CONFIG.presentationMode && !saved.idToken) return null;
     return saved;
   }catch(e){ return null; }
 }
 
 function unlockDashboard(profile, idToken){
   if(AUTH_CONFIG.presentationMode){
+    sessionStorage.setItem('cqr_auth', JSON.stringify({
+      email: (profile.email || '').toLowerCase(),
+      name: profile.name || profile.email || 'CQR user',
+      picture: profile.picture || '',
+      exp: profile.exp || Math.floor(Date.now()/1000) + 3600
+    }));
     document.body.classList.remove('auth-locked');
     document.body.classList.add('auth-ready');
     return;
@@ -483,6 +498,14 @@ async function handleCredentialResponse(response){
     showAuthError('ไม่สามารถอ่านอีเมลจาก Google Sign-In ได้ กรุณาลองใหม่อีกครั้ง');
     return;
   }
+  if(AUTH_CONFIG.presentationMode){
+    if(!AUTH_CONFIG.allowedEmails.includes(email)){
+      showAuthError(`อีเมล ${email} ยังไม่ได้รับสิทธิ์เข้าใช้งาน Dashboard นี้`);
+      return;
+    }
+    unlockDashboard(profile, response.credential);
+    return;
+  }
   try{
     const verified = await verifyWithBackend(response.credential, profile);
     if(!verified){
@@ -496,12 +519,6 @@ async function handleCredentialResponse(response){
 }
 
 function initAuth(){
-  if(AUTH_CONFIG.presentationMode){
-    sessionStorage.removeItem('cqr_auth');
-    document.body.classList.remove('auth-locked');
-    document.body.classList.add('auth-ready');
-    return;
-  }
   const saved = getSavedSession();
   if(saved){
     unlockDashboard(saved, saved.idToken);
