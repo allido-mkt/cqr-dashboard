@@ -26,7 +26,7 @@ https://allido-mkt.github.io/cqr-dashboard/
 
 - Production URL: https://allido-mkt.github.io/cqr-dashboard/
 - Google OAuth JavaScript origin: `https://allido-mkt.github.io`
-- Apps Script Web App URL: `https://script.google.com/macros/s/AKfycby5AfTjU8UolQhWWRTQ8ZSCfqJX1cEC8MrgPfKUJT_0TiGjTn8knt65Lrm-saGh5J-xdw/exec`
+- Apps Script Web App URL: `https://script.google.com/macros/s/AKfycbznAComgV78zZUi0gbceCAkU7QkFp92ySZU5Z_pH3oHFEVjUaCeE31JJSJt9-9xMhQ0/exec`
 - Frontend file uses Google OAuth `client_id` only. Do not upload or expose `client_secret`.
 - Allowed email checks should live in Apps Script, not in public frontend code.
 
