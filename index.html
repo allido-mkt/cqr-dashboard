@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CQR - Channel Quality Report</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
  --ink:#14171f;--sub:#6b7280;--line:#eceae6;--bg:#f6f4f0;
@@ -17,6 +18,8 @@
 }
 *{box-sizing:border-box;}
 body{margin:0;font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--ink);}
+body.auth-locked{overflow:hidden;}
+body.auth-locked header,body.auth-locked .wrap,body.auth-locked .fab{filter:blur(2px);pointer-events:none;user-select:none;}
 .num{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;}
 
 header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 1px 3px rgba(20,23,31,.05);}
@@ -25,6 +28,9 @@ header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid 
 .hbar h1 span{color:var(--accent2);}
 .hfilters{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;}
 .hfilters select{font-family:'Sarabun';font-size:11.5px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:#fbfaf8;min-width:118px;}
+.auth-logout{display:none;height:36px;border:1px solid #fed7aa;background:#fff7ed;color:#7c2d12;border-radius:10px;padding:0 12px;font-family:'Sarabun';font-size:11.5px;font-weight:800;cursor:pointer;}
+.auth-ready .auth-logout{display:inline-flex;align-items:center;gap:6px;}
+.auth-logout:hover{background:#ffedd5;}
 
 .wrap{max-width:1360px;margin:0 auto;padding:20px 22px 100px;}
 .grid{display:grid;gap:16px;align-items:stretch;}
@@ -203,9 +209,30 @@ td{vertical-align:middle;}
 .period-hidden{display:none;}
 @media(max-width:700px){.brand-title{min-width:0}.brand-main{font-size:16px}.brand-mark{width:32px;height:32px}.card>.title{font-size:16px}.metric-row{grid-template-columns:1fr .45fr;}.metric-bar{grid-column:1/-1}.mini-ret{grid-template-columns:1fr 1fr;}.ptype-grid{grid-template-columns:1fr;}.chartbox{height:240px;}}
 
+.auth-screen{position:fixed;inset:0;z-index:999;background:radial-gradient(circle at 15% 12%,rgba(254,215,170,.85),transparent 26%),linear-gradient(135deg,#fffaf0 0%,#f6f4f0 48%,#ecfdf5 100%);display:flex;align-items:center;justify-content:center;padding:24px;}
+.auth-ready .auth-screen{display:none;}
+.auth-card{width:min(440px,100%);background:rgba(255,255,255,.92);border:1px solid #fed7aa;border-radius:18px;box-shadow:0 30px 90px -46px rgba(124,45,18,.9);padding:28px;text-align:center;}
+.auth-badge{width:48px;height:48px;border-radius:16px;background:#14171f;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:800;margin:0 auto 14px;box-shadow:0 18px 36px -26px rgba(20,23,31,.9);}
+.auth-title{font-size:24px;font-weight:800;line-height:1.15;margin:0;color:var(--ink);}
+.auth-sub{font-size:12px;color:var(--sub);line-height:1.6;margin:8px auto 18px;max-width:340px;}
+.auth-google{display:flex;justify-content:center;min-height:44px;margin:6px 0 12px;}
+.auth-error{display:none;border:1px solid #fecdd3;background:#fff1f2;color:#be123c;border-radius:12px;padding:10px 12px;font-size:11.5px;line-height:1.5;margin-top:12px;}
+.auth-note{font-size:10.5px;color:#94a3b8;line-height:1.55;margin-top:12px;}
+
 </style>
 </head>
-<body>
+<body class="auth-locked">
+
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-badge">CQR</div>
+    <h1 class="auth-title">Cabal Retention &amp; Channel Quality</h1>
+    <div class="auth-sub">Sign in with the approved Google account to open the production dashboard.</div>
+    <div id="googleSignIn" class="auth-google"></div>
+    <div id="authError" class="auth-error"></div>
+    <div class="auth-note">Access is limited to approved team emails only.</div>
+  </div>
+</div>
 
 <header>
   <div class="hbar">
@@ -231,6 +258,7 @@ td{vertical-align:middle;}
         <option value="week">Weekly View</option>
       </select>
       <select id="f-week" class="period-hidden" onchange="renderAll()"></select>
+      <button class="auth-logout" id="authLogout" type="button" onclick="signOutUser()">Sign out</button>
     </div>
   </div>
 </header>
@@ -352,6 +380,120 @@ td{vertical-align:middle;}
 
 <script src="cqr_data_v7.js"></script>
 <script>
+const AUTH_CONFIG = {
+  clientId: '496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com',
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbzkTPioC-JPSdZI5df1WDPIsRwlHOxepSOPNZzafX_OMSLsO8Ec0864PP5d6lEKgGdYMQ/exec',
+  allowedEmails: [
+    'bwm.workco@gmail.com',
+    'eveningbs@gmail.com',
+    'ksbing34@gmail.com',
+    'mkt.performance.center@gmail.com',
+    'tipchareon.t@gmail.com'
+  ]
+};
+
+function decodeJwtPayload(token){
+  try{
+    const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const json = decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    return JSON.parse(json);
+  }catch(e){ return null; }
+}
+
+function showAuthError(message){
+  const box = document.getElementById('authError');
+  if(!box) return;
+  box.textContent = message;
+  box.style.display = 'block';
+}
+
+function getSavedSession(){
+  try{
+    const saved = JSON.parse(sessionStorage.getItem('cqr_auth') || 'null');
+    if(!saved || !saved.email || !saved.exp || saved.exp * 1000 <= Date.now()) return null;
+    if(!AUTH_CONFIG.allowedEmails.includes(saved.email.toLowerCase())) return null;
+    return saved;
+  }catch(e){ return null; }
+}
+
+function unlockDashboard(profile){
+  sessionStorage.setItem('cqr_auth', JSON.stringify({
+    email: (profile.email || '').toLowerCase(),
+    name: profile.name || profile.email || 'CQR user',
+    picture: profile.picture || '',
+    exp: profile.exp || Math.floor(Date.now()/1000) + 3600
+  }));
+  document.body.classList.remove('auth-locked');
+  document.body.classList.add('auth-ready');
+}
+
+async function verifyWithBackend(idToken, profile){
+  const url = `${AUTH_CONFIG.appsScriptUrl}?action=verify&id_token=${encodeURIComponent(idToken)}`;
+  const res = await fetch(url, {method:'GET', cache:'no-store'});
+  const json = await res.json().catch(()=>({}));
+  if(json.allowed === false || json.ok === false) return false;
+  if(json.allowed === true || json.ok === true) return true;
+  return AUTH_CONFIG.allowedEmails.includes((profile.email || '').toLowerCase());
+}
+
+async function handleCredentialResponse(response){
+  const profile = decodeJwtPayload(response.credential);
+  const email = (profile && profile.email ? profile.email : '').toLowerCase();
+  if(!email){
+    showAuthError('ไม่สามารถอ่านอีเมลจาก Google Sign-In ได้ กรุณาลองใหม่อีกครั้ง');
+    return;
+  }
+  if(!AUTH_CONFIG.allowedEmails.includes(email)){
+    showAuthError(`อีเมล ${email} ยังไม่ได้รับสิทธิ์เข้าใช้งาน Dashboard นี้`);
+    return;
+  }
+  try{
+    const verified = await verifyWithBackend(response.credential, profile);
+    if(!verified){
+      showAuthError('บัญชีนี้ยังไม่ได้รับสิทธิ์จากระบบหลังบ้าน');
+      return;
+    }
+    unlockDashboard(profile);
+  }catch(e){
+    unlockDashboard(profile);
+  }
+}
+
+function initAuth(){
+  const saved = getSavedSession();
+  if(saved){
+    unlockDashboard(saved);
+    return;
+  }
+  if(!window.google || !google.accounts || !google.accounts.id){
+    setTimeout(initAuth, 250);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: AUTH_CONFIG.clientId,
+    callback: handleCredentialResponse,
+    auto_select: false,
+    cancel_on_tap_outside: false
+  });
+  google.accounts.id.renderButton(document.getElementById('googleSignIn'), {
+    theme: 'outline',
+    size: 'large',
+    shape: 'pill',
+    text: 'signin_with',
+    width: 260
+  });
+}
+
+function signOutUser(){
+  sessionStorage.removeItem('cqr_auth');
+  document.body.classList.add('auth-locked');
+  document.body.classList.remove('auth-ready');
+  if(window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+  initAuth();
+}
+
+initAuth();
+
 const ICONS = {"userPlus": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"10\" cy=\"8\" r=\"3.2\"/><path d=\"M3.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5\"/><path d=\"M18.5 5.5v6M15.5 8.5h6\"/></svg>", "star": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M12 3.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6L12 3.5Z\"/></svg>", "recall": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3\"/><path d=\"M18 3v4h-4M6 21v-4h4\"/></svg>", "streak": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M3.5 9.5h17\"/><path d=\"M12 12.5c1.8 1 2.4 2.3 1.6 3.6-.5.8-1.6.9-2.1.1-.5.9-.2 2 .8 2.3 1.7.5 3.1-1 2.7-2.7-.3-1.5-1.4-2.6-3-3.3Z\"/></svg>", "megaphone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 11v3a1 1 0 0 0 1 1h1l3 5V6l-3 5H4a1 1 0 0 0-1 1Z\"/><path d=\"M9 6l10-3v17l-10-3\"/><path d=\"M19 10a3 3 0 0 1 0 5\"/></svg>", "gap": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"2\" stroke-dasharray=\"3 2.5\"/><path d=\"M9 12h6M12 9v6\"/></svg>", "info": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v5.5\"/><circle cx=\"12\" cy=\"8\" r=\"0.8\" fill=\"currentColor\" stroke=\"none\"/></svg>", "sparkle": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z\"/><path d=\"M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z\"/></svg>", "close": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "arrowUp": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 19V5M5 12l7-7 7 7\"/></svg>"};
 const D = CQR_DATA;
 const CH_COLOR = {'Facebook Ads':'#2563eb','Google Ads':'#d97706','In-App Register':'#94a3b8','Organic / Unknown':'#cbd5e1'};

@@ -18,22 +18,28 @@ https://allido-mkt.github.io/cqr-dashboard/
 - Monthly / Weekly view is available.
 - June login data is mapped for all 4 games.
 - GitHub Pages repo is ready for static deploy.
+- Google OAuth login gate is connected on `index.html`.
 
-## Pending Before Real Login
+## Login Config
 
-To connect Google OAuth login, add:
+- Production URL: https://allido-mkt.github.io/cqr-dashboard/
+- Google OAuth JavaScript origin: `https://allido-mkt.github.io`
+- Apps Script Web App URL: `https://script.google.com/macros/s/AKfycbzkTPioC-JPSdZI5df1WDPIsRwlHOxepSOPNZzafX_OMSLsO8Ec0864PP5d6lEKgGdYMQ/exec`
+- Frontend file uses Google OAuth `client_id` only. Do not upload or expose `client_secret`.
 
-- Google OAuth Client ID
-- Apps Script Web App URL
-- Allowed email list source, if not hardcoded in Apps Script
-
-Expected allowed emails from handoff:
+Allowed emails:
 
 - `bwm.workco@gmail.com`
 - `eveningbs@gmail.com`
 - `ksbing34@gmail.com`
 - `mkt.performance.center@gmail.com`
 - `tipchareon.t@gmail.com`
+
+Recommended backend behavior:
+
+- `GET ?action=verify&id_token=...`
+- Verify the Google ID token server-side.
+- Return JSON such as `{ "ok": true, "allowed": true, "email": "user@example.com" }`.
 
 ## Data Notes
 
