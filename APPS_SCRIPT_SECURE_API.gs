@@ -33,24 +33,25 @@ function doGet(e) {
   try {
     const action = String(e.parameter.action || '').toLowerCase();
     const idToken = e.parameter.id_token;
+    const callback = e.parameter.callback;
     const profile = verifyIdToken_(idToken);
 
     if (!isAllowed_(profile.email)) {
-      return json_({ ok: false, allowed: false, message: 'Email is not allowed.' });
+      return json_({ ok: false, allowed: false, message: 'Email is not allowed.' }, callback);
     }
 
     if (action === 'verify') {
-      return json_({ ok: true, allowed: true, email: profile.email, name: profile.name || '' });
+      return json_({ ok: true, allowed: true, email: profile.email, name: profile.name || '' }, callback);
     }
 
     if (action === 'data') {
       const data = readDashboardData_();
-      return json_({ ok: true, email: profile.email, data });
+      return json_({ ok: true, email: profile.email, data }, callback);
     }
 
-    return json_({ ok: true, message: 'CQR API is running.' });
+    return json_({ ok: true, message: 'CQR API is running.' }, callback);
   } catch (err) {
-    return json_({ ok: false, message: err.message || String(err) });
+    return json_({ ok: false, message: err.message || String(err) }, e.parameter.callback);
   }
 }
 
@@ -94,9 +95,16 @@ function normalizeDataText_(text) {
   return match[1];
 }
 
-function json_(payload) {
+function json_(payload, callback) {
+  const body = JSON.stringify(payload);
+  if (callback) {
+    const safeCallback = String(callback).replace(/[^\w.$]/g, '');
+    return ContentService
+      .createTextOutput(safeCallback + '(' + body + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
   return ContentService
-    .createTextOutput(JSON.stringify(payload))
+    .createTextOutput(body)
     .setMimeType(ContentService.MimeType.JSON);
 }
-

@@ -40,11 +40,12 @@ Expected allowed emails:
 
 Recommended backend behavior:
 
-- `GET ?action=verify&id_token=...`
+- `GET ?action=verify&id_token=...&callback=...`
 - Verify the Google ID token server-side.
 - Return JSON such as `{ "ok": true, "allowed": true, "email": "user@example.com" }`.
-- `GET ?action=data&id_token=...`
+- `GET ?action=data&id_token=...&callback=...`
 - Return JSON such as `{ "ok": true, "data": { ...CQR_DATA... } }`.
+- JSONP `callback` is supported to avoid browser CORS issues with Google Apps Script.
 
 ## Security Notes
 

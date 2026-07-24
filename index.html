@@ -422,9 +422,7 @@ function unlockDashboard(profile, idToken){
 }
 
 async function verifyWithBackend(idToken, profile){
-  const url = `${AUTH_CONFIG.appsScriptUrl}?action=verify&id_token=${encodeURIComponent(idToken)}`;
-  const res = await fetch(url, {method:'GET', cache:'no-store'});
-  const json = await res.json().catch(()=>({}));
+  const json = await callAppsScript('verify', idToken);
   if(json.allowed === false || json.ok === false) return false;
   if(json.allowed === true || json.ok === true) return true;
   return false;
@@ -433,15 +431,42 @@ async function verifyWithBackend(idToken, profile){
 async function loadSecureData(idToken){
   showDashboardLoading('กำลังโหลดข้อมูลจากระบบหลังบ้าน...');
   try{
-    const url = `${AUTH_CONFIG.appsScriptUrl}?action=data&id_token=${encodeURIComponent(idToken)}`;
-    const res = await fetch(url, {method:'GET', cache:'no-store'});
-    const json = await res.json();
+    const json = await callAppsScript('data', idToken);
     if(json.ok === false) throw new Error(json.message || 'Data access denied');
     D = json.data || json.CQR_DATA || json;
     renderAll();
   }catch(e){
-    showDashboardUnavailable('โหลดข้อมูลไม่สำเร็จ กรุณาเช็ก Apps Script endpoint action=data และสิทธิ์บัญชี Google');
+    showDashboardUnavailable(`โหลดข้อมูลไม่สำเร็จ: ${e.message || e}`);
   }
+}
+
+function callAppsScript(action, idToken){
+  return new Promise((resolve, reject)=>{
+    const callback = `cqrApi_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(()=>{
+      cleanup();
+      reject(new Error('Apps Script ไม่ตอบกลับภายในเวลาที่กำหนด'));
+    }, 25000);
+
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[callback];
+      script.remove();
+    }
+
+    window[callback] = payload => {
+      cleanup();
+      resolve(payload || {});
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('เรียก Apps Script ไม่สำเร็จ'));
+    };
+    script.src = `${AUTH_CONFIG.appsScriptUrl}?action=${encodeURIComponent(action)}&id_token=${encodeURIComponent(idToken)}&callback=${encodeURIComponent(callback)}&t=${Date.now()}`;
+    document.head.appendChild(script);
+  });
 }
 
 async function handleCredentialResponse(response){
