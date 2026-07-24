@@ -423,9 +423,9 @@ function unlockDashboard(profile, idToken){
 
 async function verifyWithBackend(idToken, profile){
   const json = await callAppsScript('verify', idToken);
-  if(json.allowed === false || json.ok === false) return false;
+  if(json.allowed === false || json.ok === false) throw new Error(json.message || 'บัญชีนี้ยังไม่ได้รับสิทธิ์จากระบบหลังบ้าน');
   if(json.allowed === true || json.ok === true) return true;
-  return false;
+  throw new Error('Apps Script ตอบกลับไม่ครบ กรุณาเช็ก action=verify');
 }
 
 async function loadSecureData(idToken){
@@ -484,7 +484,7 @@ async function handleCredentialResponse(response){
     }
     unlockDashboard(profile, response.credential);
   }catch(e){
-    showAuthError('ตรวจสอบสิทธิ์กับระบบหลังบ้านไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    showAuthError(`ตรวจสอบสิทธิ์กับระบบหลังบ้านไม่สำเร็จ: ${e.message || e}`);
   }
 }
 
