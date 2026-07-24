@@ -11,6 +11,7 @@ https://allido-mkt.github.io/cqr-dashboard/
 - `index.html` - production dashboard for GitHub Pages
 - `cqr_data_v7.js` - embedded dashboard dataset
 - `index_single_backup.html` - self-contained backup version
+- `PRODUCTION_RUNBOOK.md` - operating guide for login, data update, deploy, and QA
 
 ## Current Status
 
