@@ -26,7 +26,7 @@ const CONFIG = {
   // The file can contain either:
   // 1) raw JSON object, or
   // 2) JS format: const CQR_DATA = {...};
-  DATA_FILE_ID: ''
+  DATA_FILE_ID: '1tOKlCjjGNRqzlvPHKzqhq_Uv285ufyRE'
 };
 
 function doGet(e) {
