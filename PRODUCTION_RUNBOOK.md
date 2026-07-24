@@ -11,13 +11,12 @@
 ## 2. ไฟล์สำคัญ
 
 - `index.html` - หน้า Dashboard หลักที่ GitHub Pages ใช้งาน
-- `cqr_data_v7.js` - ไฟล์ Data ที่ Dashboard อ่าน
-- `index_single_backup.html` - ไฟล์สำรองแบบรวมทุกอย่างไว้ในไฟล์เดียว
+- `APPS_SCRIPT_SECURE_API.gs` - ตัวอย่างโค้ดหลังบ้านสำหรับตรวจสิทธิ์ Google และส่ง data
 - `README.md` - สรุปสถานะ repo และ config หลัก
 
 ## 3. รายชื่ออีเมลที่เข้า Dashboard ได้
 
-ตอนนี้ whitelist อยู่ใน `index.html`
+เพื่อความปลอดภัย whitelist ควรอยู่ใน Apps Script เท่านั้น ไม่ควรอยู่ใน `index.html`
 
 - `bwm.workco@gmail.com`
 - `eveningbs@gmail.com`
@@ -27,12 +26,11 @@
 
 ## 4. วิธีเพิ่มหรือลบอีเมลที่เข้าได้
 
-1. เปิดไฟล์ `index.html`
-2. ค้นหาคำว่า `allowedEmails`
+1. เปิด Apps Script backend
+2. ค้นหาคำว่า `ALLOWED_EMAILS`
 3. เพิ่มหรือลบอีเมลใน list นั้น
-4. Commit และ push ขึ้น GitHub
-5. รอ GitHub Pages deploy ประมาณ 1-3 นาที
-6. ให้คนที่ถูกเพิ่มลองเข้า Dashboard ด้วย Google account ของตัวเอง
+4. Deploy Apps Script เป็น version ใหม่
+5. ให้คนที่ถูกเพิ่มลองเข้า Dashboard ด้วย Google account ของตัวเอง
 
 ข้อควรระวัง:
 
@@ -42,17 +40,19 @@
 
 ## 5. วิธีอัปเดตข้อมูลเดือนหรือวีคถัดไป
 
-ไฟล์ที่ต้องอัปเดตคือ `cqr_data_v7.js`
+ห้ามวาง data sensitive เป็นไฟล์ public ใน GitHub Pages
+
+Data ควรอยู่ใน Google Drive/Sheet ที่จำกัดสิทธิ์ แล้วให้ Apps Script เป็นคนอ่านและส่งให้ Dashboard หลัง login ผ่าน
 
 ขั้นตอนทำงาน:
 
 1. ขอไฟล์ data export จาก Martech ให้ครบ 4 เกม
 2. ตรวจว่าแต่ละเกมมี tab ตาม pattern เดียวกัน เช่น `DAU_YYYY-MM`, `Registered_YYYY-MM`, `Returners_YYYY-MM`, `Late_Starters_YYYY-MM`, `Login_YYYY-MM`
-3. แปลง/Mapping data ออกมาเป็น `cqr_data_v7.js`
-4. วางไฟล์ใหม่ทับไฟล์เดิมใน repo
-5. เปิด Dashboard เช็ก Monthly และ Weekly view
-6. Commit และ push ขึ้น GitHub
-7. รอ deploy แล้วเปิดลิงก์จริงเพื่อตรวจซ้ำ
+3. แปลง/Mapping data ออกมาเป็น JSON หรือรูปแบบ `const CQR_DATA = {...};`
+4. อัปโหลดไฟล์ data ไปไว้ใน Google Drive แบบ private
+5. เอา File ID ไปใส่ใน Apps Script config เช่น `DATA_FILE_ID`
+6. Deploy Apps Script เป็น version ใหม่
+7. เปิด Dashboard เช็ก Monthly และ Weekly view
 
 เช็กก่อนส่ง Production:
 
@@ -65,10 +65,10 @@
 
 ## 6. วิธี Publish ขึ้น GitHub Pages
 
-หลังแก้ไฟล์ใน repo แล้วใช้คำสั่ง:
+หลังแก้เฉพาะหน้า Dashboard หรือเอกสารใน repo แล้วใช้คำสั่ง:
 
 ```bash
-git add index.html cqr_data_v7.js README.md PRODUCTION_RUNBOOK.md
+git add index.html README.md PRODUCTION_RUNBOOK.md APPS_SCRIPT_SECURE_API.gs
 git commit -m "Update CQR dashboard"
 git push origin main
 ```
@@ -106,16 +106,25 @@ Cmd + Shift + R
 
 ### Dashboard ขึ้น แต่กราฟไม่ขึ้น
 
-ให้เช็กว่า `cqr_data_v7.js` ถูก upload ไปพร้อมกับ `index.html` หรือไม่
+ให้เช็กว่า Apps Script `action=data` ส่ง JSON กลับมาถูกต้องหรือไม่
 
 ### Weekly view ไม่มีข้อมูล
 
 ให้เช็กว่า data มี period key รายวีค เช่น `2026-06-W2`
 
-## 9. ข้อควรทำก่อนประกาศใช้จริง
+## 9. Security Checklist
+
+- Repo public ต้องไม่มีไฟล์ data เช่น `cqr_data_v7.js`
+- Repo public ต้องไม่มีไฟล์ backup แบบ self-contained ที่ฝัง data
+- Whitelist ต้องอยู่ใน Apps Script
+- Apps Script ต้อง verify Google ID token กับ Google ก่อนส่ง data
+- Apps Script ต้องเช็ก `aud` ให้ตรงกับ OAuth Client ID
+- Apps Script ต้องส่ง data เฉพาะอีเมลที่ได้รับสิทธิ์
+- ถ้าเคย commit data ลง public repo แล้ว ควรพิจารณาเปลี่ยน repo เป็น private หรือสร้าง repo ใหม่เพื่อตัด public history
+
+## 10. ข้อควรทำก่อนประกาศใช้จริง
 
 - ให้คนใน whitelist อย่างน้อย 2 คนลอง login
 - ให้คนที่ไม่ได้อยู่ใน whitelist ลองเข้า เพื่อยืนยันว่าโดน block
 - เก็บ screenshot หน้า Dashboard หลัง deploy
 - แจ้งทีมว่า data source รอบนี้เป็น June และรองรับ Monthly/Weekly view แล้ว
-

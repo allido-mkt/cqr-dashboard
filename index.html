@@ -218,6 +218,7 @@ td{vertical-align:middle;}
 .auth-google{display:flex;justify-content:center;min-height:44px;margin:6px 0 12px;}
 .auth-error{display:none;border:1px solid #fecdd3;background:#fff1f2;color:#be123c;border-radius:12px;padding:10px 12px;font-size:11.5px;line-height:1.5;margin-top:12px;}
 .auth-note{font-size:10.5px;color:#94a3b8;line-height:1.55;margin-top:12px;}
+.data-loading{border:1.5px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--sub);font-size:12px;line-height:1.65;background:#fbfaf8;}
 
 </style>
 </head>
@@ -378,18 +379,10 @@ td{vertical-align:middle;}
   <div class="chat-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none"/></svg> Preview mode — AI connection pending</div>
 </div>
 
-<script src="cqr_data_v7.js"></script>
 <script>
 const AUTH_CONFIG = {
   clientId: '496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com',
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbzkTPioC-JPSdZI5df1WDPIsRwlHOxepSOPNZzafX_OMSLsO8Ec0864PP5d6lEKgGdYMQ/exec',
-  allowedEmails: [
-    'bwm.workco@gmail.com',
-    'eveningbs@gmail.com',
-    'ksbing34@gmail.com',
-    'mkt.performance.center@gmail.com',
-    'tipchareon.t@gmail.com'
-  ]
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbzkTPioC-JPSdZI5df1WDPIsRwlHOxepSOPNZzafX_OMSLsO8Ec0864PP5d6lEKgGdYMQ/exec'
 };
 
 function decodeJwtPayload(token){
@@ -410,21 +403,22 @@ function showAuthError(message){
 function getSavedSession(){
   try{
     const saved = JSON.parse(sessionStorage.getItem('cqr_auth') || 'null');
-    if(!saved || !saved.email || !saved.exp || saved.exp * 1000 <= Date.now()) return null;
-    if(!AUTH_CONFIG.allowedEmails.includes(saved.email.toLowerCase())) return null;
+    if(!saved || !saved.email || !saved.idToken || !saved.exp || saved.exp * 1000 <= Date.now()) return null;
     return saved;
   }catch(e){ return null; }
 }
 
-function unlockDashboard(profile){
+function unlockDashboard(profile, idToken){
   sessionStorage.setItem('cqr_auth', JSON.stringify({
     email: (profile.email || '').toLowerCase(),
     name: profile.name || profile.email || 'CQR user',
     picture: profile.picture || '',
-    exp: profile.exp || Math.floor(Date.now()/1000) + 3600
+    exp: profile.exp || Math.floor(Date.now()/1000) + 3600,
+    idToken
   }));
   document.body.classList.remove('auth-locked');
   document.body.classList.add('auth-ready');
+  loadSecureData(idToken);
 }
 
 async function verifyWithBackend(idToken, profile){
@@ -433,7 +427,21 @@ async function verifyWithBackend(idToken, profile){
   const json = await res.json().catch(()=>({}));
   if(json.allowed === false || json.ok === false) return false;
   if(json.allowed === true || json.ok === true) return true;
-  return AUTH_CONFIG.allowedEmails.includes((profile.email || '').toLowerCase());
+  return false;
+}
+
+async function loadSecureData(idToken){
+  showDashboardLoading('กำลังโหลดข้อมูลจากระบบหลังบ้าน...');
+  try{
+    const url = `${AUTH_CONFIG.appsScriptUrl}?action=data&id_token=${encodeURIComponent(idToken)}`;
+    const res = await fetch(url, {method:'GET', cache:'no-store'});
+    const json = await res.json();
+    if(json.ok === false) throw new Error(json.message || 'Data access denied');
+    D = json.data || json.CQR_DATA || json;
+    renderAll();
+  }catch(e){
+    showDashboardUnavailable('โหลดข้อมูลไม่สำเร็จ กรุณาเช็ก Apps Script endpoint action=data และสิทธิ์บัญชี Google');
+  }
 }
 
 async function handleCredentialResponse(response){
@@ -443,26 +451,22 @@ async function handleCredentialResponse(response){
     showAuthError('ไม่สามารถอ่านอีเมลจาก Google Sign-In ได้ กรุณาลองใหม่อีกครั้ง');
     return;
   }
-  if(!AUTH_CONFIG.allowedEmails.includes(email)){
-    showAuthError(`อีเมล ${email} ยังไม่ได้รับสิทธิ์เข้าใช้งาน Dashboard นี้`);
-    return;
-  }
   try{
     const verified = await verifyWithBackend(response.credential, profile);
     if(!verified){
       showAuthError('บัญชีนี้ยังไม่ได้รับสิทธิ์จากระบบหลังบ้าน');
       return;
     }
-    unlockDashboard(profile);
+    unlockDashboard(profile, response.credential);
   }catch(e){
-    unlockDashboard(profile);
+    showAuthError('ตรวจสอบสิทธิ์กับระบบหลังบ้านไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
   }
 }
 
 function initAuth(){
   const saved = getSavedSession();
   if(saved){
-    unlockDashboard(saved);
+    unlockDashboard(saved, saved.idToken);
     return;
   }
   if(!window.google || !google.accounts || !google.accounts.id){
@@ -495,7 +499,7 @@ function signOutUser(){
 initAuth();
 
 const ICONS = {"userPlus": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"10\" cy=\"8\" r=\"3.2\"/><path d=\"M3.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5\"/><path d=\"M18.5 5.5v6M15.5 8.5h6\"/></svg>", "star": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M12 3.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6L12 3.5Z\"/></svg>", "recall": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3\"/><path d=\"M18 3v4h-4M6 21v-4h4\"/></svg>", "streak": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M3.5 9.5h17\"/><path d=\"M12 12.5c1.8 1 2.4 2.3 1.6 3.6-.5.8-1.6.9-2.1.1-.5.9-.2 2 .8 2.3 1.7.5 3.1-1 2.7-2.7-.3-1.5-1.4-2.6-3-3.3Z\"/></svg>", "megaphone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 11v3a1 1 0 0 0 1 1h1l3 5V6l-3 5H4a1 1 0 0 0-1 1Z\"/><path d=\"M9 6l10-3v17l-10-3\"/><path d=\"M19 10a3 3 0 0 1 0 5\"/></svg>", "gap": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"2\" stroke-dasharray=\"3 2.5\"/><path d=\"M9 12h6M12 9v6\"/></svg>", "info": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v5.5\"/><circle cx=\"12\" cy=\"8\" r=\"0.8\" fill=\"currentColor\" stroke=\"none\"/></svg>", "sparkle": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z\"/><path d=\"M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z\"/></svg>", "close": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "arrowUp": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 19V5M5 12l7-7 7 7\"/></svg>"};
-const D = CQR_DATA;
+let D = null;
 const CH_COLOR = {'Facebook Ads':'#2563eb','Google Ads':'#d97706','In-App Register':'#94a3b8','Organic / Unknown':'#cbd5e1'};
 const MONTH_TH = {'2026-06':'มิถุนายน','2026-05':'พฤษภาคม','2026-04':'เมษายน','2026-03':'มีนาคม','2026-02':'กุมภาพันธ์'};
 const GAME_LABEL = {ALL:'รวม 4 เกม',CBM_TH:'CBM TH',CBM_SEA:'CBM SEA',CBPC_TH:'CBPC TH',CBPC_SEA:'CBPC SEA'};
@@ -520,6 +524,23 @@ const BASE={paper_bgcolor:'#fff',plot_bgcolor:'#fff',font:F,margin:{t:10,r:10,b:
 
 function renderPending(message){
   return `<div class="pending-note">${ICONS.gap}<div style="font-weight:700;color:var(--ink);margin-top:6px;">รอข้อมูล Login รายเดือน</div><div>${message}</div></div>`;
+}
+
+function showDashboardLoading(message){
+  const html = `<div class="data-loading">${message}</div>`;
+  ['overview-grid','ai-summary','channel-tbody','player-type-box','total-retention-box','sm-grid'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = id === 'channel-tbody' ? `<tr><td colspan="7" style="text-align:center;">${message}</td></tr>` : html;
+  });
+}
+
+function showDashboardUnavailable(message){
+  showDashboardLoading(message);
+  ['curve','funnel','dau','heat','pie','ret'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = `<div class="data-loading">${message}</div>`;
+  });
+  ['v-dau','v-wau','v-mau'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='-'; });
 }
 
 function renderMetricRows(items,total){
@@ -594,6 +615,7 @@ function renderMau(game,month){
 }
 
 function syncWeekOptions(){
+  if(!D) return;
   const month = document.getElementById('f-month').value;
   const weekSelect = document.getElementById('f-week');
   const periodType = document.getElementById('f-period-type').value;
@@ -617,6 +639,10 @@ function activePeriod(){
 }
 
 function renderAll(){
+  if(!D){
+    showDashboardLoading('กรุณา Login เพื่อโหลดข้อมูลจากระบบหลังบ้าน');
+    return;
+  }
   const game = document.getElementById('f-game').value;
   const month = document.getElementById('f-month').value;
   const chFilter = document.getElementById('f-channel').value;
@@ -747,7 +773,7 @@ document.querySelectorAll('.chat-chip').forEach(c=>c.addEventListener('click',()
   body.scrollTop=body.scrollHeight;
 }));
 
-renderAll();
+showDashboardLoading('กรุณา Login เพื่อโหลดข้อมูลจากระบบหลังบ้าน');
 </script>
 </body>
 </html>
