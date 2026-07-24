@@ -13,6 +13,7 @@ https://allido-mkt.github.io/cqr-dashboard/
 - `APPS_SCRIPT_SECURE_API.gs` - Apps Script backend example for token verification and secure data response
 - `appsscript.json` - Apps Script manifest with required OAuth scopes
 - `PRODUCTION_RUNBOOK.md` - operating guide for login, data update, deploy, and QA
+- `n8n/CQR_Weekly_Alert_Demo_Workflow.json` - importable n8n demo workflow for weekly alert presentation
 
 ## Current Status
 

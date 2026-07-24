@@ -1,0 +1,328 @@
+{
+  "name": "CQR Weekly Alert Demo",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "id": "weekly-schedule",
+      "name": "Weekly Schedule - Monday 10:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -820,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "data-url",
+              "name": "dataUrl",
+              "type": "string",
+              "value": "https://allido-mkt.github.io/cqr-dashboard/cqr_data_v7.js"
+            },
+            {
+              "id": "dashboard-url",
+              "name": "dashboardUrl",
+              "type": "string",
+              "value": "https://allido-mkt.github.io/cqr-dashboard/"
+            },
+            {
+              "id": "period-key",
+              "name": "periodKey",
+              "type": "string",
+              "value": "2026-06-W5"
+            },
+            {
+              "id": "d14-warning-threshold",
+              "name": "d14WarningThreshold",
+              "type": "number",
+              "value": 15
+            },
+            {
+              "id": "min-register-sample",
+              "name": "minRegisterSample",
+              "type": "number",
+              "value": 30
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-config",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -560,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.dataUrl }}",
+        "responseFormat": "text",
+        "options": {}
+      },
+      "id": "load-dashboard-data",
+      "name": "Load Dashboard Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -300,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Set Config').first().json;\nconst raw = $input.first().json.data || $input.first().json.body || '';\nconst match = String(raw).match(/(?:const|let|var)\\s+CQR_DATA\\s*=\\s*([\\s\\S]*?)\\s*;?\\s*$/);\nif (!match) {\n  throw new Error('Cannot parse CQR_DATA from dashboard data file');\n}\nconst data = JSON.parse(match[1]);\nconst periodKey = config.periodKey;\nconst minRegisterSample = Number(config.minRegisterSample || 30);\nconst d14WarningThreshold = Number(config.d14WarningThreshold || 15);\nconst rows = data.channel_data[`ALL|${periodKey}`] || [];\nconst overview = data.overview_data[`ALL|${periodKey}`] || {};\nconst totalRetention = data.total_user_retention[`ALL|${periodKey}`] || {};\nconst mau = data.total_mau[`ALL|${periodKey}`] || null;\nconst usableRows = rows.filter(row => row.register >= minRegisterSample && row.d14 !== null && row.d14 !== undefined);\nconst sortedByD14 = [...usableRows].sort((a, b) => b.d14 - a.d14);\nconst best = sortedByD14[0] || null;\nconst weakest = sortedByD14[sortedByD14.length - 1] || null;\nconst warnings = [];\nfor (const row of usableRows) {\n  if (row.d14 < d14WarningThreshold) {\n    warnings.push(`${row.channel}: D14 ${row.d14}% ต่ำกว่า threshold ${d14WarningThreshold}%`);\n  }\n  if (row.d1 < 20) {\n    warnings.push(`${row.channel}: D1 ${row.d1}% ต่ำ อาจมีปัญหา install/login flow`);\n  }\n}\nif (!rows.length) warnings.push(`ไม่พบ channel_data สำหรับ ALL|${periodKey}`);\nif (!overview.new_register) warnings.push('Overview data ไม่ครบหรือ Register เป็น 0');\nif (!totalRetention.has_login) warnings.push('Total User Retention ยังไม่มี login data ครบ');\nreturn [{\n  json: {\n    periodKey,\n    dashboardUrl: config.dashboardUrl,\n    newRegister: overview.new_register || 0,\n    paidRegister: overview.paid_register || 0,\n    d1: overview.d1,\n    d3: overview.d3,\n    d7: overview.d7,\n    d14: overview.d14,\n    mau,\n    bestChannel: best ? best.channel : '-',\n    bestD14: best ? best.d14 : null,\n    weakestChannel: weakest ? weakest.channel : '-',\n    weakestD14: weakest ? weakest.d14 : null,\n    totalRetentionD14: totalRetention.d14,\n    totalRetentionD30: totalRetention.d30,\n    warnings,\n    status: warnings.length ? 'WARNING' : 'OK'\n  }\n}];"
+      },
+      "id": "analyze-cqr-data",
+      "name": "Analyze CQR Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst warningText = item.warnings.length ? item.warnings.map((w, i) => `${i + 1}. ${w}`).join('\\n') : 'ไม่พบ warning สำคัญ';\nconst d30Text = item.totalRetentionD30 === null || item.totalRetentionD30 === undefined ? 'รอ buffer D30' : `${item.totalRetentionD30}%`;\nconst message = `CQR Weekly Alert | ${item.periodKey}\\n\\nStatus: ${item.status}\\nRegister: ${Number(item.newRegister).toLocaleString()}\\nPaid Register: ${Number(item.paidRegister).toLocaleString()}\\nNew User Retention: D1 ${item.d1}% | D3 ${item.d3}% | D7 ${item.d7}% | D14 ${item.d14}%\\nTotal User Retention: D14 ${item.totalRetentionD14 ?? '-'}% | D30 ${d30Text}\\nMAU: ${item.mau ? Number(item.mau).toLocaleString() : '-'}\\n\\nBest Channel: ${item.bestChannel} (${item.bestD14 ?? '-'}% D14)\\nWeakest Channel: ${item.weakestChannel} (${item.weakestD14 ?? '-'}% D14)\\n\\nWarnings:\\n${warningText}\\n\\nDashboard: ${item.dashboardUrl}`;\nreturn [{ json: { ...item, alertMessage: message } }];"
+      },
+      "id": "build-alert-message",
+      "name": "Build Alert Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "status-warning",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "WARNING",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-warning",
+      "name": "Has Warning?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "send-to-team",
+              "name": "sendToTeam",
+              "type": "string",
+              "value": "Send this alert to Slack/Email/Discord"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "={{ $json.alertMessage }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "warning-alert-output",
+      "name": "Warning Alert Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        740,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "send-summary",
+              "name": "sendSummary",
+              "type": "string",
+              "value": "Send weekly summary only"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "={{ $json.alertMessage }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "normal-summary-output",
+      "name": "Normal Summary Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        740,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Demo note:\\n- This workflow reads temporary public data from GitHub Pages for presentation.\\n- For production, replace Load Dashboard Data with Google Sheets/Drive behind service credentials or Apps Script.",
+        "height": 180,
+        "width": 320
+      },
+      "id": "demo-note",
+      "name": "Demo / Production Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Schedule - Monday 10:00": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Load Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Dashboard Data": {
+      "main": [
+        [
+          {
+            "node": "Analyze CQR Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze CQR Data": {
+      "main": [
+        [
+          {
+            "node": "Build Alert Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Alert Message": {
+      "main": [
+        [
+          {
+            "node": "Has Warning?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Warning?": {
+      "main": [
+        [
+          {
+            "node": "Warning Alert Output",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normal Summary Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Bangkok"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 2,
+  "updatedAt": "2026-07-24T10:00:00.000Z",
+  "versionId": "cqr-weekly-alert-demo-v1"
+}
