@@ -121,7 +121,7 @@ Cmd + Shift + R
 - Apps Script ต้องเช็ก `aud` ให้ตรงกับ OAuth Client ID
 - Apps Script ต้องส่ง data เฉพาะอีเมลที่ได้รับสิทธิ์
 - Apps Script ต้องรองรับ `callback` แบบ JSONP เพราะ Dashboard อยู่บน GitHub Pages และอาจติด CORS หากใช้ `fetch`
-- Apps Script ต้องมี scopes ใน `appsscript.json`: `script.external_request` สำหรับ verify Google token และ `drive.readonly` สำหรับอ่านไฟล์ data จาก Drive
+- Apps Script ต้องมี scopes ใน `appsscript.json`: `script.external_request` สำหรับ verify Google token และ `drive.readonly` สำหรับอ่านไฟล์ data จาก Drive ผ่าน `DriveApp`
 - ถ้าเคย commit data ลง public repo แล้ว ควรพิจารณาเปลี่ยน repo เป็น private หรือสร้าง repo ใหม่เพื่อตัด public history
 
 ## 10. ข้อควรทำก่อนประกาศใช้จริง

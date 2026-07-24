@@ -77,7 +77,9 @@ function isAllowed_(email) {
 }
 
 function authorizeOnce() {
-  UrlFetchApp.fetch('https://www.googleapis.com');
+  UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=test', {
+    muteHttpExceptions: true
+  });
   DriveApp.getFileById(CONFIG.DATA_FILE_ID).getName();
 }
 
