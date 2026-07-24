@@ -9,6 +9,7 @@ https://allido-mkt.github.io/cqr-dashboard/
 ## Current Files
 
 - `index.html` - production dashboard for GitHub Pages
+- `cqr_data_v7.js` - temporary public dashboard dataset for presentation access
 - `APPS_SCRIPT_SECURE_API.gs` - Apps Script backend example for token verification and secure data response
 - `appsscript.json` - Apps Script manifest with required OAuth scopes
 - `PRODUCTION_RUNBOOK.md` - operating guide for login, data update, deploy, and QA
@@ -20,8 +21,8 @@ https://allido-mkt.github.io/cqr-dashboard/
 - June login data is mapped for all 4 games.
 - GitHub Pages repo is ready for static deploy.
 - Google OAuth login gate is connected on `index.html`.
-- Dashboard data must be loaded from Apps Script after Google token verification.
-- Public data files were removed from the deploy surface.
+- Emergency presentation mode is enabled: dashboard loads `cqr_data_v7.js` directly from GitHub Pages.
+- Revert to Apps Script data loading before using this with sensitive production data.
 
 ## Login Config
 
