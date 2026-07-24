@@ -10,6 +10,7 @@ https://allido-mkt.github.io/cqr-dashboard/
 
 - `index.html` - production dashboard for GitHub Pages
 - `APPS_SCRIPT_SECURE_API.gs` - Apps Script backend example for token verification and secure data response
+- `appsscript.json` - Apps Script manifest with required OAuth scopes
 - `PRODUCTION_RUNBOOK.md` - operating guide for login, data update, deploy, and QA
 
 ## Current Status
