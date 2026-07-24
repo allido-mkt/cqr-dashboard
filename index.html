@@ -379,12 +379,11 @@ td{vertical-align:middle;}
   <div class="chat-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none"/></svg> Preview mode — AI connection pending</div>
 </div>
 
-<script src="cqr_data_v7.js"></script>
 <script>
 const AUTH_CONFIG = {
   clientId: '496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com',
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbznAComgV78zZUi0gbceCAkU7QkFp92ySZU5Z_pH3oHFEVjUaCeE31JJSJt9-9xMhQ0/exec',
-  presentationMode: true,
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyZwor9CRKgKWTf2Zs0rTWHDo3qGniF7swEv1cszTHJ5oAZbKCiMzp_86UGUuiecI-mQQ/exec',
+  presentationMode: false,
   allowedEmails: [
     'bwm.workco@gmail.com',
     'eveningbs@gmail.com',
@@ -414,12 +413,12 @@ function getSavedSession(){
     const saved = JSON.parse(sessionStorage.getItem('cqr_auth') || 'null');
     if(!saved || !saved.email || !saved.exp || saved.exp * 1000 <= Date.now()) return null;
     if(AUTH_CONFIG.presentationMode && !AUTH_CONFIG.allowedEmails.includes(saved.email.toLowerCase())) return null;
-    if(!AUTH_CONFIG.presentationMode && !saved.idToken) return null;
+    if(!AUTH_CONFIG.presentationMode && !saved.sessionToken) return null;
     return saved;
   }catch(e){ return null; }
 }
 
-function unlockDashboard(profile, idToken){
+function unlockDashboard(profile, authToken){
   if(AUTH_CONFIG.presentationMode){
     sessionStorage.setItem('cqr_auth', JSON.stringify({
       email: (profile.email || '').toLowerCase(),
@@ -436,24 +435,26 @@ function unlockDashboard(profile, idToken){
     name: profile.name || profile.email || 'CQR user',
     picture: profile.picture || '',
     exp: profile.exp || Math.floor(Date.now()/1000) + 3600,
-    idToken
+    sessionToken: authToken
   }));
   document.body.classList.remove('auth-locked');
   document.body.classList.add('auth-ready');
-  loadSecureData(idToken);
+  loadSecureData(authToken);
 }
 
-async function verifyWithBackend(idToken, profile){
-  const json = await callAppsScript('verify', idToken);
-  if(json.allowed === false || json.ok === false) throw new Error(json.message || 'บัญชีนี้ยังไม่ได้รับสิทธิ์จากระบบหลังบ้าน');
-  if(json.allowed === true || json.ok === true) return true;
-  throw new Error('Apps Script ตอบกลับไม่ครบ กรุณาเช็ก action=verify');
+async function loginWithBackend(idToken){
+  const json = await callAppsScript('login', {id_token:idToken});
+  if(json.ok === false) throw new Error(json.message || 'Login failed');
+  if(!json.session_token || !json.user) throw new Error('Backend login response ไม่ครบ');
+  return json;
 }
 
-async function loadSecureData(idToken){
+async function loadSecureData(sessionToken){
   showDashboardLoading('กำลังโหลดข้อมูลจากระบบหลังบ้าน...');
   try{
-    const json = await callAppsScript('data', idToken);
+    const month = document.getElementById('f-month')?.value || '';
+    const game = document.getElementById('f-game')?.value || 'ALL';
+    const json = await callAppsScript('dashboard.data', {session_token:sessionToken, period:month, game});
     if(json.ok === false) throw new Error(json.message || 'Data access denied');
     D = json.data || json.CQR_DATA || json;
     renderAll();
@@ -462,7 +463,7 @@ async function loadSecureData(idToken){
   }
 }
 
-function callAppsScript(action, idToken){
+function callAppsScript(action, params){
   return new Promise((resolve, reject)=>{
     const callback = `cqrApi_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script = document.createElement('script');
@@ -486,7 +487,9 @@ function callAppsScript(action, idToken){
       cleanup();
       reject(new Error('เรียก Apps Script ไม่สำเร็จ'));
     };
-    script.src = `${AUTH_CONFIG.appsScriptUrl}?action=${encodeURIComponent(action)}&id_token=${encodeURIComponent(idToken)}&callback=${encodeURIComponent(callback)}&t=${Date.now()}`;
+    const query = new URLSearchParams({action, callback, t:String(Date.now()), user_agent:navigator.userAgent});
+    Object.keys(params || {}).forEach(key => query.set(key, params[key]));
+    script.src = `${AUTH_CONFIG.appsScriptUrl}?${query.toString()}`;
     document.head.appendChild(script);
   });
 }
@@ -507,12 +510,9 @@ async function handleCredentialResponse(response){
     return;
   }
   try{
-    const verified = await verifyWithBackend(response.credential, profile);
-    if(!verified){
-      showAuthError('บัญชีนี้ยังไม่ได้รับสิทธิ์จากระบบหลังบ้าน');
-      return;
-    }
-    unlockDashboard(profile, response.credential);
+    const login = await loginWithBackend(response.credential);
+    const expiresAt = login.expires_at ? Math.floor(new Date(login.expires_at).getTime()/1000) : Math.floor(Date.now()/1000) + 3600;
+    unlockDashboard({email:login.user.email, name:login.user.display_name || login.user.email, exp:expiresAt}, login.session_token);
   }catch(e){
     showAuthError(`ตรวจสอบสิทธิ์กับระบบหลังบ้านไม่สำเร็จ: ${e.message || e}`);
   }
@@ -521,7 +521,7 @@ async function handleCredentialResponse(response){
 function initAuth(){
   const saved = getSavedSession();
   if(saved){
-    unlockDashboard(saved, saved.idToken);
+    unlockDashboard(saved, saved.sessionToken);
     return;
   }
   if(!window.google || !google.accounts || !google.accounts.id){
@@ -554,7 +554,7 @@ function signOutUser(){
 initAuth();
 
 const ICONS = {"userPlus": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"10\" cy=\"8\" r=\"3.2\"/><path d=\"M3.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5\"/><path d=\"M18.5 5.5v6M15.5 8.5h6\"/></svg>", "star": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M12 3.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6L12 3.5Z\"/></svg>", "recall": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3\"/><path d=\"M18 3v4h-4M6 21v-4h4\"/></svg>", "streak": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M3.5 9.5h17\"/><path d=\"M12 12.5c1.8 1 2.4 2.3 1.6 3.6-.5.8-1.6.9-2.1.1-.5.9-.2 2 .8 2.3 1.7.5 3.1-1 2.7-2.7-.3-1.5-1.4-2.6-3-3.3Z\"/></svg>", "megaphone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 11v3a1 1 0 0 0 1 1h1l3 5V6l-3 5H4a1 1 0 0 0-1 1Z\"/><path d=\"M9 6l10-3v17l-10-3\"/><path d=\"M19 10a3 3 0 0 1 0 5\"/></svg>", "gap": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"2\" stroke-dasharray=\"3 2.5\"/><path d=\"M9 12h6M12 9v6\"/></svg>", "info": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v5.5\"/><circle cx=\"12\" cy=\"8\" r=\"0.8\" fill=\"currentColor\" stroke=\"none\"/></svg>", "sparkle": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z\"/><path d=\"M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z\"/></svg>", "close": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "arrowUp": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 19V5M5 12l7-7 7 7\"/></svg>"};
-let D = window.CQR_DATA || CQR_DATA || null;
+let D = window.CQR_DATA || (typeof CQR_DATA !== 'undefined' ? CQR_DATA : null);
 const CH_COLOR = {'Facebook Ads':'#2563eb','Google Ads':'#d97706','In-App Register':'#94a3b8','Organic / Unknown':'#cbd5e1'};
 const MONTH_TH = {'2026-06':'มิถุนายน','2026-05':'พฤษภาคม','2026-04':'เมษายน','2026-03':'มีนาคม','2026-02':'กุมภาพันธ์'};
 const GAME_LABEL = {ALL:'รวม 4 เกม',CBM_TH:'CBM TH',CBM_SEA:'CBM SEA',CBPC_TH:'CBPC TH',CBPC_SEA:'CBPC SEA'};

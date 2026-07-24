@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CQR Admin Panel</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="./cqr-auth-client.js"></script>
+  <style>
+    body{margin:0;font-family:Arial,sans-serif;background:#f6f4f0;color:#14171f}
+    .wrap{max-width:1100px;margin:0 auto;padding:28px}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .brand{font-size:24px;font-weight:800}
+    .card{background:#fff;border:1px solid #eceae6;border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 8px 24px -20px rgba(0,0,0,.35)}
+    .muted{color:#64748b;font-size:13px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    input,select,button{height:38px;border:1px solid #e5e7eb;border-radius:10px;padding:0 10px;font-size:13px}
+    button{background:#14171f;color:#fff;font-weight:700;cursor:pointer}
+    button.secondary{background:#fff;color:#14171f}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{border-bottom:1px solid #f1f0ee;padding:9px;text-align:left}
+    th{font-size:11px;text-transform:uppercase;color:#64748b}
+    .error{display:none;background:#fff1f2;color:#be123c;border:1px solid #fecdd3;border-radius:10px;padding:10px;margin:10px 0;font-size:13px}
+    .ok{display:none;background:#f0fdfa;color:#0f766e;border:1px solid #99f6e4;border-radius:10px;padding:10px;margin:10px 0;font-size:13px}
+    #login{display:flex;justify-content:center;padding:30px}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;gap:12px;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="brand">CQR Admin Panel</div>
+        <div class="muted">Manage users, roles, and access for CQR Dashboard</div>
+      </div>
+      <button class="secondary" onclick="logout()">Sign out</button>
+    </div>
+
+    <div class="card" id="loginCard">
+      <div class="muted" style="text-align:center;margin-bottom:12px;">Sign in with admin Google account</div>
+      <div id="login"></div>
+      <div class="error" id="loginError"></div>
+    </div>
+
+    <div id="adminApp" style="display:none;">
+      <div class="card">
+        <b id="userInfo">Admin</b>
+        <div class="muted">Only users with <code>users.manage</code> permission can update access.</div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;">Add / Update User</h3>
+        <div class="grid">
+          <input id="email" placeholder="email@example.com">
+          <input id="displayName" placeholder="Display name">
+          <select id="role">
+            <option value="viewer">viewer</option>
+            <option value="analyst">analyst</option>
+            <option value="manager">manager</option>
+            <option value="admin">admin</option>
+            <option value="super_admin">super_admin</option>
+            <option value="guest">guest</option>
+          </select>
+          <select id="status">
+            <option value="active">active</option>
+            <option value="disabled">disabled</option>
+            <option value="pending">pending</option>
+          </select>
+          <input id="allowedGames" placeholder="ALL or CBM_TH,CBM_SEA" value="ALL">
+          <input id="allowedRegions" placeholder="ALL or TH,SEA" value="ALL">
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button onclick="saveUser()">Save User</button>
+          <button class="secondary" onclick="loadUsers()">Refresh</button>
+        </div>
+        <div class="ok" id="okBox"></div>
+        <div class="error" id="errorBox"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;">Users</h3>
+        <div style="overflow:auto;">
+          <table>
+            <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Games</th><th>Last Login</th></tr></thead>
+            <tbody id="userRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CONFIG = {
+      clientId: '496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com',
+      backendUrl: 'https://script.google.com/macros/s/AKfycbyZwor9CRKgKWTf2Zs0rTWHDo3qGniF7swEv1cszTHJ5oAZbKCiMzp_86UGUuiecI-mQQ/exec'
+    };
+
+    CQRAuth.init({
+      clientId: CONFIG.clientId,
+      backendUrl: CONFIG.backendUrl,
+      buttonEl: document.getElementById('login'),
+      onLogin: (user) => {
+        document.getElementById('loginCard').style.display = 'none';
+        document.getElementById('adminApp').style.display = 'block';
+        document.getElementById('userInfo').textContent = `${user.display_name || user.email} · ${user.role_id}`;
+        loadUsers();
+      },
+      onLogout: () => location.reload(),
+      onSessionExpired: () => showLoginError('Session expired. Please login again.'),
+      onError: showLoginError
+    });
+
+    function sessionToken(){
+      const s = CQRAuth.getSession();
+      return s ? s.session_token : '';
+    }
+
+    async function loadUsers(){
+      try{
+        const result = await CQRAuth.callBackend('admin.users.list', { session_token: sessionToken() });
+        if(!result.ok) throw new Error(result.message || 'Cannot load users');
+        document.getElementById('userRows').innerHTML = result.users.map(u => `
+          <tr onclick="fillUser('${u.email}','${u.display_name || ''}','${u.role_id}','${u.status}','${u.allowed_games || 'ALL'}','${u.allowed_regions || 'ALL'}')">
+            <td>${u.email}</td><td>${u.display_name || ''}</td><td>${u.role_id}</td><td>${u.status}</td><td>${u.allowed_games || ''}</td><td>${u.last_login_at || ''}</td>
+          </tr>
+        `).join('');
+      }catch(err){ showError(err.message || String(err)); }
+    }
+
+    async function saveUser(){
+      try{
+        const result = await CQRAuth.callBackend('admin.users.upsert', {
+          session_token: sessionToken(),
+          email: document.getElementById('email').value,
+          display_name: document.getElementById('displayName').value,
+          role_id: document.getElementById('role').value,
+          status: document.getElementById('status').value,
+          allowed_games: document.getElementById('allowedGames').value,
+          allowed_regions: document.getElementById('allowedRegions').value
+        });
+        if(!result.ok) throw new Error(result.message || 'Cannot save user');
+        showOk('Saved');
+        loadUsers();
+      }catch(err){ showError(err.message || String(err)); }
+    }
+
+    function fillUser(email, name, role, status, games, regions){
+      document.getElementById('email').value = email;
+      document.getElementById('displayName').value = name;
+      document.getElementById('role').value = role;
+      document.getElementById('status').value = status;
+      document.getElementById('allowedGames').value = games;
+      document.getElementById('allowedRegions').value = regions;
+    }
+
+    function logout(){ CQRAuth.logout(); }
+    function showLoginError(msg){ const el=document.getElementById('loginError'); el.textContent=msg; el.style.display='block'; }
+    function showError(msg){ const el=document.getElementById('errorBox'); el.textContent=msg; el.style.display='block'; document.getElementById('okBox').style.display='none'; }
+    function showOk(msg){ const el=document.getElementById('okBox'); el.textContent=msg; el.style.display='block'; document.getElementById('errorBox').style.display='none'; }
+  </script>
+</body>
+</html>
