@@ -383,7 +383,8 @@ td{vertical-align:middle;}
 <script>
 const AUTH_CONFIG = {
   clientId: '496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com',
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbznAComgV78zZUi0gbceCAkU7QkFp92ySZU5Z_pH3oHFEVjUaCeE31JJSJt9-9xMhQ0/exec'
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbznAComgV78zZUi0gbceCAkU7QkFp92ySZU5Z_pH3oHFEVjUaCeE31JJSJt9-9xMhQ0/exec',
+  presentationMode: true
 };
 
 function decodeJwtPayload(token){
@@ -410,6 +411,11 @@ function getSavedSession(){
 }
 
 function unlockDashboard(profile, idToken){
+  if(AUTH_CONFIG.presentationMode){
+    document.body.classList.remove('auth-locked');
+    document.body.classList.add('auth-ready');
+    return;
+  }
   sessionStorage.setItem('cqr_auth', JSON.stringify({
     email: (profile.email || '').toLowerCase(),
     name: profile.name || profile.email || 'CQR user',
@@ -490,6 +496,12 @@ async function handleCredentialResponse(response){
 }
 
 function initAuth(){
+  if(AUTH_CONFIG.presentationMode){
+    sessionStorage.removeItem('cqr_auth');
+    document.body.classList.remove('auth-locked');
+    document.body.classList.add('auth-ready');
+    return;
+  }
   const saved = getSavedSession();
   if(saved){
     unlockDashboard(saved, saved.idToken);
