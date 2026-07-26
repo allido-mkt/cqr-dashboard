@@ -132,6 +132,8 @@ td{padding:8px 5px;border-bottom:1px solid #f4f2ef;text-align:right;vertical-ali
 .chat-body{padding:16px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;background:#fbfaf9;}
 .chat-msg{font-size:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;line-height:1.6;
  box-shadow:0 1px 2px rgba(20,23,31,.03);}
+.chat-msg.user{align-self:flex-end;background:var(--accent-bg);border-color:#c7d2fe;max-width:85%;}
+.chat-msg.assistant{align-self:flex-start;max-width:92%;}
 .chat-suggest{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;}
 .chat-chip{font-size:10.5px;padding:6px 11px;border-radius:99px;background:#fff;border:1px solid var(--line);
  color:var(--accent2);cursor:pointer;font-weight:600;transition:.15s;}
@@ -143,6 +145,7 @@ td{padding:8px 5px;border-bottom:1px solid #f4f2ef;text-align:right;vertical-ali
 .chat-send-btn{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#1e1b4b,#4338ca);
  color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;transition:.15s;}
 .chat-send-btn:hover{opacity:.88;}
+.chat-send-btn:disabled,.chat-foot input:disabled{opacity:.55;cursor:not-allowed;}
 .chat-send-btn svg{width:16px;height:16px;}
 .chat-note{font-size:9.5px;color:var(--sub);padding:0 14px 12px;background:#fff;display:flex;gap:5px;align-items:center;}
 .chat-note svg{width:12px;height:12px;flex-shrink:0;}
@@ -200,6 +203,8 @@ td{vertical-align:middle;}
 .chat-head .close{color:var(--sub);opacity:1;}
 .chat-body{background:#fff;padding:14px;}
 .chat-msg{border-color:#eef0f2;border-radius:12px;background:#fbfaf8;box-shadow:none;}
+.chat-msg.user{background:#eef2ff;border-color:#c7d2fe;}
+.chat-msg.assistant{background:#fbfaf8;}
 .chat-chip{border-color:#fed7aa;color:#7c2d12;background:#fffaf0;border-radius:10px;padding:7px 10px;}
 .chat-chip:hover{background:#ffedd5;border-color:#fdba74;transform:none;box-shadow:none;}
 .chat-foot{border-top:1px solid #eef0f2;background:#fff;padding:12px 14px;}
@@ -374,9 +379,9 @@ td{vertical-align:middle;}
       <span class="chat-chip">เทียบ Monthly / Weekly</span>
     </div>
   </div>
-  <div class="chat-foot"><input placeholder="Ask about this dashboard..." disabled>
-    <button class="chat-send-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
-  <div class="chat-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none"/></svg> Preview mode — AI connection pending</div>
+  <div class="chat-foot"><input id="aiAskInput" placeholder="Ask about this dashboard..." maxlength="500">
+    <button id="aiAskSend" class="chat-send-btn" type="button" onclick="sendAiAsk()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+  <div class="chat-note" id="aiAskNote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none"/></svg><span>Connected via n8n · cache-only mode</span></div>
 </div>
 
 <script>
@@ -562,6 +567,88 @@ const GAME_LABEL = {ALL:'รวม 4 เกม',CBM_TH:'CBM TH',CBM_SEA:'CBM SEA
 function toggleChat(){
   const p=document.getElementById('chatPanel'), f=document.getElementById('fab');
   p.classList.toggle('open'); f.classList.toggle('hidden', p.classList.contains('open'));
+}
+
+function getAiAskFilters(){
+  const channel = document.getElementById('f-channel')?.value || 'all';
+  const periodType = document.getElementById('f-period-type')?.value || 'month';
+  return {
+    game: document.getElementById('f-game')?.value || 'ALL',
+    channel: channel === 'all' ? 'ALL' : channel,
+    period: activePeriod().key || document.getElementById('f-month')?.value || '2026-06',
+    view: periodType === 'week' ? 'weekly' : 'monthly'
+  };
+}
+
+function appendAiMessage(text, role){
+  const body = document.querySelector('#chatPanel .chat-body');
+  if(!body) return;
+  const msg = document.createElement('div');
+  msg.className = role === 'user' ? 'chat-msg user' : 'chat-msg assistant';
+  msg.textContent = text;
+  body.appendChild(msg);
+  body.scrollTop = body.scrollHeight;
+}
+
+function setAiAskBusy(isBusy){
+  const input = document.getElementById('aiAskInput');
+  const send = document.getElementById('aiAskSend');
+  const note = document.querySelector('#aiAskNote span');
+  if(input) input.disabled = isBusy;
+  if(send) send.disabled = isBusy;
+  if(note) note.textContent = isBusy ? 'n8n is reading AISummaryCache...' : 'Connected via n8n · cache-only mode';
+}
+
+async function sendAiAsk(questionOverride){
+  const input = document.getElementById('aiAskInput');
+  const question = String(questionOverride || input?.value || '').trim();
+  if(!question) return;
+
+  const session = getSavedSession();
+  if(!session || !session.sessionToken){
+    appendAiMessage('กรุณา Sign in ก่อนใช้ AI Ask Box', 'assistant');
+    return;
+  }
+
+  if(input) input.value = '';
+  appendAiMessage(question, 'user');
+  setAiAskBusy(true);
+
+  try{
+    const filters = getAiAskFilters();
+    const json = await callAppsScript('ai.ask', {
+      session_token: session.sessionToken,
+      question,
+      game: filters.game,
+      channel: filters.channel,
+      period: filters.period,
+      view: filters.view,
+      ai_mode: 'cache_only',
+      dashboard_state: JSON.stringify(filters)
+    });
+    if(json.ok === false) throw new Error(json.message || 'AI Ask failed');
+    appendAiMessage(json.answer || 'ยังไม่มีคำตอบจาก AI Ask Box', 'assistant');
+  }catch(error){
+    appendAiMessage(`AI Ask Box ยังตอบไม่ได้: ${error.message || error}`, 'assistant');
+  }finally{
+    setAiAskBusy(false);
+  }
+}
+
+function initAiAskBox(){
+  const input = document.getElementById('aiAskInput');
+  if(input){
+    input.disabled = false;
+    input.addEventListener('keydown', event => {
+      if(event.key === 'Enter' && !event.shiftKey){
+        event.preventDefault();
+        sendAiAsk();
+      }
+    });
+  }
+  document.querySelectorAll('#chatPanel .chat-chip').forEach(chip => {
+    chip.addEventListener('click', () => sendAiAsk(chip.textContent || ''));
+  });
 }
 
 function loadPlotly(cb,i){
@@ -821,12 +908,7 @@ function renderAll(){
   }).join('');
 }
 
-document.querySelectorAll('.chat-chip').forEach(c=>c.addEventListener('click',()=>{
-  const body=document.querySelector('.chat-body');
-  body.insertAdjacentHTML('beforeend',`<div class="chat-msg" style="background:var(--accent-bg);border-color:#c7d2fe;align-self:flex-end;max-width:85%;">${c.textContent}</div>
-    <div class="chat-msg" style="color:var(--sub);font-style:italic;">ระบบยังไม่เชื่อมต่อ AI จริง (รอต่อ Gemini 2.5)</div>`);
-  body.scrollTop=body.scrollHeight;
-}));
+initAiAskBox();
 
 renderAll();
 </script>
