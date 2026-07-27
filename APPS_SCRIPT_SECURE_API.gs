@@ -64,6 +64,14 @@ function doGet(e) {
       return handleAiAsk_(e, callback);
     }
 
+    if (action === 'admin.users.list') {
+      return handleAdminUsersList_(e, callback);
+    }
+
+    if (action === 'admin.users.upsert') {
+      return handleAdminUsersUpsert_(e, callback);
+    }
+
     if (action === 'verify') {
       const profile = requireAllowedProfile_(e.parameter.id_token);
       return json_({ ok: true, allowed: true, email: profile.email, name: profile.name || '' }, callback);
@@ -107,7 +115,9 @@ function requireAllowedProfile_(idToken) {
 }
 
 function isAllowed_(email) {
-  return CONFIG.ALLOWED_EMAILS.map(String).map(v => v.toLowerCase()).includes(String(email || '').toLowerCase());
+  const normalized = String(email || '').toLowerCase();
+  if (CONFIG.ALLOWED_EMAILS.map(String).map(v => v.toLowerCase()).includes(normalized)) return true;
+  return readAdminUsers_().some(user => String(user.email || '').toLowerCase() === normalized && user.status === 'active');
 }
 
 function authorizeOnce() {
@@ -146,9 +156,79 @@ function createSession_(profile) {
 
 function roleForEmail_(email) {
   const normalized = String(email || '').toLowerCase();
+  if (CONFIG.SUPER_ADMIN_EMAILS.map(String).map(e => e.toLowerCase()).includes(normalized)) return 'super_admin';
+  const user = readAdminUsers_().find(item => String(item.email || '').toLowerCase() === normalized);
+  return user ? String(user.role_id || 'viewer') : 'viewer';
+}
+
+function requireSuperAdmin_(session) {
+  if (roleForEmail_(session.email) !== 'super_admin') {
+    throw new Error('Only super_admin can manage users.');
+  }
+}
+
+function readAdminUsers_() {
+  const props = PropertiesService.getScriptProperties();
+  const text = props.getProperty('CQR_ADMIN_USERS_JSON');
+  if (text) {
+    return safeJsonParse_(text, []);
+  }
+  return CONFIG.ALLOWED_EMAILS.map(email => ({
+    email: String(email).toLowerCase(),
+    display_name: '',
+    role_id: roleForSeedEmail_(email),
+    status: 'active',
+    allowed_games: 'ALL',
+    allowed_regions: 'ALL',
+    last_login_at: ''
+  }));
+}
+
+function writeAdminUsers_(users) {
+  PropertiesService.getScriptProperties().setProperty('CQR_ADMIN_USERS_JSON', JSON.stringify(users || []));
+}
+
+function roleForSeedEmail_(email) {
+  const normalized = String(email || '').toLowerCase();
   return CONFIG.SUPER_ADMIN_EMAILS.map(String).map(e => e.toLowerCase()).includes(normalized)
     ? 'super_admin'
     : 'viewer';
+}
+
+function handleAdminUsersList_(e, callback) {
+  const session = validateSession_(e.parameter.session_token);
+  requireSuperAdmin_(session);
+  const users = readAdminUsers_().sort((a, b) => String(a.email).localeCompare(String(b.email)));
+  return json_({ ok: true, users }, callback);
+}
+
+function handleAdminUsersUpsert_(e, callback) {
+  const session = validateSession_(e.parameter.session_token);
+  requireSuperAdmin_(session);
+
+  const email = String(e.parameter.email || '').trim().toLowerCase();
+  if (!email || !email.includes('@')) throw new Error('Valid email is required.');
+
+  const nextUser = {
+    email,
+    display_name: String(e.parameter.display_name || '').trim(),
+    role_id: String(e.parameter.role_id || 'viewer').trim(),
+    status: String(e.parameter.status || 'active').trim(),
+    allowed_games: String(e.parameter.allowed_games || 'ALL').trim(),
+    allowed_regions: String(e.parameter.allowed_regions || 'ALL').trim(),
+    last_login_at: ''
+  };
+
+  const users = readAdminUsers_();
+  const index = users.findIndex(user => String(user.email || '').toLowerCase() === email);
+  if (index >= 0) {
+    nextUser.last_login_at = users[index].last_login_at || '';
+    users[index] = Object.assign({}, users[index], nextUser);
+  } else {
+    users.push(nextUser);
+  }
+  writeAdminUsers_(users);
+  return json_({ ok: true, user: nextUser, users }, callback);
 }
 
 function validateSession_(sessionToken) {

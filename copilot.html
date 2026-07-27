@@ -79,7 +79,7 @@ button,input,select,textarea{font-family:'Sarabun',sans-serif}
 .question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .ask-chip{border:1px solid #fed7aa;background:#fffaf0;color:#7c2d12;border-radius:12px;padding:10px 11px;font-size:11.5px;font-weight:800;cursor:pointer;text-align:left;line-height:1.35}
 .ask-chip small{display:block;color:#9a3412;font-size:10px;font-weight:700;margin-top:3px;line-height:1.35}
-.admin-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px}
+.admin-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,380px);gap:16px;align-items:start}
 .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .form-grid input,.form-grid select{height:40px;border:1px solid var(--line);border-radius:10px;background:#fbfaf8;padding:0 10px;font-size:12px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -90,10 +90,13 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--sub)
 tbody tr{cursor:pointer}
 tbody tr:hover{background:#fbfaf8}
 .role-pill{display:inline-flex;border-radius:999px;padding:3px 8px;background:#eef2ff;color:#3730a3;font-size:11px;font-weight:800}
-.system-lines{display:grid;gap:10px;margin-top:10px}
-.system-line{display:grid;grid-template-columns:92px 1fr;gap:10px;font-size:12px;line-height:1.45}
+.widget{padding:18px}
+.widget h3{font-size:16px;line-height:1.2;margin:0 0 6px}
+.widget p{font-size:11.5px;color:var(--sub);line-height:1.55;margin:0}
+.system-lines{display:grid;gap:0;margin-top:14px;border-top:1px solid #f1f0ee}
+.system-line{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;font-size:11.5px;line-height:1.45;padding:10px 0;border-bottom:1px solid #f6f4f0}
 .system-line span{color:var(--sub)}
-.system-line b{word-break:break-word}
+.system-line b{word-break:break-word;overflow-wrap:anywhere;font-size:11.5px}
 @media(max-width:1040px){
  .ai-layout,.admin-layout{grid-template-columns:1fr}
  .filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -587,8 +590,15 @@ async function loadUsers(){
   try{
     const result = await callAppsScript('admin.users.list', { session_token: session.sessionToken });
     if(!result.ok) throw new Error(result.message || 'Cannot load users');
-    const users = result.users || [];
-    document.getElementById('userRows').innerHTML = users.length ? users.map(u => `
+    if(!Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.list กรุณาอัปเดต Apps Script production');
+    renderUsers(result.users || []);
+  }catch(err){
+    showError(err.message || String(err));
+  }
+}
+
+function renderUsers(users){
+  document.getElementById('userRows').innerHTML = users.length ? users.map(u => `
       <tr data-user='${escapeAttr(JSON.stringify(u))}'>
         <td>${escapeHtml(u.email)}</td>
         <td>${escapeHtml(u.display_name || '')}</td>
@@ -598,15 +608,12 @@ async function loadUsers(){
         <td>${escapeHtml(u.last_login_at || '')}</td>
       </tr>
     `).join('') : '<tr><td colspan="6">ยังไม่มีข้อมูลผู้ใช้</td></tr>';
-    document.querySelectorAll('#userRows tr[data-user]').forEach(row => {
-      row.addEventListener('click', () => {
-        const user = JSON.parse(row.getAttribute('data-user') || '{}');
-        fillUser(user.email || '', user.display_name || '', user.role_id || 'viewer', user.status || 'active', user.allowed_games || 'ALL', user.allowed_regions || 'ALL');
-      });
+  document.querySelectorAll('#userRows tr[data-user]').forEach(row => {
+    row.addEventListener('click', () => {
+      const user = JSON.parse(row.getAttribute('data-user') || '{}');
+      fillUser(user.email || '', user.display_name || '', user.role_id || 'viewer', user.status || 'active', user.allowed_games || 'ALL', user.allowed_regions || 'ALL');
     });
-  }catch(err){
-    showError(err.message || String(err));
-  }
+  });
 }
 
 async function saveUser(){
@@ -626,8 +633,10 @@ async function saveUser(){
       allowed_regions: document.getElementById('allowedRegions').value.trim()
     });
     if(!result.ok) throw new Error(result.message || 'Cannot save user');
-    showOk('Saved user');
-    loadUsers();
+    if(!result.user && !Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.upsert กรุณาอัปเดต Apps Script production');
+    showOk(`Saved user · ${result.users?.length || 0} users total`);
+    if(result.users) renderUsers(result.users);
+    else loadUsers();
   }catch(err){
     showError(err.message || String(err));
   }
