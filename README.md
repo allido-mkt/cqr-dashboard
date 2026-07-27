@@ -1,6 +1,6 @@
 # CQR Dashboard
 
-Production repo for **Cabal Retention & Channel Quality — Unified Performance Dashboard**.
+Production repo for **CQR Channel Quality Report — Unified Performance Dashboard**.
 
 ## Production URL
 

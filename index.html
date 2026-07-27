@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CQR - Channel Quality Report</title>
+<title>CQR Channel Quality Report</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -31,6 +31,9 @@ header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid 
 .auth-logout{display:none;height:36px;border:1px solid #fed7aa;background:#fff7ed;color:#7c2d12;border-radius:10px;padding:0 12px;font-family:'Sarabun';font-size:11.5px;font-weight:800;cursor:pointer;}
 .auth-ready .auth-logout{display:inline-flex;align-items:center;gap:6px;}
 .auth-logout:hover{background:#ffedd5;}
+.admin-panel-link{display:none;height:36px;border:1px solid #99f6e4;background:#f0fdfa;color:#115e59;border-radius:10px;padding:0 12px;font-family:'Sarabun';font-size:11.5px;font-weight:800;text-decoration:none;align-items:center;gap:6px;}
+.auth-ready.super-admin .admin-panel-link{display:inline-flex;}
+.admin-panel-link:hover{background:#ccfbf1;}
 
 .wrap{max-width:1360px;margin:0 auto;padding:20px 22px 100px;}
 .grid{display:grid;gap:16px;align-items:stretch;}
@@ -232,7 +235,7 @@ td{vertical-align:middle;}
 <div class="auth-screen" id="authScreen">
   <div class="auth-card">
     <div class="auth-badge">CQR</div>
-    <h1 class="auth-title">Cabal Retention &amp; Channel Quality</h1>
+    <h1 class="auth-title">CQR Channel Quality Report</h1>
     <div class="auth-sub">Sign in with the approved Google account to open the production dashboard.</div>
     <div id="googleSignIn" class="auth-google"></div>
     <div id="authError" class="auth-error"></div>
@@ -242,7 +245,7 @@ td{vertical-align:middle;}
 
 <header>
   <div class="hbar">
-    <div class="brand-title"><div class="brand-mark">CQR</div><div class="brand-copy"><div class="brand-main">Cabal Retention <span>&amp;</span> Channel Quality</div><div class="brand-sub">Unified Performance Dashboard</div></div></div>
+    <div class="brand-title"><div class="brand-mark">CQR</div><div class="brand-copy"><div class="brand-main">CQR Channel Quality Report</div><div class="brand-sub">Unified Performance Dashboard</div></div></div>
     <div class="hfilters">
       <select id="f-game" onchange="renderAll()">
         <option value="ALL" selected>ทุกเกม (รวม 4 เกม)</option>
@@ -264,6 +267,7 @@ td{vertical-align:middle;}
         <option value="week">Weekly View</option>
       </select>
       <select id="f-week" class="period-hidden" onchange="renderAll()"></select>
+      <a class="admin-panel-link" id="adminPanelLink" href="copilot.html?panel=admin">Admin Panel</a>
       <button class="auth-logout" id="authLogout" type="button" onclick="signOutUser()">Sign out</button>
     </div>
   </div>
@@ -364,11 +368,11 @@ td{vertical-align:middle;}
   </div>
 </div>
 
-<div class="fab" id="fab" onclick="toggleChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z"/></svg><span>AI Ask Box</span></div>
+<div class="fab" id="fab" onclick="openAiChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z"/></svg><span>AI CHAT</span></div>
 <div class="chat-panel" id="chatPanel">
   <div class="chat-head">
     <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z"/></svg></div>
-    <div class="txt"><div class="t1">AI Ask Box</div><div class="t2">Quick dashboard questions</div></div>
+    <div class="txt"><div class="t1">AI CHAT</div><div class="t2">Quick dashboard questions</div></div>
     <div class="close" onclick="toggleChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
   </div>
   <div class="chat-body">
@@ -423,27 +427,42 @@ function getSavedSession(){
   }catch(e){ return null; }
 }
 
+function isSuperAdminSession(session){
+  return String(session?.role_id || session?.role || '').toLowerCase() === 'super_admin' || session?.is_super_admin === true;
+}
+
+function updateAdminPanelAccess(session){
+  document.body.classList.toggle('super-admin', isSuperAdminSession(session));
+}
+
 function unlockDashboard(profile, authToken){
   if(AUTH_CONFIG.presentationMode){
-    sessionStorage.setItem('cqr_auth', JSON.stringify({
+    const previewSession = {
       email: (profile.email || '').toLowerCase(),
       name: profile.name || profile.email || 'CQR user',
       picture: profile.picture || '',
       exp: profile.exp || Math.floor(Date.now()/1000) + 3600
-    }));
+    };
+    sessionStorage.setItem('cqr_auth', JSON.stringify(previewSession));
     document.body.classList.remove('auth-locked');
     document.body.classList.add('auth-ready');
+    updateAdminPanelAccess(previewSession);
     return;
   }
-  sessionStorage.setItem('cqr_auth', JSON.stringify({
+  const session = {
     email: (profile.email || '').toLowerCase(),
     name: profile.name || profile.email || 'CQR user',
     picture: profile.picture || '',
     exp: profile.exp || Math.floor(Date.now()/1000) + 3600,
-    sessionToken: authToken
-  }));
+    sessionToken: authToken,
+    role_id: profile.role_id || profile.role || '',
+    role: profile.role || profile.role_id || '',
+    is_super_admin: profile.is_super_admin === true
+  };
+  sessionStorage.setItem('cqr_auth', JSON.stringify(session));
   document.body.classList.remove('auth-locked');
   document.body.classList.add('auth-ready');
+  updateAdminPanelAccess(session);
   loadSecureData(authToken);
 }
 
@@ -517,7 +536,14 @@ async function handleCredentialResponse(response){
   try{
     const login = await loginWithBackend(response.credential);
     const expiresAt = login.expires_at ? Math.floor(new Date(login.expires_at).getTime()/1000) : Math.floor(Date.now()/1000) + 3600;
-    unlockDashboard({email:login.user.email, name:login.user.display_name || login.user.email, exp:expiresAt}, login.session_token);
+    unlockDashboard({
+      email: login.user.email,
+      name: login.user.display_name || login.user.email,
+      exp: expiresAt,
+      role_id: login.user.role_id || login.user.role || '',
+      role: login.user.role || login.user.role_id || '',
+      is_super_admin: login.user.is_super_admin === true
+    }, login.session_token);
   }catch(e){
     showAuthError(`ตรวจสอบสิทธิ์กับระบบหลังบ้านไม่สำเร็จ: ${e.message || e}`);
   }
@@ -552,6 +578,7 @@ function signOutUser(){
   sessionStorage.removeItem('cqr_auth');
   document.body.classList.add('auth-locked');
   document.body.classList.remove('auth-ready');
+  document.body.classList.remove('super-admin');
   if(window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
   initAuth();
 }
@@ -567,6 +594,12 @@ const GAME_LABEL = {ALL:'รวม 4 เกม',CBM_TH:'CBM TH',CBM_SEA:'CBM SEA
 function toggleChat(){
   const p=document.getElementById('chatPanel'), f=document.getElementById('fab');
   p.classList.toggle('open'); f.classList.toggle('hidden', p.classList.contains('open'));
+}
+
+function openAiChat(){
+  const filters = getAiAskFilters();
+  const query = new URLSearchParams(filters);
+  window.location.href = `copilot.html?${query.toString()}`;
 }
 
 function getAiAskFilters(){
@@ -606,7 +639,7 @@ async function sendAiAsk(questionOverride){
 
   const session = getSavedSession();
   if(!session || !session.sessionToken){
-    appendAiMessage('กรุณา Sign in ก่อนใช้ AI Ask Box', 'assistant');
+    appendAiMessage('กรุณา Sign in ก่อนใช้ AI CHAT', 'assistant');
     return;
   }
 
@@ -626,10 +659,10 @@ async function sendAiAsk(questionOverride){
       ai_mode: 'gemini',
       dashboard_state: JSON.stringify(filters)
     });
-    if(json.ok === false) throw new Error(json.message || 'AI Ask failed');
-    appendAiMessage(json.answer || 'ยังไม่มีคำตอบจาก AI Ask Box', 'assistant');
+    if(json.ok === false) throw new Error(json.message || 'AI CHAT failed');
+    appendAiMessage(json.answer || 'ยังไม่มีคำตอบจาก AI CHAT', 'assistant');
   }catch(error){
-    appendAiMessage(`AI Ask Box ยังตอบไม่ได้: ${error.message || error}`, 'assistant');
+    appendAiMessage(`AI CHAT ยังตอบไม่ได้: ${error.message || error}`, 'assistant');
   }finally{
     setAiAskBusy(false);
   }

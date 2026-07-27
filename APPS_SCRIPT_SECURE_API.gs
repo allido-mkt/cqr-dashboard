@@ -21,6 +21,9 @@ const CONFIG = {
     'mkt.performance.center@gmail.com',
     'tipchareon.t@gmail.com'
   ],
+  SUPER_ADMIN_EMAILS: [
+    'bwm.workco@gmail.com'
+  ],
 
   // Put the private Google Drive file ID that stores the dashboard data.
   // The file can contain either:
@@ -44,7 +47,9 @@ function doGet(e) {
         expires_at: session.expires_at,
         user: {
           email: profile.email,
-          display_name: profile.name || profile.email
+          display_name: profile.name || profile.email,
+          role_id: roleForEmail_(profile.email),
+          is_super_admin: roleForEmail_(profile.email) === 'super_admin'
         }
       }, callback);
     }
@@ -129,6 +134,7 @@ function createSession_(profile) {
   CacheService.getScriptCache().put('session:' + token, JSON.stringify({
     email: profile.email,
     name: profile.name || profile.email,
+    role_id: roleForEmail_(profile.email),
     created_at: now.toISOString(),
     expires_at: expiresAt.toISOString()
   }), CONFIG.SESSION_TTL_SECONDS);
@@ -136,6 +142,13 @@ function createSession_(profile) {
     session_token: token,
     expires_at: expiresAt.toISOString()
   };
+}
+
+function roleForEmail_(email) {
+  const normalized = String(email || '').toLowerCase();
+  return CONFIG.SUPER_ADMIN_EMAILS.map(String).map(e => e.toLowerCase()).includes(normalized)
+    ? 'super_admin'
+    : 'viewer';
 }
 
 function validateSession_(sessionToken) {

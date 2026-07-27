@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CQR Channel Quality Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+ --ink:#151922;--sub:#667085;--muted:#98a2b3;--line:#e7e3dc;--bg:#f7f4ef;--paper:#fff;
+ --teal:#0f766e;--teal-2:#14b8a6;--teal-bg:#ecfdf5;--amber:#d97706;--amber-bg:#fffbeb;
+ --rose:#be123c;--rose-bg:#fff1f2;--blue:#2563eb;--blue-bg:#eff6ff;--slate:#334155;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Sarabun',sans-serif;background:#f7f4ef;color:var(--ink);min-height:100vh}
+button,input,select,textarea{font-family:'Sarabun',sans-serif}
+.num{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums}
+.auth-screen{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#fffaf0,#ecfdf5)}
+.auth-ready .auth-screen{display:none}
+.auth-card{width:min(440px,100%);background:rgba(255,255,255,.94);border:1px solid #fed7aa;border-radius:18px;padding:28px;text-align:center;box-shadow:0 30px 90px -46px rgba(124,45,18,.9)}
+.auth-badge,.brand-mark{background:#14171f;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:800}
+.auth-badge{width:48px;height:48px;border-radius:16px;margin:0 auto 14px}
+.auth-card h1{font-size:24px;line-height:1.15;margin:0 0 8px}
+.auth-card p{font-size:12px;line-height:1.65;color:var(--sub);margin:0 auto 18px;max-width:340px}
+.auth-google{display:flex;justify-content:center;min-height:44px}
+.preview-btn{display:none;margin:12px auto 0;height:42px;border:1px solid #99f6e4;background:#f0fdfa;color:#115e59;border-radius:999px;padding:0 18px;font-size:13px;font-weight:800;cursor:pointer}
+.local-preview .preview-btn{display:inline-flex;align-items:center;justify-content:center}
+.notice{display:none;border-radius:12px;padding:10px 12px;margin-top:12px;font-size:12px;line-height:1.55}
+.notice.error{border:1px solid #fecdd3;background:var(--rose-bg);color:var(--rose)}
+.notice.ok{border:1px solid #99f6e4;background:var(--teal-bg);color:var(--teal)}
+.shell{max-width:1360px;margin:0 auto;padding:0 22px 42px}
+.topbar{position:sticky;top:0;z-index:10;min-height:68px;display:flex;align-items:center;gap:16px;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line);background:rgba(247,244,239,.92);backdrop-filter:blur(10px)}
+.brand{display:flex;align-items:center;gap:12px;min-width:260px}
+.brand-mark{width:38px;height:38px;border-radius:13px;font-size:13px}
+.brand-title{font-size:20px;font-weight:800;line-height:1.05}
+.brand-title span{color:var(--teal)}
+.brand-sub{font-size:10.5px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:3px}
+.top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pill-link,.ghost-btn,.solid-btn{height:38px;border-radius:11px;padding:0 13px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12px;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+.pill-link.primary{border-color:#99f6e4;background:#f0fdfa;color:#115e59}
+.solid-btn{background:#14171f;color:#fff;border-color:#14171f}
+.ghost-btn.warn{background:#fff7ed;border-color:#fed7aa;color:#7c2d12}
+.workspace-grid{display:block}
+.workspace-grid>div{padding:0}
+.panel{display:none}
+.panel.active{display:block}
+.ai-layout{display:block}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px -34px rgba(20,23,31,.55)}
+.chat-card{min-height:680px;display:flex;flex-direction:column;overflow:hidden}
+.card-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.card-title{font-size:20px;font-weight:800;line-height:1.2;margin:0}
+.card-desc{font-size:12px;color:var(--sub);line-height:1.55;margin-top:4px}
+.chat-feed{padding:20px;display:flex;flex-direction:column;gap:14px;min-height:470px;max-height:640px;overflow-y:auto;background:linear-gradient(180deg,#fff 0,#fbfaf8 100%)}
+.msg{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:start;max-width:94%}
+.msg.user{align-self:flex-end;grid-template-columns:minmax(0,1fr) 34px}
+.avatar{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:11px;font-weight:800}
+.assistant .avatar{background:#ecfdf5;color:#0f766e}
+.user .avatar{background:#eff6ff;color:#2563eb;grid-column:2}
+.bubble{border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 15px;font-size:13.5px;line-height:1.75;white-space:pre-wrap}
+.user .bubble{background:#eff6ff;border-color:#bfdbfe;grid-column:1;grid-row:1}
+.composer{border-top:1px solid var(--line);padding:14px;background:#fff}
+.composer-row{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:10px;align-items:end}
+.composer textarea{width:100%;min-height:52px;max-height:150px;resize:vertical;border:1px solid var(--line);border-radius:13px;padding:13px 14px;font-size:13px;line-height:1.55;background:#fbfaf8}
+.composer textarea:focus{outline:none;border-color:#14b8a6;background:#fff}
+.send-btn{width:46px;height:46px;border:0;border-radius:13px;background:#d97706;color:#fff;font-size:18px;font-weight:800;cursor:pointer}
+.send-btn:disabled,.composer textarea:disabled{opacity:.55;cursor:not-allowed}
+.chat-note{font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:8px}
+.composer-suggest{border-top:1px solid #f3efe8;margin-top:12px;padding-top:12px}
+.composer-suggest-head{font-size:11px;color:var(--sub);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.context-bar{padding:14px 16px;margin-bottom:16px}
+.context-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:12px}
+.context-title{font-size:15px;font-weight:800}
+.context-desc{font-size:11.5px;color:var(--sub);line-height:1.45;margin-top:2px}
+.filter-grid{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr)) auto;gap:9px;align-items:end}
+.filter-field label{display:block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 5px 2px}
+.filter-field select{width:100%;height:38px;border:1px solid var(--line);border-radius:10px;background:#fbfaf8;padding:0 10px;font-size:12px}
+.context-submit{height:38px;border:0;border-radius:10px;background:#14171f;color:#fff;padding:0 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ask-chip{border:1px solid #fed7aa;background:#fffaf0;color:#7c2d12;border-radius:12px;padding:10px 11px;font-size:11.5px;font-weight:800;cursor:pointer;text-align:left;line-height:1.35}
+.ask-chip small{display:block;color:#9a3412;font-size:10px;font-weight:700;margin-top:3px;line-height:1.35}
+.admin-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.form-grid input,.form-grid select{height:40px;border:1px solid var(--line);border-radius:10px;background:#fbfaf8;padding:0 10px;font-size:12px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:10px;border-bottom:1px solid #f1f0ee;text-align:left;vertical-align:middle}
+th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--sub)}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#fbfaf8}
+.role-pill{display:inline-flex;border-radius:999px;padding:3px 8px;background:#eef2ff;color:#3730a3;font-size:11px;font-weight:800}
+.system-lines{display:grid;gap:10px;margin-top:10px}
+.system-line{display:grid;grid-template-columns:92px 1fr;gap:10px;font-size:12px;line-height:1.45}
+.system-line span{color:var(--sub)}
+.system-line b{word-break:break-word}
+@media(max-width:1040px){
+ .ai-layout,.admin-layout{grid-template-columns:1fr}
+ .filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .context-submit{grid-column:1/-1}
+}
+@media(max-width:720px){
+ .shell{padding:0 14px 32px}.topbar{align-items:flex-start;flex-direction:column}
+ .form-grid,.filter-grid,.question-grid{grid-template-columns:1fr}
+ .chat-card{min-height:560px}.chat-feed{max-height:520px}
+}
+</style>
+</head>
+<body class="auth-locked">
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-badge">CQR</div>
+    <h1>CQR Channel Quality Report</h1>
+    <p>Sign in with the approved Google account to use AI CHAT and Admin Panel.</p>
+    <div id="googleSignIn" class="auth-google"></div>
+    <button id="previewButton" class="preview-btn" type="button" onclick="startPreviewMode()">Preview page</button>
+    <div id="authError" class="notice error"></div>
+  </div>
+</div>
+
+<main class="shell">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">CQR</div>
+      <div>
+        <div class="brand-title">CQR Channel Quality Report</div>
+        <div class="brand-sub">AI CHAT · Admin Panel</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <a class="pill-link primary" href="index.html">Dashboard</a>
+      <button class="pill-link" type="button" onclick="switchPanel('adminPanel')">Admin Panel</button>
+      <button class="ghost-btn warn" type="button" onclick="signOutUser()">Sign out</button>
+    </div>
+  </div>
+
+  <section class="workspace-grid">
+    <div>
+      <section class="panel active" id="aiPanel">
+        <div class="card context-bar">
+          <div class="context-head">
+            <div>
+              <div class="context-title">Current Context</div>
+              <div class="context-desc">เลือกมุมมองข้อมูลก่อนถาม AI CHAT แล้วกด Apply Context เพื่อยืนยันชุด filter</div>
+            </div>
+          </div>
+          <div class="filter-grid">
+            <div class="filter-field">
+              <label>Game</label>
+              <select id="f-game">
+                <option value="ALL">ทุกเกม (รวม 4 เกม)</option>
+                <option value="CBM_TH">CBM TH</option>
+                <option value="CBM_SEA">CBM SEA</option>
+                <option value="CBPC_TH">CBPC TH</option>
+                <option value="CBPC_SEA">CBPC SEA</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label>Channel</label>
+              <select id="f-channel">
+                <option value="all">ทุก Channel</option>
+                <option>Facebook Ads</option>
+                <option>Google Ads</option>
+                <option>In-App Register</option>
+                <option>Organic / Unknown</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label>Month</label>
+              <select id="f-month">
+                <option value="2026-06">มิถุนายน 2026</option>
+                <option value="2026-05">พฤษภาคม 2026</option>
+                <option value="2026-04">เมษายน 2026</option>
+                <option value="2026-03">มีนาคม 2026</option>
+                <option value="2026-02">กุมภาพันธ์ 2026</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label>View</label>
+              <select id="f-period-type">
+                <option value="month">Monthly View</option>
+                <option value="week">Weekly View</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label>Week</label>
+              <select id="f-week">
+                <option value="2026-06-W4">Week 4</option>
+                <option value="2026-06-W3">Week 3</option>
+                <option value="2026-06-W2">Week 2</option>
+                <option value="2026-06-W1">Week 1</option>
+              </select>
+            </div>
+            <button class="context-submit" type="button" onclick="applyContext()">Apply Context</button>
+          </div>
+        </div>
+        <div class="ai-layout">
+          <article class="card chat-card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">AI CHAT</h2>
+                <div class="card-desc">พื้นที่สนทนาเต็มจอสำหรับถามเรื่อง dashboard, channel quality, retention และ weekly/monthly view</div>
+              </div>
+              <button class="ghost-btn" type="button" onclick="clearChat()">Clear</button>
+            </div>
+            <div class="chat-feed" id="chatFeed">
+              <div class="msg assistant">
+                <div class="avatar">AI</div>
+                <div class="bubble">พร้อมอ่าน CQR ให้ครับ เลือกคำถามตัวอย่าง หรือพิมพ์โจทย์ยาว ๆ ได้เลย พื้นที่นี้ออกแบบมาสำหรับคำตอบที่ละเอียดกว่าเดิม</div>
+              </div>
+            </div>
+            <div class="composer">
+              <div class="composer-row">
+                <textarea id="aiAskInput" placeholder="Ask about CQR performance, retention, channel quality, or current filters..." maxlength="1200"></textarea>
+                <button class="send-btn" id="aiAskSend" type="button" onclick="sendAiAsk()">↑</button>
+              </div>
+              <div class="chat-note" id="aiAskNote">Gemini 2.5 · grounded by summary cache</div>
+              <div class="composer-suggest">
+                <div class="composer-suggest-head">Suggested Questions</div>
+                <div class="question-grid">
+                  <button class="ask-chip" type="button" onclick="askPreset('สรุป Executive Insight จาก context ปัจจุบัน โดยแยกเป็น Key Finding, Risk, และ Recommended Action')">Executive Insight<small>สรุปเพื่อส่งต่อผู้บริหารแบบพร้อมใช้</small></button>
+                  <button class="ask-chip" type="button" onclick="askPreset('วิเคราะห์ Channel Quality จาก context ปัจจุบัน เทียบ register, D1, D7, D14 และบอก channel ที่ควรเพิ่มหรือลดน้ำหนัก')">Channel Quality Review<small>เทียบคุณภาพช่องทาง ไม่ดูแค่ volume</small></button>
+                  <button class="ask-chip" type="button" onclick="askPreset('หาจุด drop-off ที่น่ากังวลที่สุดใน retention curve และเสนอ checklist ที่ทีมควรตรวจสอบต่อ')">Retention Drop-off Audit<small>หา D1/D3/D7/D14 ที่ควรรีบเช็ค</small></button>
+                  <button class="ask-chip" type="button" onclick="askPreset('เขียน Action Plan สำหรับทีม marketing จากข้อมูล context ปัจจุบัน แยกเป็น Today, This Week, และ Next Experiment')">Marketing Action Plan<small>เปลี่ยน insight เป็น next steps</small></button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" id="adminPanel">
+        <div class="admin-layout">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Admin Panel</h2>
+                <div class="card-desc">จัดการผู้ใช้ บทบาท สถานะ และสิทธิ์เกมในระบบเดียวกัน</div>
+              </div>
+              <button class="solid-btn" type="button" onclick="loadUsers()">Refresh Users</button>
+            </div>
+            <div style="padding:18px 20px">
+              <div class="form-grid">
+                <input id="email" placeholder="email@example.com">
+                <input id="displayName" placeholder="Display name">
+                <select id="role">
+                  <option value="viewer">viewer</option>
+                  <option value="analyst">analyst</option>
+                  <option value="manager">manager</option>
+                  <option value="admin">admin</option>
+                  <option value="super_admin">super_admin</option>
+                  <option value="guest">guest</option>
+                </select>
+                <select id="status">
+                  <option value="active">active</option>
+                  <option value="disabled">disabled</option>
+                  <option value="pending">pending</option>
+                </select>
+                <input id="allowedGames" placeholder="ALL or CBM_TH,CBM_SEA" value="ALL">
+                <input id="allowedRegions" placeholder="ALL or TH,SEA" value="ALL">
+              </div>
+              <div class="toolbar">
+                <button class="solid-btn" type="button" onclick="saveUser()">Save User</button>
+                <button class="ghost-btn" type="button" onclick="clearUserForm()">Clear Form</button>
+              </div>
+              <div class="notice ok" id="okBox"></div>
+              <div class="notice error" id="errorBox"></div>
+            </div>
+            <div class="table-wrap" style="padding:0 20px 20px">
+              <table>
+                <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Games</th><th>Last Login</th></tr></thead>
+                <tbody id="userRows"><tr><td colspan="6">Sign in แล้วกด Refresh Users</td></tr></tbody>
+              </table>
+            </div>
+          </article>
+          <aside class="card widget">
+            <h3>System Information</h3>
+            <p>ข้อมูล session ปัจจุบัน ใช้ช่วยตรวจว่ากำลังจัดการสิทธิ์ด้วย account ไหน</p>
+            <div class="system-lines">
+              <div class="system-line"><span>Username</span><b id="sysName">-</b></div>
+              <div class="system-line"><span>Email</span><b id="sysEmail">-</b></div>
+              <div class="system-line"><span>Session</span><b id="sysSession">ACTIVE</b></div>
+              <div class="system-line"><span>Expires</span><b id="sysExpires">-</b></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </section>
+</main>
+
+<script>
+const AUTH_CONFIG = {
+  clientId: '496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com',
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyZwor9CRKgKWTf2Zs0rTWHDo3qGniF7swEv1cszTHJ5oAZbKCiMzp_86UGUuiecI-mQQ/exec',
+  allowedEmails: [
+    'bwm.workco@gmail.com',
+    'eveningbs@gmail.com',
+    'ksbing34@gmail.com',
+    'mkt.performance.center@gmail.com',
+    'tipchareon.t@gmail.com'
+  ]
+};
+const MONTH_TH = {'2026-06':'มิถุนายน','2026-05':'พฤษภาคม','2026-04':'เมษายน','2026-03':'มีนาคม','2026-02':'กุมภาพันธ์'};
+const LOCAL_PREVIEW_ALLOWED = location.protocol === 'file:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
+let previewMode = false;
+
+function decodeJwtPayload(token){
+  try{
+    const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const json = decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    return JSON.parse(json);
+  }catch(e){ return null; }
+}
+
+function showAuthError(message){
+  const box = document.getElementById('authError');
+  box.textContent = message;
+  box.style.display = 'block';
+}
+
+function getSavedSession(){
+  try{
+    const saved = JSON.parse(sessionStorage.getItem('cqr_auth') || 'null');
+    if(!saved || !saved.email || !saved.exp || saved.exp * 1000 <= Date.now()) return null;
+    if(!saved.sessionToken) return null;
+    return saved;
+  }catch(e){ return null; }
+}
+
+function setSavedSession(profile, sessionToken){
+  sessionStorage.setItem('cqr_auth', JSON.stringify({
+    email: (profile.email || '').toLowerCase(),
+    name: profile.name || profile.display_name || profile.email || 'CQR user',
+    picture: profile.picture || '',
+    exp: profile.exp || Math.floor(Date.now()/1000) + 3600,
+    sessionToken
+  }));
+}
+
+function unlockWorkspace(profile, sessionToken){
+  setSavedSession(profile, sessionToken);
+  document.body.classList.remove('auth-locked');
+  document.body.classList.add('auth-ready');
+  hydrateUser(profile);
+}
+
+function hydrateUser(profile){
+  const saved = getSavedSession();
+  const name = profile.name || profile.display_name || saved?.name || saved?.email || '-';
+  const email = (profile.email || saved?.email || '').toLowerCase();
+  document.getElementById('sysName').textContent = name;
+  document.getElementById('sysEmail').textContent = email || '-';
+  document.getElementById('sysExpires').textContent = saved?.exp ? new Date(saved.exp * 1000).toLocaleString('th-TH') : '-';
+}
+
+async function loginWithBackend(idToken){
+  const json = await callAppsScript('login', {id_token:idToken});
+  if(json.ok === false) throw new Error(json.message || 'Login failed');
+  if(!json.session_token || !json.user) throw new Error('Backend login response ไม่ครบ');
+  return json;
+}
+
+async function handleCredentialResponse(response){
+  const profile = decodeJwtPayload(response.credential);
+  const email = (profile && profile.email ? profile.email : '').toLowerCase();
+  if(!email){
+    showAuthError('ไม่สามารถอ่านอีเมลจาก Google Sign-In ได้ กรุณาลองใหม่อีกครั้ง');
+    return;
+  }
+  if(!AUTH_CONFIG.allowedEmails.includes(email)){
+    showAuthError(`อีเมล ${email} ยังไม่ได้รับสิทธิ์เข้าใช้งาน CQR Channel Quality Report นี้`);
+    return;
+  }
+  try{
+    const login = await loginWithBackend(response.credential);
+    const expiresAt = login.expires_at ? Math.floor(new Date(login.expires_at).getTime()/1000) : Math.floor(Date.now()/1000) + 3600;
+    unlockWorkspace({email:login.user.email, name:login.user.display_name || login.user.email, exp:expiresAt}, login.session_token);
+  }catch(e){
+    showAuthError(`ตรวจสอบสิทธิ์กับระบบหลังบ้านไม่สำเร็จ: ${e.message || e}`);
+  }
+}
+
+function initAuth(){
+  const saved = getSavedSession();
+  if(saved){
+    document.body.classList.remove('auth-locked');
+    document.body.classList.add('auth-ready');
+    hydrateUser(saved);
+    return;
+  }
+  if(LOCAL_PREVIEW_ALLOWED){
+    document.body.classList.add('local-preview');
+    if(new URLSearchParams(location.search).get('preview') === '1'){
+      startPreviewMode();
+      return;
+    }
+  }
+  if(!window.google || !google.accounts || !google.accounts.id){
+    setTimeout(initAuth, 250);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: AUTH_CONFIG.clientId,
+    callback: handleCredentialResponse,
+    auto_select: false,
+    cancel_on_tap_outside: false
+  });
+  google.accounts.id.renderButton(document.getElementById('googleSignIn'), {
+    theme: 'outline',
+    size: 'large',
+    shape: 'pill',
+    text: 'signin_with',
+    width: 260
+  });
+}
+
+function startPreviewMode(){
+  if(!LOCAL_PREVIEW_ALLOWED) return;
+  previewMode = true;
+  const exp = Math.floor(Date.now()/1000) + 3600;
+  const profile = {email:'preview@cqr.local', name:'CQR Preview', exp};
+  sessionStorage.setItem('cqr_auth', JSON.stringify({
+    email: profile.email,
+    name: profile.name,
+    exp,
+    sessionToken: 'preview-session'
+  }));
+  document.body.classList.remove('auth-locked');
+  document.body.classList.add('auth-ready');
+  hydrateUser(profile);
+  appendAiMessage('Preview mode เปิดแล้วครับ หน้านี้ใช้ข้อมูลตัวอย่างเพื่อดู layout เท่านั้น ยังไม่ยิงระบบหลังบ้านจริง', 'assistant');
+}
+
+function signOutUser(){
+  sessionStorage.removeItem('cqr_auth');
+  document.body.classList.add('auth-locked');
+  document.body.classList.remove('auth-ready');
+  if(window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+  initAuth();
+}
+
+function callAppsScript(action, params){
+  if(previewMode || params?.session_token === 'preview-session'){
+    return Promise.resolve(mockBackend(action, params));
+  }
+  return new Promise((resolve, reject)=>{
+    const callback = `cqrApi_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(()=>{
+      cleanup();
+      reject(new Error('Apps Script ไม่ตอบกลับภายในเวลาที่กำหนด'));
+    }, 25000);
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[callback];
+      script.remove();
+    }
+    window[callback] = payload => {
+      cleanup();
+      resolve(payload || {});
+    };
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('เรียก Apps Script ไม่สำเร็จ'));
+    };
+    const query = new URLSearchParams({action, callback, t:String(Date.now()), user_agent:navigator.userAgent});
+    Object.keys(params || {}).forEach(key => query.set(key, params[key]));
+    script.src = `${AUTH_CONFIG.appsScriptUrl}?${query.toString()}`;
+    document.head.appendChild(script);
+  });
+}
+
+function mockBackend(action){
+  if(action === 'ai.ask'){
+    return {
+      ok: true,
+      answer: 'ตัวอย่างคำตอบจาก AI CHAT แบบเต็มหน้า:\\n\\n• Organic / Unknown ยังเป็นฐาน register ใหญ่ แต่ควรดูคุณภาพร่วมกับ D7/D14 ไม่ใช่ดูจำนวนอย่างเดียว\\n• In-App Register ควรใช้เป็น proxy สำคัญของ traffic ที่มาจาก install campaign โดยเฉพาะ Google Ads\\n• ถ้าจะทำ action ต่อ แนะนำแยก cohort ตามเกม แล้วดูจุด drop ระหว่าง D1 → D3 ก่อน เพราะเป็นช่วงที่บอกคุณภาพ onboarding ได้ชัดที่สุด\\n\\nนี่เป็น mock response สำหรับดูพื้นที่อ่านคำตอบยาวบนหน้าใหม่เท่านั้น'
+    };
+  }
+  if(action === 'admin.users.list'){
+    return {
+      ok: true,
+      users: [
+        {email:'bwm.workco@gmail.com',display_name:'Bew WM',role_id:'super_admin',status:'active',allowed_games:'ALL',allowed_regions:'ALL',last_login_at:'2026-07-27 08:30'},
+        {email:'mkt.performance.center@gmail.com',display_name:'Performance Center',role_id:'analyst',status:'active',allowed_games:'CBM_TH,CBPC_TH',allowed_regions:'TH',last_login_at:'2026-07-26 18:12'},
+        {email:'tipchareon.t@gmail.com',display_name:'CQR Manager',role_id:'manager',status:'active',allowed_games:'ALL',allowed_regions:'ALL',last_login_at:'2026-07-25 11:04'}
+      ]
+    };
+  }
+  if(action === 'admin.users.upsert') return {ok:true};
+  return {ok:true};
+}
+
+function switchPanel(panelId){
+  document.querySelectorAll('.panel').forEach(panel => panel.classList.toggle('active', panel.id === panelId));
+  if(panelId === 'adminPanel') loadUsers();
+}
+
+function getAiAskFilters(){
+  const channel = document.getElementById('f-channel')?.value || 'all';
+  const periodType = document.getElementById('f-period-type')?.value || 'month';
+  const month = document.getElementById('f-month')?.value || '2026-06';
+  const week = document.getElementById('f-week')?.value || `${month}-W4`;
+  const period = periodType === 'week' ? week : month;
+  return {
+    game: document.getElementById('f-game')?.value || 'ALL',
+    channel: channel === 'all' ? 'ALL' : channel,
+    period,
+    view: periodType === 'week' ? 'weekly' : 'monthly'
+  };
+}
+
+function appendAiMessage(text, role){
+  const feed = document.getElementById('chatFeed');
+  const msg = document.createElement('div');
+  msg.className = `msg ${role === 'user' ? 'user' : 'assistant'}`;
+  msg.innerHTML = role === 'user'
+    ? `<div class="bubble"></div><div class="avatar">YOU</div>`
+    : `<div class="avatar">AI</div><div class="bubble"></div>`;
+  msg.querySelector('.bubble').textContent = text;
+  feed.appendChild(msg);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function setAiAskBusy(isBusy){
+  const input = document.getElementById('aiAskInput');
+  const send = document.getElementById('aiAskSend');
+  const note = document.getElementById('aiAskNote');
+  input.disabled = isBusy;
+  send.disabled = isBusy;
+  note.textContent = isBusy ? 'Gemini is reading summary cache...' : 'Gemini 2.5 · grounded by summary cache';
+}
+
+async function sendAiAsk(questionOverride){
+  const input = document.getElementById('aiAskInput');
+  const question = String(questionOverride || input.value || '').trim();
+  if(!question) return;
+  const session = getSavedSession();
+  if(!session || !session.sessionToken){
+    appendAiMessage('กรุณา Sign in ก่อนใช้ AI CHAT', 'assistant');
+    return;
+  }
+  input.value = '';
+  appendAiMessage(question, 'user');
+  setAiAskBusy(true);
+  try{
+    const filters = getAiAskFilters();
+    const json = await callAppsScript('ai.ask', {
+      session_token: session.sessionToken,
+      question,
+      game: filters.game,
+      channel: filters.channel,
+      period: filters.period,
+      view: filters.view,
+      ai_mode: 'gemini',
+      dashboard_state: JSON.stringify(filters)
+    });
+    if(json.ok === false) throw new Error(json.message || 'AI CHAT failed');
+    appendAiMessage(json.answer || 'ยังไม่มีคำตอบจาก AI CHAT', 'assistant');
+  }catch(error){
+    appendAiMessage(`AI CHAT ยังตอบไม่ได้: ${error.message || error}`, 'assistant');
+  }finally{
+    setAiAskBusy(false);
+  }
+}
+
+function askPreset(text){
+  switchPanel('aiPanel');
+  sendAiAsk(text);
+}
+
+function applyContext(){
+  const filters = getAiAskFilters();
+  const channel = filters.channel === 'ALL' ? 'ทุก Channel' : filters.channel;
+  const view = filters.view === 'weekly' ? 'Weekly View' : 'Monthly View';
+  appendAiMessage(`ใช้ context แล้ว: ${filters.game} · ${channel} · ${filters.period} · ${view}`, 'assistant');
+}
+
+function clearChat(){
+  document.getElementById('chatFeed').innerHTML = '<div class="msg assistant"><div class="avatar">AI</div><div class="bubble">ล้างบทสนทนาแล้วครับ เริ่มถามเรื่อง CQR รอบใหม่ได้เลย</div></div>';
+}
+
+async function loadUsers(){
+  const session = getSavedSession();
+  if(!session || !session.sessionToken) return;
+  try{
+    const result = await callAppsScript('admin.users.list', { session_token: session.sessionToken });
+    if(!result.ok) throw new Error(result.message || 'Cannot load users');
+    const users = result.users || [];
+    document.getElementById('userRows').innerHTML = users.length ? users.map(u => `
+      <tr data-user='${escapeAttr(JSON.stringify(u))}'>
+        <td>${escapeHtml(u.email)}</td>
+        <td>${escapeHtml(u.display_name || '')}</td>
+        <td><span class="role-pill">${escapeHtml(u.role_id)}</span></td>
+        <td>${escapeHtml(u.status)}</td>
+        <td>${escapeHtml(u.allowed_games || '')}</td>
+        <td>${escapeHtml(u.last_login_at || '')}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="6">ยังไม่มีข้อมูลผู้ใช้</td></tr>';
+    document.querySelectorAll('#userRows tr[data-user]').forEach(row => {
+      row.addEventListener('click', () => {
+        const user = JSON.parse(row.getAttribute('data-user') || '{}');
+        fillUser(user.email || '', user.display_name || '', user.role_id || 'viewer', user.status || 'active', user.allowed_games || 'ALL', user.allowed_regions || 'ALL');
+      });
+    });
+  }catch(err){
+    showError(err.message || String(err));
+  }
+}
+
+async function saveUser(){
+  const session = getSavedSession();
+  if(!session || !session.sessionToken){
+    showError('Session expired. Please sign in again.');
+    return;
+  }
+  try{
+    const result = await callAppsScript('admin.users.upsert', {
+      session_token: session.sessionToken,
+      email: document.getElementById('email').value.trim(),
+      display_name: document.getElementById('displayName').value.trim(),
+      role_id: document.getElementById('role').value,
+      status: document.getElementById('status').value,
+      allowed_games: document.getElementById('allowedGames').value.trim(),
+      allowed_regions: document.getElementById('allowedRegions').value.trim()
+    });
+    if(!result.ok) throw new Error(result.message || 'Cannot save user');
+    showOk('Saved user');
+    loadUsers();
+  }catch(err){
+    showError(err.message || String(err));
+  }
+}
+
+function fillUser(email, name, role, status, games, regions){
+  document.getElementById('email').value = email;
+  document.getElementById('displayName').value = name;
+  document.getElementById('role').value = role;
+  document.getElementById('status').value = status;
+  document.getElementById('allowedGames').value = games;
+  document.getElementById('allowedRegions').value = regions;
+}
+
+function clearUserForm(){
+  ['email','displayName'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('role').value = 'viewer';
+  document.getElementById('status').value = 'active';
+  document.getElementById('allowedGames').value = 'ALL';
+  document.getElementById('allowedRegions').value = 'ALL';
+}
+
+function showError(msg){
+  const error = document.getElementById('errorBox');
+  const ok = document.getElementById('okBox');
+  error.textContent = msg;
+  error.style.display = 'block';
+  ok.style.display = 'none';
+}
+
+function showOk(msg){
+  const error = document.getElementById('errorBox');
+  const ok = document.getElementById('okBox');
+  ok.textContent = msg;
+  ok.style.display = 'block';
+  error.style.display = 'none';
+}
+
+function escapeHtml(value){
+  return String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+
+function escapeAttr(value){
+  return escapeHtml(value).replace(/`/g,'&#96;');
+}
+
+function applyQueryContext(){
+  const query = new URLSearchParams(location.search);
+  ['game','channel','view'].forEach(key => {
+    const value = query.get(key);
+    if(!value) return;
+    if(key === 'game' && document.getElementById('f-game')) document.getElementById('f-game').value = value;
+    if(key === 'channel' && document.getElementById('f-channel')) document.getElementById('f-channel').value = value === 'ALL' ? 'all' : value;
+    if(key === 'view' && document.getElementById('f-period-type')) document.getElementById('f-period-type').value = value === 'weekly' ? 'week' : 'month';
+  });
+  const period = query.get('period');
+  if(period && period.includes('-W')) document.getElementById('f-week').value = period;
+  else if(period) document.getElementById('f-month').value = period;
+  getAiAskFilters();
+  if(query.get('panel') === 'admin') switchPanel('adminPanel');
+}
+
+document.getElementById('aiAskInput').addEventListener('keydown', event => {
+  if(event.key === 'Enter' && !event.shiftKey){
+    event.preventDefault();
+    sendAiAsk();
+  }
+});
+['f-game','f-channel','f-month','f-period-type','f-week'].forEach(id => {
+  document.getElementById(id).addEventListener('change', getAiAskFilters);
+});
+
+applyQueryContext();
+initAuth();
+</script>
+</body>
+</html>
