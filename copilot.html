@@ -90,13 +90,18 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--sub)
 tbody tr{cursor:pointer}
 tbody tr:hover{background:#fbfaf8}
 .role-pill{display:inline-flex;border-radius:999px;padding:3px 8px;background:#eef2ff;color:#3730a3;font-size:11px;font-weight:800}
-.widget{padding:18px}
-.widget h3{font-size:16px;line-height:1.2;margin:0 0 6px}
-.widget p{font-size:11.5px;color:var(--sub);line-height:1.55;margin:0}
-.system-lines{display:grid;gap:0;margin-top:14px;border-top:1px solid #f1f0ee}
-.system-line{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;font-size:11.5px;line-height:1.45;padding:10px 0;border-bottom:1px solid #f6f4f0}
+.row-actions{display:flex;gap:6px;justify-content:flex-end}
+.row-btn{height:28px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:10.5px;font-weight:800;padding:0 9px;cursor:pointer}
+.row-btn.edit{color:#115e59;border-color:#99f6e4;background:#f0fdfa}
+.row-btn.delete{color:#9f1239;border-color:#fecdd3;background:#fff1f2}
+.edit-state{display:none;margin:12px 0 0;font-size:11.5px;color:#115e59;background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:8px 10px}
+.edit-state.active{display:block}
+.widget{padding:16px}
+.widget h3{font-size:15px;line-height:1.2;margin:0 0 10px}
+.system-lines{display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px}
+.system-line{display:block;font-size:11.5px;line-height:1.45;padding:10px;border:1px solid #f1f0ee;border-radius:12px;background:#fbfaf8}
 .system-line span{color:var(--sub)}
-.system-line b{word-break:break-word;overflow-wrap:anywhere;font-size:11.5px}
+.system-line b{display:block;word-break:break-word;overflow-wrap:anywhere;font-size:12px;margin-top:2px}
 @media(max-width:1040px){
  .ai-layout,.admin-layout{grid-template-columns:1fr}
  .filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -264,21 +269,22 @@ tbody tr:hover{background:#fbfaf8}
               </div>
               <div class="toolbar">
                 <button class="solid-btn" type="button" onclick="saveUser()">Save User</button>
+                <button class="ghost-btn" type="button" onclick="deleteSelectedUser()">Delete User</button>
                 <button class="ghost-btn" type="button" onclick="clearUserForm()">Clear Form</button>
               </div>
+              <div class="edit-state" id="editState">Editing selected user</div>
               <div class="notice ok" id="okBox"></div>
               <div class="notice error" id="errorBox"></div>
             </div>
             <div class="table-wrap" style="padding:0 20px 20px">
               <table>
-                <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Games</th><th>Last Login</th></tr></thead>
-                <tbody id="userRows"><tr><td colspan="6">Sign in แล้วกด Refresh Users</td></tr></tbody>
+                <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Games</th><th>Last Login</th><th style="text-align:right;">Actions</th></tr></thead>
+                <tbody id="userRows"><tr><td colspan="7">Sign in แล้วกด Refresh Users</td></tr></tbody>
               </table>
             </div>
           </article>
           <aside class="card widget">
             <h3>System Information</h3>
-            <p>ข้อมูล session ปัจจุบัน ใช้ช่วยตรวจว่ากำลังจัดการสิทธิ์ด้วย account ไหน</p>
             <div class="system-lines">
               <div class="system-line"><span>Username</span><b id="sysName">-</b></div>
               <div class="system-line"><span>Email</span><b id="sysEmail">-</b></div>
@@ -307,6 +313,7 @@ const AUTH_CONFIG = {
 const MONTH_TH = {'2026-06':'มิถุนายน','2026-05':'พฤษภาคม','2026-04':'เมษายน','2026-03':'มีนาคม','2026-02':'กุมภาพันธ์'};
 const LOCAL_PREVIEW_ALLOWED = location.protocol === 'file:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
 let previewMode = false;
+let selectedUserEmail = '';
 
 function decodeJwtPayload(token){
   try{
@@ -606,11 +613,22 @@ function renderUsers(users){
         <td>${escapeHtml(u.status)}</td>
         <td>${escapeHtml(u.allowed_games || '')}</td>
         <td>${escapeHtml(u.last_login_at || '')}</td>
+        <td>
+          <div class="row-actions">
+            <button class="row-btn edit" type="button" data-action="edit">Edit</button>
+            <button class="row-btn delete" type="button" data-action="delete">Delete</button>
+          </div>
+        </td>
       </tr>
-    `).join('') : '<tr><td colspan="6">ยังไม่มีข้อมูลผู้ใช้</td></tr>';
+    `).join('') : '<tr><td colspan="7">ยังไม่มีข้อมูลผู้ใช้</td></tr>';
   document.querySelectorAll('#userRows tr[data-user]').forEach(row => {
-    row.addEventListener('click', () => {
+    row.addEventListener('click', event => {
       const user = JSON.parse(row.getAttribute('data-user') || '{}');
+      const action = event.target?.dataset?.action;
+      if(action === 'delete'){
+        deleteUser(user.email || '');
+        return;
+      }
       fillUser(user.email || '', user.display_name || '', user.role_id || 'viewer', user.status || 'active', user.allowed_games || 'ALL', user.allowed_regions || 'ALL');
     });
   });
@@ -643,20 +661,62 @@ async function saveUser(){
 }
 
 function fillUser(email, name, role, status, games, regions){
+  selectedUserEmail = email;
   document.getElementById('email').value = email;
   document.getElementById('displayName').value = name;
   document.getElementById('role').value = role;
   document.getElementById('status').value = status;
   document.getElementById('allowedGames').value = games;
   document.getElementById('allowedRegions').value = regions;
+  const state = document.getElementById('editState');
+  state.textContent = `Editing: ${email}`;
+  state.classList.add('active');
 }
 
 function clearUserForm(){
+  selectedUserEmail = '';
   ['email','displayName'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('role').value = 'viewer';
   document.getElementById('status').value = 'active';
   document.getElementById('allowedGames').value = 'ALL';
   document.getElementById('allowedRegions').value = 'ALL';
+  document.getElementById('editState').classList.remove('active');
+}
+
+async function deleteSelectedUser(){
+  const email = selectedUserEmail || document.getElementById('email').value.trim();
+  deleteUser(email);
+}
+
+async function deleteUser(email){
+  const session = getSavedSession();
+  const normalized = String(email || '').trim().toLowerCase();
+  if(!normalized){
+    showError('เลือก user ที่ต้องการลบก่อน');
+    return;
+  }
+  if(!session || !session.sessionToken){
+    showError('Session expired. Please sign in again.');
+    return;
+  }
+  if(normalized === String(session.email || '').toLowerCase()){
+    showError('ไม่สามารถลบ account ที่กำลังใช้งานอยู่ได้');
+    return;
+  }
+  if(!confirm(`Delete ${normalized}?`)) return;
+  try{
+    const result = await callAppsScript('admin.users.delete', {
+      session_token: session.sessionToken,
+      email: normalized
+    });
+    if(!result.ok) throw new Error(result.message || 'Cannot delete user');
+    if(!Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.delete กรุณาอัปเดต Apps Script production');
+    showOk(`Deleted user · ${result.users.length} users total`);
+    clearUserForm();
+    renderUsers(result.users);
+  }catch(err){
+    showError(err.message || String(err));
+  }
 }
 
 function showError(msg){

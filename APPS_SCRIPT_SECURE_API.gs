@@ -40,6 +40,7 @@ function doGet(e) {
 
     if (action === 'login') {
       const profile = requireAllowedProfile_(e.parameter.id_token);
+      touchUserLogin_(profile);
       const session = createSession_(profile);
       return json_({
         ok: true,
@@ -70,6 +71,10 @@ function doGet(e) {
 
     if (action === 'admin.users.upsert') {
       return handleAdminUsersUpsert_(e, callback);
+    }
+
+    if (action === 'admin.users.delete') {
+      return handleAdminUsersDelete_(e, callback);
     }
 
     if (action === 'verify') {
@@ -116,7 +121,7 @@ function requireAllowedProfile_(idToken) {
 
 function isAllowed_(email) {
   const normalized = String(email || '').toLowerCase();
-  if (CONFIG.ALLOWED_EMAILS.map(String).map(v => v.toLowerCase()).includes(normalized)) return true;
+  if (CONFIG.SUPER_ADMIN_EMAILS.map(String).map(v => v.toLowerCase()).includes(normalized)) return true;
   return readAdminUsers_().some(user => String(user.email || '').toLowerCase() === normalized && user.status === 'active');
 }
 
@@ -188,6 +193,32 @@ function writeAdminUsers_(users) {
   PropertiesService.getScriptProperties().setProperty('CQR_ADMIN_USERS_JSON', JSON.stringify(users || []));
 }
 
+function touchUserLogin_(profile) {
+  const email = String(profile.email || '').trim().toLowerCase();
+  if (!email) return;
+
+  const users = readAdminUsers_();
+  const index = users.findIndex(user => String(user.email || '').toLowerCase() === email);
+  const loginAt = new Date().toISOString();
+  if (index >= 0) {
+    users[index] = Object.assign({}, users[index], {
+      display_name: users[index].display_name || profile.name || '',
+      last_login_at: loginAt
+    });
+  } else {
+    users.push({
+      email,
+      display_name: profile.name || '',
+      role_id: roleForSeedEmail_(email),
+      status: 'active',
+      allowed_games: 'ALL',
+      allowed_regions: 'ALL',
+      last_login_at: loginAt
+    });
+  }
+  writeAdminUsers_(users);
+}
+
 function roleForSeedEmail_(email) {
   const normalized = String(email || '').toLowerCase();
   return CONFIG.SUPER_ADMIN_EMAILS.map(String).map(e => e.toLowerCase()).includes(normalized)
@@ -218,6 +249,10 @@ function handleAdminUsersUpsert_(e, callback) {
     allowed_regions: String(e.parameter.allowed_regions || 'ALL').trim(),
     last_login_at: ''
   };
+  if (CONFIG.SUPER_ADMIN_EMAILS.map(String).map(item => item.toLowerCase()).includes(email)) {
+    nextUser.role_id = 'super_admin';
+    nextUser.status = 'active';
+  }
 
   const users = readAdminUsers_();
   const index = users.findIndex(user => String(user.email || '').toLowerCase() === email);
@@ -229,6 +264,26 @@ function handleAdminUsersUpsert_(e, callback) {
   }
   writeAdminUsers_(users);
   return json_({ ok: true, user: nextUser, users }, callback);
+}
+
+function handleAdminUsersDelete_(e, callback) {
+  const session = validateSession_(e.parameter.session_token);
+  requireSuperAdmin_(session);
+
+  const email = String(e.parameter.email || '').trim().toLowerCase();
+  if (!email || !email.includes('@')) throw new Error('Valid email is required.');
+  if (email === String(session.email || '').toLowerCase()) {
+    throw new Error('Cannot delete the current signed-in account.');
+  }
+  if (CONFIG.SUPER_ADMIN_EMAILS.map(String).map(item => item.toLowerCase()).includes(email)) {
+    throw new Error('Cannot delete a configured super_admin account.');
+  }
+
+  const users = readAdminUsers_();
+  const nextUsers = users.filter(user => String(user.email || '').toLowerCase() !== email);
+  if (nextUsers.length === users.length) throw new Error('User not found.');
+  writeAdminUsers_(nextUsers);
+  return json_({ ok: true, deleted_email: email, users: nextUsers }, callback);
 }
 
 function validateSession_(sessionToken) {
