@@ -381,7 +381,7 @@ td{vertical-align:middle;}
   </div>
   <div class="chat-foot"><input id="aiAskInput" placeholder="Ask about this dashboard..." maxlength="500">
     <button id="aiAskSend" class="chat-send-btn" type="button" onclick="sendAiAsk()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
-  <div class="chat-note" id="aiAskNote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none"/></svg><span>Connected via n8n · cache-only mode</span></div>
+  <div class="chat-note" id="aiAskNote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none"/></svg><span>Gemini 2.5 · grounded by summary cache</span></div>
 </div>
 
 <script>
@@ -596,7 +596,7 @@ function setAiAskBusy(isBusy){
   const note = document.querySelector('#aiAskNote span');
   if(input) input.disabled = isBusy;
   if(send) send.disabled = isBusy;
-  if(note) note.textContent = isBusy ? 'n8n is reading AISummaryCache...' : 'Connected via n8n · cache-only mode';
+  if(note) note.textContent = isBusy ? 'Gemini is reading summary cache...' : 'Gemini 2.5 · grounded by summary cache';
 }
 
 async function sendAiAsk(questionOverride){
@@ -623,7 +623,7 @@ async function sendAiAsk(questionOverride){
       channel: filters.channel,
       period: filters.period,
       view: filters.view,
-      ai_mode: 'cache_only',
+      ai_mode: 'gemini',
       dashboard_state: JSON.stringify(filters)
     });
     if(json.ok === false) throw new Error(json.message || 'AI Ask failed');
