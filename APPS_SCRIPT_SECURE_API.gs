@@ -30,6 +30,7 @@ const CONFIG = {
   // 1) raw JSON object, or
   // 2) JS format: const CQR_DATA = {...};
   DATA_FILE_ID: '1tOKlCjjGNRqzlvPHKzqhq_Uv285ufyRE',
+  CENTRAL_DB_ID: '1uM85a9Fqt3j4NAM1XcEI2ORIw0Uef7Unr-JmIIbpm2g',
   SESSION_TTL_SECONDS: 14400
 };
 
@@ -75,6 +76,14 @@ function doGet(e) {
 
     if (action === 'admin.users.delete') {
       return handleAdminUsersDelete_(e, callback);
+    }
+
+    if (action === 'admin.pipeline.health') {
+      return handleAdminPipelineHealth_(e, callback);
+    }
+
+    if (action === 'admin.pipeline.run.lookup') {
+      return handleAdminPipelineRunLookup_(e, callback);
     }
 
     if (action === 'verify') {
@@ -286,6 +295,167 @@ function handleAdminUsersDelete_(e, callback) {
   return json_({ ok: true, deleted_email: email, users: nextUsers }, callback);
 }
 
+function handleAdminPipelineHealth_(e, callback) {
+  const session = validateSession_(e.parameter.session_token);
+  requireSuperAdmin_(session);
+
+  const game = String(e.parameter.game || 'ALL').trim();
+  const month = String(e.parameter.month || '2026-06').trim();
+  const pipelineRows = readCentralSheetRows_('PipelineLogs');
+  const dataIndexRows = readCentralSheetRows_('DataIndex');
+  const targetRows = filterPipelineRows_(pipelineRows, game, month);
+  const readyRows = targetRows.filter(row => String(row.status || '').toLowerCase() === 'ready');
+  const reviewRows = targetRows.filter(row => String(row.status || '').toLowerCase() === 'needs_review');
+
+  const issues = [];
+  const recommendations = [];
+  reviewRows.forEach(row => {
+    const previousHash = String(row.data_hash_before || '').trim();
+    const currentHash = String(row.data_hash_after || '').trim();
+    const oldRun = findOldReadyRunForHash_(pipelineRows, row.game_code, row.period_key, previousHash);
+    issues.push({
+      level: 'warn',
+      badge: 'Hash mismatch',
+      title: row.game_code + ' มีข้อมูลเก่าค้างอยู่',
+      detail: 'เดือน ' + row.period_key + ' เจอ previous=' + (previousHash || '-') + ' แต่ข้อมูลรอบใหม่เป็น ' + (currentHash || '-') + ' จึงยังไม่เขียนข้อมูลใหม่'
+    });
+    recommendations.push({
+      title: 'Cleanup ' + row.game_code + ' ก่อนรัน Master Data Update ใหม่',
+      detail: oldRun
+        ? 'ใช้เครื่องมือ Clean Old Run Data แบบ Preview ก่อน ถ้าตัวเลขถูกต้องค่อย confirm_delete=YES แล้วรัน Master Data Update อีกครั้ง'
+        : 'ยังไม่เจอ run_id เก่าจาก hash นี้ ให้ใช้ Run Inspector ค้นด้วย hash ' + (previousHash || '-') + ' หรือเปิด PipelineLogs ตรวจแถว ready ของเกม/เดือนเดียวกัน',
+      cleanup: {
+        target_game_code: row.game_code,
+        target_month: row.period_key,
+        run_id: oldRun ? oldRun.run_id : '',
+        previous_hash: previousHash,
+        current_hash: currentHash
+      }
+    });
+  });
+
+  const dataIndexTargetRows = dataIndexRows.filter(row =>
+    (game === 'ALL' || String(row.game_code || '') === game) &&
+    String(row.period_key || row.month || '') === month
+  );
+  if (!targetRows.length) {
+    issues.push({
+      level: 'warn',
+      badge: 'No logs',
+      title: 'ยังไม่พบ PipelineLogs สำหรับเงื่อนไขนี้',
+      detail: 'ตรวจว่าเลือกเดือน/เกมถูกต้อง หรือรัน Master Data Update แล้วหรือยัง'
+    });
+  }
+
+  return json_({
+    ok: true,
+    game,
+    month,
+    summary: {
+      health_score: reviewRows.length ? 'Needs Review' : 'Healthy',
+      ready_runs: readyRows.length,
+      needs_review: reviewRows.length,
+      cleanup_needed: recommendations.length,
+      pipeline_logs: targetRows.length,
+      data_index_rows: dataIndexTargetRows.length
+    },
+    issues,
+    recommendations
+  }, callback);
+}
+
+function handleAdminPipelineRunLookup_(e, callback) {
+  const session = validateSession_(e.parameter.session_token);
+  requireSuperAdmin_(session);
+
+  const game = String(e.parameter.game || 'ALL').trim();
+  const month = String(e.parameter.month || '').trim();
+  const query = String(e.parameter.query || '').trim().toLowerCase();
+  const rows = readCentralSheetRows_('PipelineLogs')
+    .filter(row => game === 'ALL' || String(row.game_code || '') === game)
+    .filter(row => !month || String(row.period_key || row.month || '') === month)
+    .filter(row => {
+      if (!query) return true;
+      return [
+        row.run_id,
+        row.data_hash_before,
+        row.data_hash_after,
+        row.status,
+        row.error_message,
+        row.message
+      ].join(' ').toLowerCase().indexOf(query) >= 0;
+    })
+    .sort((a, b) => String(b.run_finished_at || b.run_started_at || '').localeCompare(String(a.run_finished_at || a.run_started_at || '')))
+    .slice(0, 30);
+
+  const firstReady = rows.find(row => String(row.status || '').toLowerCase() === 'ready') || rows[0] || null;
+  return json_({
+    ok: true,
+    title: rows.length ? 'พบ run ที่เกี่ยวข้อง' : 'ไม่พบ run ที่ตรงเงื่อนไข',
+    summary: rows.length
+      ? 'ใช้ข้อมูลนี้เพื่อกรอก Cleanup Config หรือยืนยันว่ารอบล่าสุดเขียนสำเร็จแล้ว'
+      : 'ลองค้นด้วย hash เก่า หรือใส่ run_id เต็ม',
+    risk_level: rows.some(row => String(row.status || '').toLowerCase() === 'needs_review') ? 'warn' : 'ok',
+    badge: rows.length + ' match',
+    matches: rows.map(row => ({
+      run_id: row.run_id || '',
+      game_code: row.game_code || '',
+      period_key: row.period_key || row.month || '',
+      status: row.status || '',
+      data_hash_before: row.data_hash_before || '',
+      data_hash_after: row.data_hash_after || '',
+      rows_read: row.rows_read || '',
+      rows_written: row.rows_written || '',
+      run_started_at: row.run_started_at || '',
+      run_finished_at: row.run_finished_at || '',
+      message: row.error_message || row.message || ''
+    })),
+    cleanup_suggestion: firstReady ? {
+      target_game_code: firstReady.game_code || game,
+      target_month: firstReady.period_key || month,
+      run_id: firstReady.run_id || '',
+      hash: firstReady.data_hash_after || firstReady.data_hash_before || ''
+    } : null
+  }, callback);
+}
+
+function readCentralSheetRows_(sheetName) {
+  const sheet = SpreadsheetApp.openById(CONFIG.CENTRAL_DB_ID).getSheetByName(sheetName);
+  if (!sheet) return [];
+  const values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+  const headers = values[0].map(normalizeHeader_);
+  return values.slice(1).map((row, index) => {
+    const object = { row_number: index + 2 };
+    headers.forEach((header, columnIndex) => {
+      if (!header) return;
+      object[header] = row[columnIndex] instanceof Date ? row[columnIndex].toISOString() : row[columnIndex];
+    });
+    return object;
+  });
+}
+
+function normalizeHeader_(header) {
+  return String(header || '').trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+function filterPipelineRows_(rows, game, month) {
+  return rows.filter(row =>
+    (game === 'ALL' || String(row.game_code || '') === game) &&
+    (!month || String(row.period_key || row.month || '') === month)
+  );
+}
+
+function findOldReadyRunForHash_(rows, game, month, hash) {
+  if (!hash) return null;
+  return rows
+    .filter(row => String(row.game_code || '') === String(game || ''))
+    .filter(row => String(row.period_key || row.month || '') === String(month || ''))
+    .filter(row => String(row.status || '').toLowerCase() === 'ready')
+    .filter(row => String(row.data_hash_after || row.data_hash_before || '') === String(hash || ''))
+    .sort((a, b) => String(b.run_finished_at || b.run_started_at || '').localeCompare(String(a.run_finished_at || a.run_started_at || '')))[0] || null;
+}
+
 function validateSession_(sessionToken) {
   const token = String(sessionToken || '').trim();
   if (!token) throw new Error('Missing session_token.');
@@ -334,6 +504,8 @@ function handleAiAsk_(e, callback) {
   if (!webhookUrl) throw new Error('Missing Script Property: CQR_AI_ASK_WEBHOOK_URL');
   if (!sharedSecret) throw new Error('Missing Script Property: CQR_AI_ASK_SHARED_SECRET');
 
+  const alertLogContext = buildCqrAlertLogContext_(5);
+
   const payload = {
     request_id: 'AIASK-' + new Date().toISOString(),
     question,
@@ -345,6 +517,16 @@ function handleAiAsk_(e, callback) {
     central_db_id: '1uM85a9Fqt3j4NAM1XcEI2ORIw0Uef7Unr-JmIIbpm2g',
     user_email: session.email,
     dashboard_state: safeJsonParse_(e.parameter.dashboard_state || '{}', {}),
+    alert_log_context: alertLogContext,
+    alert_log_source: 'CQR_ALERT_LOG',
+    alert_log_limit: 5,
+    answer_style_instructions: [
+      'ตอบเป็นภาษาไทยแบบเข้าใจง่าย กระชับ และใช้คำที่ทีม Marketing อ่านรู้เรื่องทันที',
+      'ห้ามพูดศัพท์ระบบภายใน เช่น Flow A, Flow B, cache, webhook, n8n, backend, payload, prompt',
+      'ถ้าข้อมูลยังไม่พอ ให้พูดว่า "ข้อมูลส่วนนี้ยังไม่ครบพอสำหรับสรุปชัดเจน แนะนำดูใน Dashboard เพิ่มเติม" แทนการพูดถึง flow หรือ cache',
+      'ถ้าต้องแนะนำให้ดูข้อมูลเพิ่ม ให้บอกสิ่งที่ควรดู เช่น เกม, Channel, Period, D1/D3/D7/D14 โดยไม่พูดถึงวิธีทำงานหลังบ้าน',
+      'จัดคำตอบเป็น bullet สั้น ๆ และลงท้ายด้วย next step ที่ทำได้จริง 1-3 ข้อ'
+    ].join('\n'),
     max_answer_chars: 900
   };
 
@@ -372,7 +554,7 @@ function handleAiAsk_(e, callback) {
 
   return json_({
     ok: data.ok !== false,
-    answer: data.answer || '',
+    answer: sanitizeAiAnswerForUsers_(data.answer || ''),
     source: data.source || 'n8n',
     used_ai_model: data.used_ai_model || '',
     intent: data.intent || '',
@@ -390,6 +572,40 @@ function safeJsonParse_(text, fallback) {
   }
 }
 
+function sanitizeAiAnswerForUsers_(answer) {
+  let text = String(answer || '').trim();
+  if (!text) return '';
+
+  const replacements = [
+    {
+      pattern: /ถ้าอยากเจาะลึกเกมไหนเป็นพิเศษ[^]*?Flow B[^.\n]*(?:ครับ|ค่ะ|นะครับ|นะคะ)?/gi,
+      value: 'ถ้าอยากดูเจาะลึกเป็นรายเกมหรือรายสัปดาห์ แนะนำเปิด Dashboard แล้วเลือก Game / Weekly View เพิ่มเติม เพราะข้อมูลบางส่วนยังไม่ครบพอสำหรับสรุปชัดเจนในคำตอบนี้ครับ'
+    },
+    {
+      pattern: /ต้องรัน\s*Flow\s*[A-Z][^.\n]*(?:ครับ|ค่ะ|นะครับ|นะคะ)?/gi,
+      value: 'ข้อมูลส่วนนี้ยังไม่ครบพอสำหรับสรุปชัดเจน แนะนำดูใน Dashboard เพิ่มเติมครับ'
+    },
+    {
+      pattern: /เพิ่ม\s*cache\s*ข้อมูล[^.\n]*(?:ครับ|ค่ะ|นะครับ|นะคะ)?/gi,
+      value: 'รอข้อมูลส่วนนี้ Update เพิ่มเติมก่อน จึงจะสรุปได้ชัดเจนขึ้นครับ'
+    }
+  ];
+
+  replacements.forEach(item => {
+    text = text.replace(item.pattern, item.value);
+  });
+
+  return text
+    .replace(/\bFlow\s*[A-Z]\b/gi, 'ขั้นตอนข้อมูล')
+    .replace(/\bcache\b/gi, 'ข้อมูลที่บันทึกไว้')
+    .replace(/\bn8n\b/gi, 'ระบบอัตโนมัติ')
+    .replace(/\bbackend\b/gi, 'ระบบหลังบ้าน')
+    .replace(/\bwebhook\b/gi, 'จุดเชื่อมต่อข้อมูล')
+    .replace(/\bpayload\b/gi, 'ชุดข้อมูล')
+    .replace(/\bprompt\b/gi, 'คำสั่งให้ AI')
+    .trim();
+}
+
 function json_(payload, callback) {
   const body = JSON.stringify(payload);
   if (callback) {
@@ -402,4 +618,79 @@ function json_(payload, callback) {
   return ContentService
     .createTextOutput(body)
     .setMimeType(ContentService.MimeType.JSON);
+}
+function setupCqrAlertLogSheet() {
+  const spreadsheetId = PropertiesService.getScriptProperties().getProperty('CQR_AI_SUMMARY_SPREADSHEET_ID');
+  if (!spreadsheetId) throw new Error('Missing Script Property: CQR_AI_SUMMARY_SPREADSHEET_ID');
+
+  const ss = SpreadsheetApp.openById(spreadsheetId);
+  const sheet = ss.getSheetByName('CQR_ALERT_LOG') || ss.insertSheet('CQR_ALERT_LOG');
+  const headers = [
+    'alert_id',
+    'cache_key',
+    'period_key',
+    'game_code',
+    'summary_type',
+    'discord_message',
+    'executive_summary',
+    'key_findings_json',
+    'risks_json',
+    'recommended_actions_json',
+    'generated_at',
+    'sent_to_discord',
+    'discord_sent_at',
+    'dashboard_url',
+    'run_id',
+    'source_summary_ids'
+  ];
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, headers.length)
+    .setBackground('#1f4e78')
+    .setFontColor('#ffffff')
+    .setFontWeight('bold')
+    .setWrap(true);
+  sheet.autoResizeColumns(1, headers.length);
+}
+function getRecentCqrAlertLogs_(limit) {
+  const props = PropertiesService.getScriptProperties();
+  const spreadsheetId = props.getProperty('CQR_AI_SUMMARY_SPREADSHEET_ID');
+  if (!spreadsheetId) throw new Error('Missing Script Property: CQR_AI_SUMMARY_SPREADSHEET_ID');
+
+  const ss = SpreadsheetApp.openById(spreadsheetId);
+  const sheet = ss.getSheetByName('CQR_ALERT_LOG');
+  if (!sheet || sheet.getLastRow() < 2) return [];
+
+  const values = sheet.getDataRange().getValues();
+  const headers = values.shift().map(String);
+  const rows = values
+    .filter(row => row.some(cell => cell !== '' && cell !== null))
+    .map(row => {
+      const item = {};
+      headers.forEach((header, index) => item[header] = row[index]);
+      return item;
+    })
+    .sort((a, b) => new Date(b.generated_at || 0) - new Date(a.generated_at || 0))
+    .slice(0, limit || 5);
+
+  return rows;
+}
+
+function buildCqrAlertLogContext_(limit) {
+  const logs = getRecentCqrAlertLogs_(limit || 5);
+  if (!logs.length) return 'ยังไม่มีข้อมูลใน CQR_ALERT_LOG';
+
+  return logs.map(log => {
+    const period = log.period_key || 'n/a';
+    const game = log.game_code || 'ALL';
+    const message = String(log.discord_message || '').slice(0, 1800);
+    return [
+      '---',
+      'Period: ' + period,
+      'Game: ' + game,
+      'Discord Weekly Alert:',
+      message
+    ].join('\n');
+  }).join('\n\n');
 }

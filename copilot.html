@@ -102,14 +102,57 @@ tbody tr:hover{background:#fbfaf8}
 .system-line{display:block;font-size:11.5px;line-height:1.45;padding:10px;border:1px solid #f1f0ee;border-radius:12px;background:#fbfaf8}
 .system-line span{color:var(--sub)}
 .system-line b{display:block;word-break:break-word;overflow-wrap:anywhere;font-size:12px;margin-top:2px}
+.admin-nav{padding:24px 20px;background:#fffaf0;border-top:1px solid #f3efe8;border-bottom:1px solid #fed7aa}
+.admin-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.admin-tab{position:relative;min-height:90px;border:1px solid #d8d3cb;background:rgba(255,255,255,.88);color:#475569;border-radius:16px;padding:0 14px 0 56px;font-size:15px;font-weight:900;cursor:pointer;text-align:left;box-shadow:0 18px 38px -32px rgba(20,23,31,.85);display:flex;flex-direction:column;justify-content:center}
+.admin-tab:before{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:#fff7ed;color:#9a3412;font-size:15px}
+.admin-tab small{display:block;margin-top:6px;color:#667085;font-size:11px;font-weight:700;line-height:1.3}
+.admin-tab.active{background:#ff9800;border-color:#ff9800;color:#fff;box-shadow:0 22px 48px -28px rgba(154,52,18,.95);transform:translateY(-1px)}
+.admin-tab.active:after{content:"";position:absolute;left:56px;right:16px;bottom:12px;height:4px;border-radius:99px;background:#fff7ed}
+.admin-tab.active:before{background:#fff7ed;color:#9a3412}
+.admin-tab.active small{color:#fff7ed}
+.admin-refresh{height:32px;border:1px solid #e7e3dc;background:#fff;color:#667085;border-radius:10px;padding:0 10px;font-size:11px;font-weight:800;cursor:pointer}
+.admin-refresh:hover{color:#115e59;border-color:#99f6e4;background:#f0fdfa}
+#adminTabUsers:before{content:"👤"}
+#adminTabPipeline:before{content:"🧰"}
+#adminTabHealth:before{content:"🩺"}
+.admin-view{display:none}
+.admin-view.active{display:block}
+.tool-grid{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px;align-items:end}
+.tool-grid input,.tool-grid select{height:40px;border:1px solid var(--line);border-radius:10px;background:#fbfaf8;padding:0 10px;font-size:12px}
+.tool-grid label{display:block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 5px 2px}
+.status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.status-card{border:1px solid #f1f0ee;background:#fbfaf8;border-radius:12px;padding:12px;min-height:86px}
+.status-card strong{display:block;font-size:18px;font-family:'Inter',sans-serif;line-height:1.1;margin-top:8px}
+.status-card span{font-size:10.5px;color:var(--sub);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.health-list,.recommend-list{display:grid;gap:10px;margin-top:14px}
+.health-item{border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:12px;padding:12px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+.health-item.warn{border-left-color:var(--amber);background:#fffaf0}
+.health-item.danger{border-left-color:var(--rose);background:#fff1f2}
+.health-item.ok{border-left-color:var(--teal);background:#f0fdfa}
+.health-item b{font-size:13px}
+.health-item p{margin:4px 0 0;color:var(--sub);font-size:11.5px;line-height:1.5}
+.health-badge{height:24px;border-radius:999px;padding:0 8px;display:inline-flex;align-items:center;font-size:10px;font-weight:800;background:#eef2ff;color:#3730a3;white-space:nowrap}
+.health-badge.warn{background:#fffbeb;color:#92400e}
+.health-badge.danger{background:#ffe4e6;color:#9f1239}
+.health-badge.ok{background:#dcfce7;color:#166534}
+.run-card{border:1px solid #f1f0ee;border-radius:12px;background:#fbfaf8;padding:12px;margin-top:12px}
+.run-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.run-meta div{border:1px solid #ede9e3;border-radius:10px;background:#fff;padding:9px;font-size:11px;color:var(--sub)}
+.run-meta b{display:block;color:var(--ink);font-size:12px;margin-top:2px;word-break:break-word}
+.copy-box{display:grid;gap:6px;border:1px solid #fed7aa;background:#fffaf0;border-radius:12px;padding:12px;margin-top:12px;font-size:12px}
+.copy-line{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #fde7c7;padding-bottom:6px}
+.copy-line:last-child{border-bottom:none;padding-bottom:0}
+.copy-line code{font-family:'Inter',sans-serif;color:#7c2d12;word-break:break-word;text-align:right}
+.soft-note{font-size:11.5px;color:var(--sub);line-height:1.55;margin-top:10px}
 @media(max-width:1040px){
  .ai-layout,.admin-layout{grid-template-columns:1fr}
- .filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .filter-grid,.tool-grid,.status-grid,.run-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
  .context-submit{grid-column:1/-1}
 }
 @media(max-width:720px){
  .shell{padding:0 14px 32px}.topbar{align-items:flex-start;flex-direction:column}
- .form-grid,.filter-grid,.question-grid{grid-template-columns:1fr}
+ .form-grid,.filter-grid,.question-grid,.tool-grid,.status-grid,.run-meta,.admin-tabs{grid-template-columns:1fr}
  .chat-card{min-height:560px}.chat-feed{max-height:520px}
 }
 </style>
@@ -222,14 +265,14 @@ tbody tr:hover{background:#fbfaf8}
                 <textarea id="aiAskInput" placeholder="Ask about CQR performance, retention, channel quality, or current filters..." maxlength="1200"></textarea>
                 <button class="send-btn" id="aiAskSend" type="button" onclick="sendAiAsk()">↑</button>
               </div>
-              <div class="chat-note" id="aiAskNote">Gemini 2.5 · grounded by summary cache</div>
+              <div class="chat-note" id="aiAskNote">Gemini 2.5 · grounded by summary cache + weekly alert log</div>
               <div class="composer-suggest">
                 <div class="composer-suggest-head">Suggested Questions</div>
                 <div class="question-grid">
                   <button class="ask-chip" type="button" onclick="askPreset('สรุป Executive Insight จาก context ปัจจุบัน โดยแยกเป็น Key Finding, Risk, และ Recommended Action')">Executive Insight<small>สรุปเพื่อส่งต่อผู้บริหารแบบพร้อมใช้</small></button>
                   <button class="ask-chip" type="button" onclick="askPreset('วิเคราะห์ Channel Quality จาก context ปัจจุบัน เทียบ register, D1, D7, D14 และบอก channel ที่ควรเพิ่มหรือลดน้ำหนัก')">Channel Quality Review<small>เทียบคุณภาพช่องทาง ไม่ดูแค่ volume</small></button>
                   <button class="ask-chip" type="button" onclick="askPreset('หาจุด drop-off ที่น่ากังวลที่สุดใน retention curve และเสนอ checklist ที่ทีมควรตรวจสอบต่อ')">Retention Drop-off Audit<small>หา D1/D3/D7/D14 ที่ควรรีบเช็ค</small></button>
-                  <button class="ask-chip" type="button" onclick="askPreset('เขียน Action Plan สำหรับทีม marketing จากข้อมูล context ปัจจุบัน แยกเป็น Today, This Week, และ Next Experiment')">Marketing Action Plan<small>เปลี่ยน insight เป็น next steps</small></button>
+                  <button class="ask-chip" type="button" onclick="askPreset('สรุป Weekly Alert ล่าสุดจาก CQR_ALERT_LOG แล้วบอกประเด็นที่ต้องตามต่อในสัปดาห์นี้แบบสั้น กระชับ')">Weekly Alert Recap<small>อ่านสรุปย้อนหลังจาก alert log</small></button>
                 </div>
               </div>
             </div>
@@ -243,11 +286,20 @@ tbody tr:hover{background:#fbfaf8}
             <div class="card-head">
               <div>
                 <h2 class="card-title">Admin Panel</h2>
-                <div class="card-desc">จัดการผู้ใช้ บทบาท สถานะ และสิทธิ์เกมในระบบเดียวกัน</div>
+                <div class="card-desc">จัดการสิทธิ์ ตรวจ run_id และเช็กสุขภาพไฟล์ Master / Central DB ในที่เดียว</div>
               </div>
-              <button class="solid-btn" type="button" onclick="loadUsers()">Refresh Users</button>
+              <button class="admin-refresh" type="button" onclick="refreshActiveAdminTool()">Refresh</button>
             </div>
-            <div style="padding:18px 20px">
+            <div class="admin-nav">
+              <div class="admin-tabs">
+                <button class="admin-tab active" id="adminTabUsers" type="button" onclick="switchAdminTool('users')">User Access<small>จัดการสิทธิ์และรายชื่อผู้ใช้</small></button>
+                <button class="admin-tab" id="adminTabPipeline" type="button" onclick="switchAdminTool('pipeline')">Run & Cleanup<small>หา run_id / hash และเตรียม cleanup</small></button>
+                <button class="admin-tab" id="adminTabHealth" type="button" onclick="switchAdminTool('health')">File Health<small>ตรวจไฟล์ค้างและคำแนะนำแก้ปัญหา</small></button>
+              </div>
+            </div>
+
+            <div class="admin-view active" id="adminViewUsers">
+              <div style="padding:18px 20px">
               <div class="form-grid">
                 <input id="email" placeholder="email@example.com">
                 <input id="displayName" placeholder="Display name">
@@ -275,12 +327,80 @@ tbody tr:hover{background:#fbfaf8}
               <div class="edit-state" id="editState">Editing selected user</div>
               <div class="notice ok" id="okBox"></div>
               <div class="notice error" id="errorBox"></div>
+              </div>
+              <div class="table-wrap" style="padding:0 20px 20px">
+                <table>
+                  <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Games</th><th>Last Login</th><th style="text-align:right;">Actions</th></tr></thead>
+                  <tbody id="userRows"><tr><td colspan="7">Sign in แล้วกด Refresh Users</td></tr></tbody>
+                </table>
+              </div>
             </div>
-            <div class="table-wrap" style="padding:0 20px 20px">
-              <table>
-                <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Games</th><th>Last Login</th><th style="text-align:right;">Actions</th></tr></thead>
-                <tbody id="userRows"><tr><td colspan="7">Sign in แล้วกด Refresh Users</td></tr></tbody>
-              </table>
+
+            <div class="admin-view" id="adminViewPipeline">
+              <div style="padding:18px 20px">
+                <div class="tool-grid">
+                  <div>
+                    <label>Game</label>
+                    <select id="toolGame">
+                      <option value="CBM_TH">CBM TH</option>
+                      <option value="CBM_SEA">CBM SEA</option>
+                      <option value="CBPC_TH">CBPC TH</option>
+                      <option value="CBPC_SEA">CBPC SEA</option>
+                      <option value="ALL">ALL</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Month</label>
+                    <input id="toolMonth" value="2026-06" placeholder="2026-06">
+                  </div>
+                  <div>
+                    <label>Run ID หรือ Hash</label>
+                    <input id="toolRunQuery" placeholder="RUN-... หรือ ew6tt">
+                  </div>
+                  <button class="context-submit" type="button" onclick="inspectRun()">Inspect Run</button>
+                </div>
+                <div class="toolbar">
+                  <button class="ghost-btn" type="button" onclick="switchAdminTool('health')">Check File Health</button>
+                  <button class="ghost-btn" type="button" onclick="fillKnownIssue('CBM_SEA','2026-06','oa960n')">CBM SEA issue</button>
+                  <button class="ghost-btn" type="button" onclick="fillKnownIssue('CBPC_TH','2026-06','a1oxij')">CBPC TH issue</button>
+                  <button class="ghost-btn" type="button" onclick="fillKnownIssue('CBPC_SEA','2026-06','je7lw')">CBPC SEA issue</button>
+                </div>
+                <div id="runInspectorResult" class="run-card">
+                  เลือกเกม/เดือน แล้วใส่ run_id หรือ hash เพื่อเช็กว่าควร cleanup อะไรต่อ
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-view" id="adminViewHealth">
+              <div style="padding:18px 20px">
+                <div class="tool-grid">
+                  <div>
+                    <label>Game</label>
+                    <select id="healthGame">
+                      <option value="ALL">ALL</option>
+                      <option value="CBM_TH">CBM TH</option>
+                      <option value="CBM_SEA">CBM SEA</option>
+                      <option value="CBPC_TH">CBPC TH</option>
+                      <option value="CBPC_SEA">CBPC SEA</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Month</label>
+                    <input id="healthMonth" value="2026-06" placeholder="2026-06">
+                  </div>
+                  <button class="context-submit" type="button" onclick="loadPipelineHealth()">Check Health</button>
+                </div>
+                <div class="status-grid" id="healthScoreCards">
+                  <div class="status-card"><span>Health</span><strong>-</strong></div>
+                  <div class="status-card"><span>Ready Runs</span><strong>-</strong></div>
+                  <div class="status-card"><span>Needs Review</span><strong>-</strong></div>
+                  <div class="status-card"><span>Cleanup Needed</span><strong>-</strong></div>
+                </div>
+                <div class="health-list" id="healthIssueList">
+                  <div class="health-item ok"><div><b>รอเช็กข้อมูล</b><p>กด Check Health เพื่อดูความผิดปกติของไฟล์และคำแนะนำ</p></div><span class="health-badge ok">Ready</span></div>
+                </div>
+                <div class="recommend-list" id="healthRecommendationList"></div>
+              </div>
             </div>
           </article>
           <aside class="card widget">
@@ -291,6 +411,7 @@ tbody tr:hover{background:#fbfaf8}
               <div class="system-line"><span>Session</span><b id="sysSession">ACTIVE</b></div>
               <div class="system-line"><span>Expires</span><b id="sysExpires">-</b></div>
             </div>
+            <div class="soft-note">Run & Cleanup จะอ่านสถานะจาก Central DB เพื่อช่วยหา run_id/hash ที่ควรล้างข้อมูลเก่า และแนะนำขั้นตอนถัดไปแบบไม่ต้องไล่ชีทเอง</div>
           </aside>
         </div>
       </section>
@@ -481,7 +602,7 @@ function callAppsScript(action, params){
   });
 }
 
-function mockBackend(action){
+function mockBackend(action, params){
   if(action === 'ai.ask'){
     return {
       ok: true,
@@ -499,12 +620,35 @@ function mockBackend(action){
     };
   }
   if(action === 'admin.users.upsert') return {ok:true};
+  if(action === 'admin.pipeline.health'){
+    return buildMockPipelineHealth(params || {});
+  }
+  if(action === 'admin.pipeline.run.lookup'){
+    return buildMockRunLookup(params || {});
+  }
   return {ok:true};
 }
 
 function switchPanel(panelId){
   document.querySelectorAll('.panel').forEach(panel => panel.classList.toggle('active', panel.id === panelId));
-  if(panelId === 'adminPanel') loadUsers();
+  if(panelId === 'adminPanel') refreshActiveAdminTool();
+}
+
+function switchAdminTool(tool){
+  ['users','pipeline','health'].forEach(name => {
+    document.getElementById(`adminTab${capitalize(name)}`).classList.toggle('active', name === tool);
+    document.getElementById(`adminView${capitalize(name)}`).classList.toggle('active', name === tool);
+  });
+  refreshActiveAdminTool();
+}
+
+function refreshActiveAdminTool(){
+  if(document.getElementById('adminViewUsers')?.classList.contains('active')) loadUsers();
+  if(document.getElementById('adminViewHealth')?.classList.contains('active')) loadPipelineHealth();
+}
+
+function capitalize(value){
+  return String(value || '').charAt(0).toUpperCase() + String(value || '').slice(1);
 }
 
 function getAiAskFilters(){
@@ -539,7 +683,7 @@ function setAiAskBusy(isBusy){
   const note = document.getElementById('aiAskNote');
   input.disabled = isBusy;
   send.disabled = isBusy;
-  note.textContent = isBusy ? 'Gemini is reading summary cache...' : 'Gemini 2.5 · grounded by summary cache';
+  note.textContent = isBusy ? 'Gemini is reading summary cache + weekly alert log...' : 'Gemini 2.5 · grounded by summary cache + weekly alert log';
 }
 
 async function sendAiAsk(questionOverride){
@@ -597,7 +741,7 @@ async function loadUsers(){
   try{
     const result = await callAppsScript('admin.users.list', { session_token: session.sessionToken });
     if(!result.ok) throw new Error(result.message || 'Cannot load users');
-    if(!Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.list กรุณาอัปเดต Apps Script production');
+    if(!Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.list กรุณา Update Apps Script production');
     renderUsers(result.users || []);
   }catch(err){
     showError(err.message || String(err));
@@ -651,7 +795,7 @@ async function saveUser(){
       allowed_regions: document.getElementById('allowedRegions').value.trim()
     });
     if(!result.ok) throw new Error(result.message || 'Cannot save user');
-    if(!result.user && !Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.upsert กรุณาอัปเดต Apps Script production');
+    if(!result.user && !Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.upsert กรุณา Update Apps Script production');
     showOk(`Saved user · ${result.users?.length || 0} users total`);
     if(result.users) renderUsers(result.users);
     else loadUsers();
@@ -710,13 +854,188 @@ async function deleteUser(email){
       email: normalized
     });
     if(!result.ok) throw new Error(result.message || 'Cannot delete user');
-    if(!Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.delete กรุณาอัปเดต Apps Script production');
+    if(!Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.delete กรุณา Update Apps Script production');
     showOk(`Deleted user · ${result.users.length} users total`);
     clearUserForm();
     renderUsers(result.users);
   }catch(err){
     showError(err.message || String(err));
   }
+}
+
+function fillKnownIssue(game, month, hash){
+  document.getElementById('toolGame').value = game;
+  document.getElementById('toolMonth').value = month;
+  document.getElementById('toolRunQuery').value = hash;
+  document.getElementById('healthGame').value = game;
+  document.getElementById('healthMonth').value = month;
+  inspectRun();
+}
+
+async function inspectRun(){
+  const session = getSavedSession();
+  const resultBox = document.getElementById('runInspectorResult');
+  if(!session || !session.sessionToken){
+    resultBox.textContent = 'Session expired. Please sign in again.';
+    return;
+  }
+  const game = document.getElementById('toolGame').value;
+  const month = document.getElementById('toolMonth').value.trim() || '2026-06';
+  const query = document.getElementById('toolRunQuery').value.trim();
+  resultBox.textContent = 'กำลังตรวจ run_id / hash...';
+  try{
+    const result = await callAppsScript('admin.pipeline.run.lookup', {
+      session_token: session.sessionToken,
+      game,
+      month,
+      query
+    });
+    if(!result.ok) throw new Error(result.message || 'Cannot inspect run');
+    renderRunInspector(result);
+  }catch(error){
+    resultBox.innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ Run Inspector</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.run.lookup เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
+  }
+}
+
+async function loadPipelineHealth(){
+  const session = getSavedSession();
+  if(!session || !session.sessionToken) return;
+  const game = document.getElementById('healthGame')?.value || document.getElementById('toolGame')?.value || 'ALL';
+  const month = document.getElementById('healthMonth')?.value.trim() || document.getElementById('toolMonth')?.value.trim() || '2026-06';
+  document.getElementById('healthIssueList').innerHTML = '<div class="health-item"><div><b>กำลังเช็กไฟล์</b><p>กำลังอ่าน PipelineLogs และ DataIndex เพื่อหา hash ที่ชนหรือ run ที่ยังต้อง review</p></div><span class="health-badge">Checking</span></div>';
+  try{
+    const result = await callAppsScript('admin.pipeline.health', {
+      session_token: session.sessionToken,
+      game,
+      month
+    });
+    if(!result.ok) throw new Error(result.message || 'Cannot load health');
+    renderPipelineHealth(result);
+  }catch(error){
+    document.getElementById('healthIssueList').innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ File Health</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.health เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
+  }
+}
+
+function renderRunInspector(result){
+  const matches = result.matches || [];
+  const target = result.cleanup_suggestion || {};
+  const rows = matches.length ? matches.map(run => `
+    <tr>
+      <td>${escapeHtml(run.game_code)}</td>
+      <td>${escapeHtml(run.period_key)}</td>
+      <td>${escapeHtml(run.status)}</td>
+      <td>${escapeHtml(run.data_hash_after || run.data_hash_before || '')}</td>
+      <td>${escapeHtml(run.rows_written || 0)}</td>
+      <td>${escapeHtml(run.run_id)}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="6">ไม่พบ run ที่ตรงกับเงื่อนไข</td></tr>';
+  const suggestion = target.run_id ? `
+    <div class="copy-box">
+      <b>Cleanup Config ที่แนะนำ</b>
+      <div class="copy-line"><span>target_game_code</span><code>${escapeHtml(target.target_game_code)}</code></div>
+      <div class="copy-line"><span>target_month</span><code>${escapeHtml(target.target_month)}</code></div>
+      <div class="copy-line"><span>run_id</span><code>${escapeHtml(target.run_id)}</code></div>
+      <div class="copy-line"><span>confirm_delete</span><code>NO ก่อน แล้วค่อย YES</code></div>
+    </div>
+  ` : '';
+  document.getElementById('runInspectorResult').innerHTML = `
+    <div class="health-item ${result.risk_level || 'ok'}">
+      <div><b>${escapeHtml(result.title || 'Run Inspector')}</b><p>${escapeHtml(result.summary || 'ตรวจพบข้อมูลตามเงื่อนไข')}</p></div>
+      <span class="health-badge ${result.risk_level || 'ok'}">${escapeHtml(result.badge || 'Result')}</span>
+    </div>
+    ${suggestion}
+    <div class="table-wrap" style="margin-top:12px">
+      <table>
+        <thead><tr><th>Game</th><th>Month</th><th>Status</th><th>Hash</th><th>Rows</th><th>Run ID</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderPipelineHealth(result){
+  const summary = result.summary || {};
+  document.getElementById('healthScoreCards').innerHTML = `
+    <div class="status-card"><span>Health</span><strong>${escapeHtml(summary.health_score || '-')}</strong></div>
+    <div class="status-card"><span>Ready Runs</span><strong>${escapeHtml(summary.ready_runs ?? '-')}</strong></div>
+    <div class="status-card"><span>Needs Review</span><strong>${escapeHtml(summary.needs_review ?? '-')}</strong></div>
+    <div class="status-card"><span>Cleanup Needed</span><strong>${escapeHtml(summary.cleanup_needed ?? '-')}</strong></div>
+  `;
+  const issues = result.issues || [];
+  document.getElementById('healthIssueList').innerHTML = issues.length ? issues.map(issue => `
+    <div class="health-item ${escapeHtml(issue.level || 'ok')}">
+      <div><b>${escapeHtml(issue.title)}</b><p>${escapeHtml(issue.detail)}</p></div>
+      <span class="health-badge ${escapeHtml(issue.level || 'ok')}">${escapeHtml(issue.badge || 'Check')}</span>
+    </div>
+  `).join('') : '<div class="health-item ok"><div><b>ไม่พบความผิดปกติหลัก</b><p>ไฟล์พร้อมใช้งานตามเงื่อนไขที่เลือก</p></div><span class="health-badge ok">Healthy</span></div>';
+  document.getElementById('healthRecommendationList').innerHTML = (result.recommendations || []).map((item, index) => `
+    <div class="copy-box">
+      <b>${index + 1}. ${escapeHtml(item.title)}</b>
+      <div class="soft-note">${escapeHtml(item.detail)}</div>
+      ${item.cleanup ? `
+        <div class="copy-line"><span>target_game_code</span><code>${escapeHtml(item.cleanup.target_game_code)}</code></div>
+        <div class="copy-line"><span>target_month</span><code>${escapeHtml(item.cleanup.target_month)}</code></div>
+        <div class="copy-line"><span>run_id</span><code>${escapeHtml(item.cleanup.run_id || 'หา run_id จาก Run Inspector')}</code></div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+function buildMockPipelineHealth(params){
+  const game = params.game || 'ALL';
+  const month = params.month || '2026-06';
+  const issueMap = [
+    {game_code:'CBM_TH', previous_hash:'ew6tt', current_hash:'mhbptw', status:'ready', run_id:'RUN-2026-07-28T09:37:52.900Z', rows_written:4848},
+    {game_code:'CBM_SEA', previous_hash:'oa960n', current_hash:'en8sni', status:'needs_review', run_id:'RUN-2026-07-28T09:40:47.356Z', rows_written:0},
+    {game_code:'CBPC_TH', previous_hash:'a1oxij', current_hash:'xk5zzy', status:'needs_review', run_id:'RUN-2026-07-28T09:42:43.796Z', rows_written:0},
+    {game_code:'CBPC_SEA', previous_hash:'je7lw', current_hash:'im795', status:'needs_review', run_id:'RUN-2026-07-28T09:41:58.695Z', rows_written:0}
+  ].filter(row => game === 'ALL' || row.game_code === game);
+  const needs = issueMap.filter(row => row.status === 'needs_review');
+  return {
+    ok:true,
+    summary:{
+      health_score: needs.length ? 'Needs Review' : 'Healthy',
+      ready_runs: issueMap.filter(row => row.status === 'ready').length,
+      needs_review: needs.length,
+      cleanup_needed: needs.length
+    },
+    issues: needs.map(row => ({
+      level:'warn',
+      badge:'Hash mismatch',
+      title:`${row.game_code} มี hash เก่าค้างอยู่`,
+      detail:`เดือน ${month} เจอ previous=${row.previous_hash} แต่ข้อมูลรอบใหม่เป็น ${row.current_hash} จึงยังไม่เขียนข้อมูลใหม่`
+    })),
+    recommendations: needs.map(row => ({
+      title:`ล้างข้อมูลเก่าของ ${row.game_code} ก่อนรัน Master Data Update ใหม่`,
+      detail:'เปิดเครื่องมือ Clean Old Run Data แล้ว Preview ก่อน ถ้าตัวเลขถูกต้องค่อย confirm_delete=YES จากนั้นกลับมารัน Master Data Update อีกครั้ง',
+      cleanup:{target_game_code:row.game_code,target_month:month,run_id:`run เก่าที่มี hash ${row.previous_hash}`}
+    }))
+  };
+}
+
+function buildMockRunLookup(params){
+  const query = String(params.query || '').trim();
+  const health = buildMockPipelineHealth(params);
+  const rows = [
+    {game_code:'CBM_SEA',period_key:'2026-06',status:'ready',data_hash_after:'oa960n',rows_written:50352,run_id:'หา run_id เก่าใน PipelineLogs จาก hash oa960n'},
+    {game_code:'CBPC_TH',period_key:'2026-06',status:'ready',data_hash_after:'a1oxij',rows_written:19348,run_id:'หา run_id เก่าใน PipelineLogs จาก hash a1oxij'},
+    {game_code:'CBPC_SEA',period_key:'2026-06',status:'ready',data_hash_after:'je7lw',rows_written:14427,run_id:'หา run_id เก่าใน PipelineLogs จาก hash je7lw'},
+    {game_code:'CBM_TH',period_key:'2026-06',status:'ready',data_hash_after:'mhbptw',rows_written:4848,run_id:'RUN-2026-07-28T09:37:52.900Z'}
+  ].filter(row => (!params.game || params.game === 'ALL' || row.game_code === params.game) && (!query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())));
+  return {
+    ok:true,
+    title: rows.length ? 'พบ run ที่เกี่ยวข้อง' : 'ไม่พบ run ที่ตรงเงื่อนไข',
+    summary: rows.length ? 'ใช้ข้อมูลนี้เพื่อกรอก Cleanup Config หรือยืนยันว่ารอบล่าสุดเขียนสำเร็จแล้ว' : 'ลองค้นด้วย hash เก่า เช่น oa960n, a1oxij, je7lw หรือใส่ run_id เต็ม',
+    risk_level: rows.some(row => row.status === 'ready' && query && row.data_hash_after === query) ? 'warn' : 'ok',
+    badge: rows.length ? `${rows.length} match` : 'No match',
+    matches: rows,
+    cleanup_suggestion: rows[0] ? {
+      target_game_code: rows[0].game_code,
+      target_month: params.month || rows[0].period_key,
+      run_id: rows[0].run_id
+    } : null,
+    health
+  };
 }
 
 function showError(msg){
