@@ -145,14 +145,24 @@ tbody tr:hover{background:#fbfaf8}
 .copy-line:last-child{border-bottom:none;padding-bottom:0}
 .copy-line code{font-family:'Inter',sans-serif;color:#7c2d12;word-break:break-word;text-align:right}
 .soft-note{font-size:11.5px;color:var(--sub);line-height:1.55;margin-top:10px}
+.action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.action-card{border:1px solid #fed7aa;background:#fffaf0;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:9px;min-height:150px}
+.action-card.danger{border-color:#fecdd3;background:#fff1f2}
+.action-card strong{font-size:13.5px;line-height:1.25}
+.action-card p{font-size:11.5px;line-height:1.5;color:var(--sub);margin:0}
+.action-btn{height:38px;border:0;border-radius:10px;background:#ff9800;color:#fff;padding:0 12px;font-size:12px;font-weight:900;cursor:pointer;margin-top:auto}
+.action-btn.secondary{background:#14171f}
+.action-btn.danger{background:#be123c}
+.action-btn:disabled{opacity:.55;cursor:not-allowed}
+.action-result{border:1px solid #f1f0ee;background:#fbfaf8;border-radius:12px;padding:12px;margin-top:12px;font-size:12px;line-height:1.6;white-space:pre-wrap}
 @media(max-width:1040px){
  .ai-layout,.admin-layout{grid-template-columns:1fr}
- .filter-grid,.tool-grid,.status-grid,.run-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .filter-grid,.tool-grid,.status-grid,.run-meta,.action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
  .context-submit{grid-column:1/-1}
 }
 @media(max-width:720px){
  .shell{padding:0 14px 32px}.topbar{align-items:flex-start;flex-direction:column}
- .form-grid,.filter-grid,.question-grid,.tool-grid,.status-grid,.run-meta,.admin-tabs{grid-template-columns:1fr}
+ .form-grid,.filter-grid,.question-grid,.tool-grid,.status-grid,.run-meta,.admin-tabs,.action-grid{grid-template-columns:1fr}
  .chat-card{min-height:560px}.chat-feed{max-height:520px}
 }
 </style>
@@ -365,6 +375,24 @@ tbody tr:hover{background:#fbfaf8}
                   <button class="ghost-btn" type="button" onclick="fillKnownIssue('CBPC_TH','2026-06','a1oxij')">CBPC TH issue</button>
                   <button class="ghost-btn" type="button" onclick="fillKnownIssue('CBPC_SEA','2026-06','je7lw')">CBPC SEA issue</button>
                 </div>
+                <div class="action-grid">
+                  <div class="action-card">
+                    <strong>Preview Cleanup</strong>
+                    <p>ส่งคำสั่งไปที่ n8n เพื่อเช็กก่อนว่าจะลบแถวไหนบ้าง ยังไม่ลบข้อมูลจริง ใช้ปุ่มนี้ก่อนทุกครั้ง</p>
+                    <button class="action-btn" type="button" onclick="runPipelineCommand('cleanup.preview')">Preview Cleanup</button>
+                  </div>
+                  <div class="action-card danger">
+                    <strong>Run Cleanup</strong>
+                    <p>ส่งคำสั่งลบข้อมูลเก่าผ่าน n8n ใช้เฉพาะหลัง Preview แล้วจำนวนแถวถูกต้องเท่านั้น</p>
+                    <button class="action-btn danger" type="button" onclick="runPipelineCommand('cleanup.run')">Run Cleanup</button>
+                  </div>
+                  <div class="action-card">
+                    <strong>Run Master Data Update</strong>
+                    <p>ส่งคำสั่งให้ n8n อ่าน raw file แล้วเขียน Master / Central DB ใหม่สำหรับเกมและเดือนที่เลือก</p>
+                    <button class="action-btn secondary" type="button" onclick="runPipelineCommand('master.run')">Run Update</button>
+                  </div>
+                </div>
+                <div id="pipelineActionResult" class="action-result">ปุ่มด้านบนจะทำงานผ่าน n8n โดย Apps Script จะตรวจสิทธิ์ super_admin ก่อนส่งคำสั่ง</div>
                 <div id="runInspectorResult" class="run-card">
                   เลือกเกม/เดือน แล้วใส่ run_id หรือ hash เพื่อเช็กว่าควร cleanup อะไรต่อ
                 </div>
@@ -435,6 +463,7 @@ const MONTH_TH = {'2026-06':'มิถุนายน','2026-05':'พฤษภ�
 const LOCAL_PREVIEW_ALLOWED = location.protocol === 'file:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
 let previewMode = false;
 let selectedUserEmail = '';
+let lastCleanupSuggestion = null;
 
 function decodeJwtPayload(token){
   try{
@@ -625,6 +654,15 @@ function mockBackend(action, params){
   }
   if(action === 'admin.pipeline.run.lookup'){
     return buildMockRunLookup(params || {});
+  }
+  if(action === 'admin.n8n.cleanup.preview'){
+    return buildMockN8nCommand('cleanup_preview', params || {});
+  }
+  if(action === 'admin.n8n.cleanup.run'){
+    return buildMockN8nCommand('cleanup_run', params || {});
+  }
+  if(action === 'admin.n8n.master.run'){
+    return buildMockN8nCommand('master_update', params || {});
   }
   return {ok:true};
 }
@@ -916,9 +954,79 @@ async function loadPipelineHealth(){
   }
 }
 
+async function runPipelineCommand(command){
+  const session = getSavedSession();
+  const resultBox = document.getElementById('pipelineActionResult');
+  if(!session || !session.sessionToken){
+    resultBox.textContent = 'Session expired. Please sign in again.';
+    return;
+  }
+  const game = document.getElementById('toolGame').value;
+  const month = document.getElementById('toolMonth').value.trim() || '2026-06';
+  const query = document.getElementById('toolRunQuery').value.trim();
+  const suggestedRunId = lastCleanupSuggestion && lastCleanupSuggestion.target_game_code === game && lastCleanupSuggestion.target_month === month
+    ? lastCleanupSuggestion.run_id
+    : '';
+  const cleanupRunId = suggestedRunId || query;
+  const actionMap = {
+    'cleanup.preview': 'admin.n8n.cleanup.preview',
+    'cleanup.run': 'admin.n8n.cleanup.run',
+    'master.run': 'admin.n8n.master.run'
+  };
+  const labelMap = {
+    'cleanup.preview': 'Preview Cleanup',
+    'cleanup.run': 'Run Cleanup',
+    'master.run': 'Run Master Data Update'
+  };
+  if((command === 'cleanup.preview' || command === 'cleanup.run') && !cleanupRunId){
+    resultBox.textContent = 'กรุณาใส่ run_id หรือค้นด้วย Run Inspector ก่อนใช้ปุ่ม Cleanup';
+    return;
+  }
+  if(command === 'cleanup.run'){
+    const ok = confirm(`Run Cleanup จริงสำหรับ ${game} / ${month}?\\nRun ID: ${cleanupRunId}\\n\\nควรกด Preview Cleanup ก่อน และตรวจจำนวนแถวให้ถูกต้องแล้วเท่านั้น`);
+    if(!ok) return;
+  }
+  resultBox.textContent = `กำลังส่งคำสั่ง ${labelMap[command]} ไปที่ n8n...`;
+  setPipelineActionBusy(true);
+  try{
+    const result = await callAppsScript(actionMap[command], {
+      session_token: session.sessionToken,
+      game,
+      month,
+      run_id: cleanupRunId,
+      hash: query
+    });
+    if(!result.ok) throw new Error(result.message || 'n8n command failed');
+    renderPipelineActionResult(labelMap[command], result);
+  }catch(error){
+    resultBox.textContent = `${labelMap[command]} ยังทำงานไม่ได้: ${error.message || error}\\n\\nตรวจว่า Apps Script ตั้งค่า webhook ของ n8n ไว้ใน Script Properties แล้วหรือยัง`;
+  }finally{
+    setPipelineActionBusy(false);
+  }
+}
+
+function setPipelineActionBusy(isBusy){
+  document.querySelectorAll('.action-btn').forEach(button => button.disabled = isBusy);
+}
+
+function renderPipelineActionResult(label, result){
+  const payload = result.n8n_result || result.result || {};
+  const lines = [
+    `${label}: ส่งคำสั่งสำเร็จ`,
+    `Game: ${result.game || '-'}`,
+    `Month: ${result.month || '-'}`,
+    `Status: ${payload.status || result.status || 'sent'}`,
+    `Rows: ${payload.rows_deleted || payload.rows_written || payload.delete_request_count || '-'}`,
+    result.execution_url ? `Execution: ${result.execution_url}` : '',
+    payload.message ? `Message: ${payload.message}` : ''
+  ].filter(Boolean);
+  document.getElementById('pipelineActionResult').textContent = lines.join('\\n');
+}
+
 function renderRunInspector(result){
   const matches = result.matches || [];
   const target = result.cleanup_suggestion || {};
+  lastCleanupSuggestion = target && target.run_id ? target : null;
   const rows = matches.length ? matches.map(run => `
     <tr>
       <td>${escapeHtml(run.game_code)}</td>
@@ -1035,6 +1143,22 @@ function buildMockRunLookup(params){
       run_id: rows[0].run_id
     } : null,
     health
+  };
+}
+
+function buildMockN8nCommand(type, params){
+  const isCleanupRun = type === 'cleanup_run';
+  return {
+    ok:true,
+    game: params.game || 'CBM_TH',
+    month: params.month || '2026-06',
+    status:'mock_sent',
+    n8n_result:{
+      status: isCleanupRun ? 'cleanup_requested' : type === 'cleanup_preview' ? 'preview_requested' : 'update_requested',
+      delete_request_count: type === 'cleanup_preview' ? 4 : undefined,
+      rows_deleted: isCleanupRun ? 4 : undefined,
+      message:'Preview mode เท่านั้นใน local file. หลังตั้งค่า n8n webhook ใน Apps Script production ปุ่มนี้จะส่งคำสั่งจริง'
+    }
   };
 }
 

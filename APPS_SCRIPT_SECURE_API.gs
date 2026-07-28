@@ -86,6 +86,18 @@ function doGet(e) {
       return handleAdminPipelineRunLookup_(e, callback);
     }
 
+    if (action === 'admin.n8n.cleanup.preview') {
+      return handleAdminN8nCommand_(e, callback, 'cleanup.preview');
+    }
+
+    if (action === 'admin.n8n.cleanup.run') {
+      return handleAdminN8nCommand_(e, callback, 'cleanup.run');
+    }
+
+    if (action === 'admin.n8n.master.run') {
+      return handleAdminN8nCommand_(e, callback, 'master.run');
+    }
+
     if (action === 'verify') {
       const profile = requireAllowedProfile_(e.parameter.id_token);
       return json_({ ok: true, allowed: true, email: profile.email, name: profile.name || '' }, callback);
@@ -417,6 +429,81 @@ function handleAdminPipelineRunLookup_(e, callback) {
       hash: firstReady.data_hash_after || firstReady.data_hash_before || ''
     } : null
   }, callback);
+}
+
+function handleAdminN8nCommand_(e, callback, command) {
+  const session = validateSession_(e.parameter.session_token);
+  requireSuperAdmin_(session);
+
+  const game = String(e.parameter.game || 'ALL').trim();
+  const month = String(e.parameter.month || '').trim();
+  const runId = String(e.parameter.run_id || '').trim();
+  const hash = String(e.parameter.hash || '').trim();
+  if (!month) throw new Error('Month is required.');
+  if ((command === 'cleanup.preview' || command === 'cleanup.run') && !runId) {
+    throw new Error('Run ID or hash is required for cleanup.');
+  }
+  if ((command === 'cleanup.preview' || command === 'cleanup.run') && game === 'ALL') {
+    throw new Error('Cleanup requires one selected game, not ALL.');
+  }
+
+  const props = PropertiesService.getScriptProperties();
+  const webhookUrl = n8nWebhookUrlForCommand_(props, command);
+  const sharedSecret = props.getProperty('CQR_N8N_ADMIN_SHARED_SECRET') || '';
+  const payload = {
+    request_id: 'ADMIN-' + command.toUpperCase().replace(/\./g, '-') + '-' + new Date().toISOString(),
+    command,
+    requested_by: session.email,
+    target_game_code: game,
+    target_month: month,
+    run_id: runId,
+    hash,
+    confirm_delete: command === 'cleanup.run' ? 'YES' : 'NO',
+    run_mode: command === 'master.run' ? 'force' : '',
+    source: 'cqr_admin_panel'
+  };
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
+    headers: {}
+  };
+  if (sharedSecret) options.headers['X-CQR-Admin-Secret'] = sharedSecret;
+
+  const response = UrlFetchApp.fetch(webhookUrl, options);
+  const status = response.getResponseCode();
+  const text = response.getContentText() || '';
+  const data = safeJsonParse_(text, { raw: text });
+  if (status < 200 || status >= 300) {
+    return json_({
+      ok: false,
+      message: 'n8n command failed.',
+      status,
+      detail: data
+    }, callback);
+  }
+  return json_({
+    ok: true,
+    command,
+    game,
+    month,
+    status: 'sent',
+    n8n_result: data,
+    request_id: payload.request_id
+  }, callback);
+}
+
+function n8nWebhookUrlForCommand_(props, command) {
+  const map = {
+    'cleanup.preview': 'CQR_N8N_CLEANUP_WEBHOOK_URL',
+    'cleanup.run': 'CQR_N8N_CLEANUP_WEBHOOK_URL',
+    'master.run': 'CQR_N8N_MASTER_UPDATE_WEBHOOK_URL'
+  };
+  const propertyName = map[command];
+  const url = props.getProperty(propertyName);
+  if (!url) throw new Error('Missing Script Property: ' + propertyName);
+  return url;
 }
 
 function readCentralSheetRows_(sheetName) {
