@@ -33,11 +33,11 @@ button,input,select,textarea{font-family:'Sarabun',sans-serif}
 .topbar{position:sticky;top:0;z-index:10;min-height:68px;display:flex;align-items:center;gap:16px;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line);background:rgba(247,244,239,.92);backdrop-filter:blur(10px)}
 .brand{display:flex;align-items:center;gap:12px;min-width:260px}
 .brand-mark{width:38px;height:38px;border-radius:13px;font-size:13px}
-.brand-title{font-size:20px;font-weight:800;line-height:1.05}
+.brand-title{font-size:20px;font-weight:900;line-height:1.05;text-transform:uppercase;letter-spacing:.015em}
 .brand-title span{color:var(--teal)}
 .brand-sub{font-size:10.5px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:3px}
 .top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.pill-link,.ghost-btn,.solid-btn{height:38px;border-radius:11px;padding:0 13px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12px;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+.pill-link,.ghost-btn,.solid-btn{height:38px;border-radius:11px;padding:0 13px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12px;font-weight:900;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;text-transform:uppercase}
 .pill-link.primary{border-color:#99f6e4;background:#f0fdfa;color:#115e59}
 .solid-btn{background:#14171f;color:#fff;border-color:#14171f}
 .ghost-btn.warn{background:#fff7ed;border-color:#fed7aa;color:#7c2d12}
@@ -48,42 +48,46 @@ button,input,select,textarea{font-family:'Sarabun',sans-serif}
 .panel{padding-top:22px}
 .ai-layout{display:block}
 .card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px -34px rgba(20,23,31,.55)}
-.chat-card{min-height:700px;display:flex;flex-direction:column;overflow:hidden;background:linear-gradient(180deg,#fff 0,#fffaf0 100%)}
+.chat-card{min-height:700px;display:flex;flex-direction:column;overflow:hidden;background:#fff;border-color:#fdba74;box-shadow:0 28px 80px -48px rgba(154,52,18,.9),0 0 0 1px rgba(255,255,255,.8) inset}
 .card-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
-.card-title{font-size:20px;font-weight:800;line-height:1.2;margin:0}
+.card-title{font-size:20px;font-weight:900;line-height:1.2;margin:0;text-transform:uppercase}
 .card-desc{font-size:12px;color:var(--sub);line-height:1.55;margin-top:4px}
-.chat-feed{padding:22px;display:flex;flex-direction:column;gap:14px;min-height:490px;max-height:660px;overflow-y:auto;background:linear-gradient(180deg,#fff 0,#fbfaf8 100%)}
+.chat-card .card-head{background:linear-gradient(135deg,#14171f 0%,#2a2f3b 100%);color:#fff;border-bottom:0;padding:22px 24px}
+.chat-card .card-desc{display:none}
+.chat-card .ghost-btn{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);color:#fff}
+.chat-feed{padding:24px;display:flex;flex-direction:column;gap:14px;min-height:490px;max-height:660px;overflow-y:auto;background:linear-gradient(180deg,#fffaf0 0%,#fff 42%,#fbfaf8 100%)}
 .msg{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:start;max-width:94%}
 .msg.user{align-self:flex-end;grid-template-columns:minmax(0,1fr) 34px}
 .avatar{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:11px;font-weight:800}
-.assistant .avatar{background:#ecfdf5;color:#0f766e}
+.assistant .avatar{background:#fff7ed;color:#d97706;border:1px solid #fed7aa}
 .user .avatar{background:#eff6ff;color:#2563eb;grid-column:2}
-.bubble{border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 15px;font-size:13.5px;line-height:1.75;white-space:pre-wrap}
+.bubble{border:1px solid #e7e3dc;background:#fff;border-radius:16px;padding:15px 17px;font-size:14px;line-height:1.8;white-space:pre-wrap;box-shadow:0 16px 42px -34px rgba(20,23,31,.75)}
 .user .bubble{background:#eff6ff;border-color:#bfdbfe;grid-column:1;grid-row:1}
-.composer{border-top:1px solid var(--line);padding:14px;background:#fff}
-.composer-row{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:10px;align-items:end}
-.composer textarea{width:100%;min-height:52px;max-height:150px;resize:vertical;border:1px solid var(--line);border-radius:13px;padding:13px 14px;font-size:13px;line-height:1.55;background:#fbfaf8}
+.composer{border-top:1px solid #fed7aa;padding:16px;background:#fffaf0}
+.composer-row{display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:12px;align-items:stretch}
+.composer textarea{width:100%;min-height:64px;max-height:150px;resize:vertical;border:1px solid #fed7aa;border-radius:16px;padding:15px 16px;font-size:13.5px;line-height:1.55;background:#fff}
 .composer textarea:focus{outline:none;border-color:#14b8a6;background:#fff}
-.send-btn{width:46px;height:46px;border:0;border-radius:13px;background:#d97706;color:#fff;font-size:18px;font-weight:800;cursor:pointer}
+.send-btn{width:64px;height:64px;border:0;border-radius:16px;background:#d97706;color:#fff;font-size:24px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .send-btn:disabled,.composer textarea:disabled{opacity:.55;cursor:not-allowed}
 .chat-note{font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:8px}
 .composer-suggest{border-top:1px solid #f3efe8;margin-top:12px;padding-top:12px}
 .composer-suggest-head{font-size:11px;color:var(--sub);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 .context-bar{padding:16px;margin-bottom:18px;background:linear-gradient(135deg,#fff 0,#fffaf0 100%)}
 .context-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:12px}
-.context-title{font-size:16px;font-weight:900}
+.context-title{font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
 .context-desc{font-size:11.5px;color:var(--sub);line-height:1.45;margin-top:2px}
 .filter-grid{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr)) auto;gap:10px;align-items:end}
 .filter-field label{display:block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 5px 2px}
 .filter-field select{width:100%;height:42px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 11px;font-size:12px;font-weight:700;box-shadow:0 10px 26px -24px rgba(20,23,31,.75)}
 .filter-field select:focus{outline:none;border-color:#fdba74;box-shadow:0 0 0 3px #ffedd5}
-.context-submit{height:42px;border:0;border-radius:12px;background:#14171f;color:#fff;padding:0 16px;font-size:12px;font-weight:900;cursor:pointer;white-space:nowrap}
+.context-submit{height:42px;border:0;border-radius:12px;background:#14171f;color:#fff;padding:0 16px;font-size:12px;font-weight:900;cursor:pointer;white-space:nowrap;text-transform:uppercase;width:100%}
 .question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .ask-chip{border:1px solid #fed7aa;background:#fffaf0;color:#7c2d12;border-radius:12px;padding:10px 11px;font-size:11.5px;font-weight:800;cursor:pointer;text-align:left;line-height:1.35}
 .ask-chip small{display:block;color:#9a3412;font-size:10px;font-weight:700;margin-top:3px;line-height:1.35}
 .admin-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,380px);gap:16px;align-items:start}
 .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.form-grid input,.form-grid select{height:40px;border:1px solid var(--line);border-radius:10px;background:#fbfaf8;padding:0 10px;font-size:12px}
+.form-grid input,.form-grid select{height:44px;border:1px solid #e7e3dc;border-radius:13px;background:#fff;padding:0 12px;font-size:12.5px;font-weight:700;box-shadow:0 12px 28px -26px rgba(20,23,31,.8)}
+.form-grid input:focus,.form-grid select:focus{outline:none;border-color:#fdba74;box-shadow:0 0 0 3px #ffedd5}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .table-wrap{overflow:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -106,14 +110,14 @@ tbody tr:hover{background:#fbfaf8}
 .system-line b{display:block;word-break:break-word;overflow-wrap:anywhere;font-size:12px;margin-top:2px}
 .admin-nav{padding:24px 20px;background:#fffaf0;border-top:1px solid #f3efe8;border-bottom:1px solid #fed7aa}
 .admin-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.admin-tab{position:relative;min-height:90px;border:1px solid #d8d3cb;background:rgba(255,255,255,.88);color:#475569;border-radius:16px;padding:0 14px 0 56px;font-size:15px;font-weight:900;cursor:pointer;text-align:left;box-shadow:0 18px 38px -32px rgba(20,23,31,.85);display:flex;flex-direction:column;justify-content:center}
+.admin-tab{position:relative;min-height:90px;border:1px solid #eceae6;background:#f7f7f6;color:#475569;border-radius:16px;padding:0 14px 0 56px;font-size:15px;font-weight:900;cursor:pointer;text-align:left;box-shadow:none;display:flex;flex-direction:column;justify-content:center;text-transform:uppercase}
 .admin-tab:before{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:#fff7ed;color:#9a3412;font-size:15px}
 .admin-tab small{display:block;margin-top:6px;color:#667085;font-size:11px;font-weight:700;line-height:1.3}
-.admin-tab.active{background:#ff9800;border-color:#ff9800;color:#fff;box-shadow:0 22px 48px -28px rgba(154,52,18,.95);transform:translateY(-1px)}
+.admin-tab.active{background:#E89005;border-color:#E89005;color:#fff;box-shadow:0 22px 48px -28px rgba(154,52,18,.95);transform:translateY(-1px)}
 .admin-tab.active:after{content:"";position:absolute;left:56px;right:16px;bottom:12px;height:4px;border-radius:99px;background:#fff7ed}
 .admin-tab.active:before{background:#fff7ed;color:#9a3412}
 .admin-tab.active small{color:#fff7ed}
-.admin-refresh{height:32px;border:1px solid #e7e3dc;background:#fff;color:#667085;border-radius:10px;padding:0 10px;font-size:11px;font-weight:800;cursor:pointer}
+.admin-refresh{height:34px;border:1px solid #e7e3dc;background:#fff;color:#667085;border-radius:10px;padding:0 11px;font-size:11px;font-weight:900;cursor:pointer;text-transform:uppercase}
 .admin-refresh:hover{color:#115e59;border-color:#99f6e4;background:#f0fdfa}
 #adminTabUsers:before{content:"👤"}
 #adminTabPipeline:before{content:"🧰"}
@@ -121,7 +125,7 @@ tbody tr:hover{background:#fbfaf8}
 .admin-view{display:none}
 .admin-view.active{display:block}
 .tool-panel{border:1px solid #fed7aa;background:linear-gradient(135deg,#fffaf0 0,#fff 100%);border-radius:16px;padding:14px;margin:14px 0;box-shadow:0 18px 42px -34px rgba(154,52,18,.7)}
-.tool-grid{display:grid;grid-template-columns:1fr 1fr minmax(230px,1.4fr) auto;gap:12px;align-items:end}
+.tool-grid{display:grid;grid-template-columns:1fr 1fr minmax(230px,1.35fr) 120px;gap:12px;align-items:end}
 .tool-grid.health-tool{grid-template-columns:1fr 1fr auto}
 .tool-grid input,.tool-grid select{height:44px;border:1px solid #e7e3dc;border-radius:12px;background:#fff;padding:0 12px;font-size:13px;font-weight:700;box-shadow:0 10px 26px -24px rgba(20,23,31,.75)}
 .tool-grid input:focus,.tool-grid select:focus{outline:none;border-color:#fdba74;box-shadow:0 0 0 3px #ffedd5}
@@ -162,6 +166,8 @@ tbody tr:hover{background:#fbfaf8}
 .run-item p{margin:3px 0 0;font-size:11.5px;color:var(--sub);line-height:1.5}
 .run-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .mini-btn{height:30px;border:1px solid #fed7aa;background:#fffaf0;color:#7c2d12;border-radius:9px;padding:0 9px;font-size:10.5px;font-weight:900;cursor:pointer}
+.sample-btn{height:34px;border:1px solid #fed7aa;background:#fff;color:#7c2d12;border-radius:10px;padding:0 11px;font-size:11px;font-weight:900;cursor:pointer;text-transform:uppercase}
+.sample-btn:hover{background:#fff7ed}
 .batch-actions{display:none;border:1px solid #fed7aa;background:#fffaf0;border-radius:16px;padding:12px;margin-top:12px}
 .batch-actions.active{display:block}
 .batch-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
@@ -216,7 +222,7 @@ tbody tr:hover{background:#fbfaf8}
 <div class="auth-screen" id="authScreen">
   <div class="auth-card">
     <div class="auth-badge">CQR</div>
-    <h1>CQR Channel Quality Report</h1>
+    <h1>CHANNEL QUALITY REPORT</h1>
     <p>Sign in with the approved Google account to use AI CHAT and Admin Panel.</p>
     <div id="googleSignIn" class="auth-google"></div>
     <button id="previewButton" class="preview-btn" type="button" onclick="startPreviewMode()">Preview page</button>
@@ -229,8 +235,8 @@ tbody tr:hover{background:#fbfaf8}
     <div class="brand">
       <div class="brand-mark">CQR</div>
       <div>
-        <div class="brand-title">CQR Channel Quality Report</div>
-        <div class="brand-sub">AI CHAT · Admin Panel</div>
+        <div class="brand-title">CHANNEL QUALITY REPORT</div>
+        <div class="brand-sub">AI CHAT · ADMIN PANEL</div>
       </div>
     </div>
     <div class="top-actions">
@@ -246,7 +252,7 @@ tbody tr:hover{background:#fbfaf8}
         <div class="card context-bar">
           <div class="context-head">
             <div>
-              <div class="context-title">ชุดข้อมูลที่ต้องการถาม</div>
+              <div class="context-title">AI CHAT CONTEXT</div>
               <div class="context-desc">เลือก Game, Channel และช่วงเวลาก่อนถาม AI CHAT แล้วกด APPLY เพื่อใช้ชุดข้อมูลนี้</div>
             </div>
           </div>
@@ -305,10 +311,9 @@ tbody tr:hover{background:#fbfaf8}
             <div class="card-head">
               <div>
                 <h2 class="card-title">AI CHAT</h2>
-                <div class="card-desc">ถามเรื่อง Dashboard, Channel Quality, Retention หรือ Weekly Alert ได้ในพื้นที่อ่านคำตอบแบบเต็มหน้า</div>
               </div>
               <div class="top-actions">
-                <button class="ghost-btn" type="button" onclick="downloadChatLog()">Download MD</button>
+                <button class="ghost-btn" type="button" onclick="downloadChatLog()">Export Chat</button>
                 <button class="ghost-btn" type="button" onclick="clearChat()">Clear</button>
               </div>
             </div>
@@ -343,16 +348,16 @@ tbody tr:hover{background:#fbfaf8}
           <article class="card">
             <div class="card-head">
               <div>
-                <h2 class="card-title">Admin Panel</h2>
+                <h2 class="card-title">ADMIN PANEL</h2>
                 <div class="card-desc">จัดการสิทธิ์ ตรวจ run_id และเช็กสุขภาพไฟล์ Master / Central DB ในที่เดียว</div>
               </div>
               <button class="admin-refresh" type="button" onclick="refreshActiveAdminTool()">Refresh</button>
             </div>
             <div class="admin-nav">
               <div class="admin-tabs">
-                <button class="admin-tab active" id="adminTabUsers" type="button" onclick="switchAdminTool('users')">User Access<small>จัดการสิทธิ์และรายชื่อผู้ใช้</small></button>
-                <button class="admin-tab" id="adminTabHealth" type="button" onclick="switchAdminTool('health')">Data Health<small>เช็กไฟล์ค้างและสิ่งที่ควรแก้ก่อน</small></button>
-                <button class="admin-tab" id="adminTabPipeline" type="button" onclick="switchAdminTool('pipeline')">Data Control<small>หา run_id และส่งคำสั่งไป n8n</small></button>
+                <button class="admin-tab active" id="adminTabUsers" type="button" onclick="switchAdminTool('users')">USER ACCESS<small>จัดการสิทธิ์และรายชื่อผู้ใช้</small></button>
+                <button class="admin-tab" id="adminTabHealth" type="button" onclick="switchAdminTool('health')">DATA HEALTH<small>เช็กไฟล์ค้างและสิ่งที่ควรแก้ก่อน</small></button>
+                <button class="admin-tab" id="adminTabPipeline" type="button" onclick="switchAdminTool('pipeline')">DATA CONTROL<small>หา run_id และส่งคำสั่งไป n8n</small></button>
               </div>
             </div>
 
@@ -399,23 +404,23 @@ tbody tr:hover{background:#fbfaf8}
                 <div class="step-list">
                   <div class="step-card">
                     <span class="step-num">1</span>
-                    <b>เริ่มจาก Data Health</b>
-                    <p>ตรวจเจอ hash หรือรายการที่ต้องแก้แล้วค่อยเข้าหน้านี้</p>
+                    <b>ตรวจรายการที่ต้องแก้</b>
+                    <p>เริ่มจากดูว่ารอบข้อมูลไหนมี hash เก่าหรือ run ที่ต้องจัดการ</p>
                   </div>
                   <div class="step-card active-step">
                     <span class="step-num">2</span>
-                    <b>FIND รายการ</b>
-                    <p>เลือก ALL + เดือน เพื่อดูทุกเกมที่ต้องจัดการ หรือใส่ hash/run_id เพื่อเจาะรายการเดียว</p>
+                    <b>ค้นหา RUN</b>
+                    <p>เลือกเกมและเดือน หรือใส่ hash/run_id เพื่อดึงรายการที่เกี่ยวข้อง</p>
                   </div>
                   <div class="step-card">
                     <span class="step-num">3</span>
-                    <b>Preview ก่อน</b>
-                    <p>เลือก Run ID ที่ต้องการ แล้วให้ n8n สรุปจำนวนแถวก่อนลบจริง</p>
+                    <b>Preview ก่อนเสมอ</b>
+                    <p>ให้ n8n ตรวจจำนวนแถวและช่วงข้อมูลก่อนทำการลบจริง</p>
                   </div>
                   <div class="step-card">
                     <span class="step-num">4</span>
-                    <b>Cleanup & Update</b>
-                    <p>หลัง Preview ถูกต้อง ค่อย Cleanup และ Run Update พร้อมบันทึกประวัติ</p>
+                    <b>ยืนยันและ Update</b>
+                    <p>เมื่อผล Preview ถูกต้อง ค่อย Cleanup แล้วรันข้อมูลใหม่ให้ครบ</p>
                   </div>
                 </div>
                 <div class="explain-box">
@@ -450,6 +455,9 @@ tbody tr:hover{background:#fbfaf8}
                     <div class="field-help">ปล่อยว่างได้ ถ้าต้องการดูทุกรายการของเกม/เดือนที่เลือก</div>
                   </div>
                   <button class="context-submit" type="button" onclick="inspectRun()">FIND</button>
+                </div>
+                <div class="toolbar">
+                  <button class="sample-btn" type="button" onclick="showDataControlSample()">SHOW SAMPLE</button>
                 </div>
                 </div>
                 <div id="pipelineActionResult" class="action-result">ยังไม่มีคำสั่งล่าสุด
@@ -505,6 +513,9 @@ tbody tr:hover{background:#fbfaf8}
                     </select>
                   </div>
                   <button class="context-submit" type="button" onclick="loadPipelineHealth()">CHECKUP</button>
+                </div>
+                <div class="toolbar">
+                  <button class="sample-btn" type="button" onclick="showDataHealthSample()">SHOW SAMPLE</button>
                 </div>
                 </div>
                 <div class="status-grid" id="healthScoreCards">
@@ -624,7 +635,7 @@ async function handleCredentialResponse(response){
     return;
   }
   if(!AUTH_CONFIG.allowedEmails.includes(email)){
-    showAuthError(`อีเมล ${email} ยังไม่ได้รับสิทธิ์เข้าใช้งาน CQR Channel Quality Report นี้`);
+    showAuthError(`อีเมล ${email} ยังไม่ได้รับสิทธิ์เข้าใช้งาน CHANNEL QUALITY REPORT นี้`);
     return;
   }
   try{
@@ -1293,6 +1304,19 @@ function fillRunForSingleAction(game, month, runId){
   document.getElementById('toolRunQuery').value = runId || '';
   document.querySelectorAll('.run-select').forEach(input => input.checked = input.value === runId);
   updateBatchCount();
+}
+
+function showDataHealthSample(){
+  const game = document.getElementById('healthGame')?.value || 'ALL';
+  const month = document.getElementById('healthMonth')?.value || '2026-06';
+  renderPipelineHealth(buildMockPipelineHealth({game, month}));
+}
+
+function showDataControlSample(){
+  const game = document.getElementById('toolGame')?.value || 'ALL';
+  const month = document.getElementById('toolMonth')?.value || '2026-06';
+  renderRunInspector(buildMockRunLookup({game, month, query:''}));
+  document.getElementById('pipelineActionResult').textContent = 'ตัวอย่างรายการสำหรับทดสอบหน้าจอ ยังไม่ได้ส่งคำสั่งไป n8n';
 }
 
 function buildMockPipelineHealth(params){

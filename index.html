@@ -22,19 +22,25 @@ body.auth-locked{overflow:hidden;}
 body.auth-locked header,body.auth-locked .wrap,body.auth-locked .fab{filter:blur(2px);pointer-events:none;user-select:none;}
 .num{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;}
 
-header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 1px 3px rgba(20,23,31,.05);}
-.hbar{max-width:1360px;margin:0 auto;padding:16px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);box-shadow:0 1px 3px rgba(20,23,31,.05);backdrop-filter:blur(12px);}
+.hbar{max-width:1360px;margin:0 auto;padding:16px 22px;display:grid;grid-template-columns:minmax(280px,1fr);gap:12px;}
 .hbar h1{font-size:16px;font-weight:800;margin:0;white-space:nowrap;}
 .hbar h1 span{color:var(--accent2);}
-.hfilters{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid #e7e3dc;border-radius:16px;padding:8px;box-shadow:0 18px 42px -32px rgba(20,23,31,.65);}
-.hfilters select{font-family:'Sarabun';font-size:11.5px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:#fbfaf8;min-width:118px;height:38px;font-weight:700;color:var(--ink);}
+.hfilters{display:grid;grid-template-columns:1.15fr 1fr .95fr .9fr .85fr auto auto auto;gap:8px;align-items:center;background:linear-gradient(135deg,#fffaf0 0%,#fff 100%);border:1px solid #fed7aa;border-radius:18px;padding:10px;box-shadow:0 20px 52px -36px rgba(154,52,18,.8);}
+.hfilters select{font-family:'Sarabun';font-size:12px;padding:7px 11px;border-radius:12px;border:1px solid #e7e3dc;background:#fff;min-width:0;height:42px;font-weight:800;color:var(--ink);box-shadow:0 10px 24px -24px rgba(20,23,31,.8);}
 .hfilters select:focus{outline:none;border-color:#fdba74;background:#fff;box-shadow:0 0 0 3px #ffedd5;}
-.export-btn{height:38px;border:0;background:#14171f;color:#fff;border-radius:10px;padding:0 13px;font-family:'Sarabun';font-size:11.5px;font-weight:900;cursor:pointer;}
+.export-menu{position:relative;}
+.export-menu summary{list-style:none;height:42px;border:0;background:#14171f;color:#fff;border-radius:12px;padding:0 16px;font-family:'Sarabun';font-size:12px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.export-menu summary::-webkit-details-marker{display:none}
+.export-options{position:absolute;right:0;top:48px;width:132px;background:#fff;border:1px solid #e7e3dc;border-radius:12px;padding:6px;box-shadow:0 18px 44px -24px rgba(20,23,31,.7);display:grid;gap:4px;z-index:80}
+.export-options button{height:34px;border:0;border-radius:9px;background:#fff;color:var(--ink);font-family:'Sarabun';font-size:11.5px;font-weight:800;text-align:left;padding:0 9px;cursor:pointer}
+.export-options button:hover{background:#fff7ed;color:#7c2d12}
+.export-btn{height:42px;border:0;background:#14171f;color:#fff;border-radius:12px;padding:0 13px;font-family:'Sarabun';font-size:11.5px;font-weight:900;cursor:pointer;}
 .export-btn:hover{background:#2a2f3b;}
-.auth-logout{display:none;height:36px;border:1px solid #fed7aa;background:#fff7ed;color:#7c2d12;border-radius:10px;padding:0 12px;font-family:'Sarabun';font-size:11.5px;font-weight:800;cursor:pointer;}
+.auth-logout{display:none;height:42px;border:1px solid #fed7aa;background:#fff7ed;color:#7c2d12;border-radius:12px;padding:0 13px;font-family:'Sarabun';font-size:11.5px;font-weight:900;cursor:pointer;}
 .auth-ready .auth-logout{display:inline-flex;align-items:center;gap:6px;}
 .auth-logout:hover{background:#ffedd5;}
-.admin-panel-link{display:none;height:36px;border:1px solid #99f6e4;background:#f0fdfa;color:#115e59;border-radius:10px;padding:0 12px;font-family:'Sarabun';font-size:11.5px;font-weight:800;text-decoration:none;align-items:center;gap:6px;}
+.admin-panel-link{display:none;height:42px;border:1px solid #99f6e4;background:#f0fdfa;color:#115e59;border-radius:12px;padding:0 13px;font-family:'Sarabun';font-size:11.5px;font-weight:900;text-decoration:none;align-items:center;gap:6px;}
 .auth-ready.manager-plus .admin-panel-link{display:inline-flex;}
 .admin-panel-link:hover{background:#ccfbf1;}
 
@@ -42,6 +48,7 @@ header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid 
 .grid{display:grid;gap:16px;align-items:stretch;}
 .g-top{grid-template-columns:0.9fr 1.1fr;}
 .g-2{grid-template-columns:1fr 1fr;}
+@media(max-width:1100px){.hfilters{grid-template-columns:repeat(3,minmax(0,1fr))}.export-menu,.admin-panel-link,.auth-logout{min-width:0}}
 @media(max-width:900px){.g-top,.g-2,.hfilters{grid-template-columns:1fr;}}
 
 .card{background:#fff;border-radius:16px;padding:18px;border:1px solid var(--line);
@@ -196,11 +203,11 @@ td{vertical-align:middle;}
 .mini-ret{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .mini-ret .kcard{text-align:center;padding:12px 8px;}
 .pending-note{border:1.5px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--sub);font-size:11px;line-height:1.6;}
-.fab{height:58px;padding:0 18px;border-radius:18px;background:linear-gradient(135deg,#fff7ed 0%,#fef3c7 100%);color:#7c2d12;border:1px solid #fdba74;box-shadow:0 16px 34px -22px rgba(217,119,6,.9),0 0 0 1px rgba(255,255,255,.7) inset;gap:10px;right:28px;bottom:28px;}
+.fab{height:62px;padding:0 22px;border-radius:20px;background:linear-gradient(135deg,#14171f 0%,#2a2f3b 100%);color:#fff;border:1px solid #2a2f3b;box-shadow:0 22px 54px -30px rgba(20,23,31,.95),0 0 0 1px rgba(255,255,255,.08) inset;gap:12px;right:28px;bottom:28px;}
 .fab:hover{transform:translateY(-1px);box-shadow:0 20px 42px -24px rgba(217,119,6,1);}
-.fab svg{width:20px;height:20px;color:#d97706;}
-.fab span{font-weight:900;letter-spacing:0;font-size:14px;}
-.fab span:after{content:"ถาม AI จากข้อมูลหน้านี้";display:block;font-size:10px;font-weight:700;color:#9a3412;margin-top:1px;}
+.fab svg{width:22px;height:22px;color:#ffb020;}
+.fab span{font-weight:900;letter-spacing:.02em;font-size:17px;}
+.fab span:after{content:"";display:none;}
 .chat-panel{width:360px;border-radius:16px;border:1px solid #fed7aa;box-shadow:0 28px 70px -34px rgba(124,45,18,.72);background:#fff;}
 .chat-head{background:linear-gradient(135deg,#fff7ed 0%,#fffbeb 100%);color:var(--ink);border-bottom:1px solid #fed7aa;padding:14px 16px;}
 .chat-head .ic{width:30px;height:30px;border-radius:10px;background:#ffedd5;color:#d97706;}
@@ -239,7 +246,7 @@ td{vertical-align:middle;}
 <div class="auth-screen" id="authScreen">
   <div class="auth-card">
     <div class="auth-badge">CQR</div>
-    <h1 class="auth-title">CQR Channel Quality Report</h1>
+    <h1 class="auth-title">CHANNEL QUALITY REPORT</h1>
     <div class="auth-sub">Sign in with the approved Google account to open the production dashboard.</div>
     <div id="googleSignIn" class="auth-google"></div>
     <div id="authError" class="auth-error"></div>
@@ -271,12 +278,14 @@ td{vertical-align:middle;}
         <option value="week">Weekly View</option>
       </select>
       <select id="f-week" class="period-hidden" onchange="renderAll()"></select>
-      <select id="export-format" aria-label="Export format">
-        <option value="md">Export MD</option>
-        <option value="csv">Export CSV</option>
-        <option value="json">Export JSON</option>
-      </select>
-      <button class="export-btn" type="button" onclick="exportDashboardFile()">Export</button>
+      <details class="export-menu">
+        <summary>EXPORT</summary>
+        <div class="export-options">
+          <button type="button" onclick="exportDashboardFile('md')">Export MD</button>
+          <button type="button" onclick="exportDashboardFile('csv')">Export CSV</button>
+          <button type="button" onclick="exportDashboardFile('json')">Export JSON</button>
+        </div>
+      </details>
       <a class="admin-panel-link" id="adminPanelLink" href="copilot.html?panel=admin">Admin Panel</a>
       <button class="auth-logout" id="authLogout" type="button" onclick="signOutUser()">Sign out</button>
     </div>
@@ -663,9 +672,10 @@ function getDashboardExportSnapshot(){
   };
 }
 
-function exportDashboardFile(){
+function exportDashboardFile(formatOverride){
   try{
-    const format = document.getElementById('export-format')?.value || 'md';
+    const format = formatOverride || 'md';
+    document.querySelector('.export-menu')?.removeAttribute('open');
     const snapshot = getDashboardExportSnapshot();
     const safePeriod = snapshot.period.replace(/[^a-zA-Z0-9-]/g,'_');
     const safeGame = snapshot.game.replace(/[^a-zA-Z0-9-]/g,'_');
