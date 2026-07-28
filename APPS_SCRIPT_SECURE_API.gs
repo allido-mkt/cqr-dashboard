@@ -318,6 +318,7 @@ function handleAdminPipelineHealth_(e, callback) {
   const targetRows = filterPipelineRows_(pipelineRows, game, month);
   const readyRows = targetRows.filter(row => String(row.status || '').toLowerCase() === 'ready');
   const reviewRows = targetRows.filter(row => String(row.status || '').toLowerCase() === 'needs_review');
+  const expectedGames = ['CBM_TH', 'CBM_SEA', 'CBPC_TH', 'CBPC_SEA'];
 
   const issues = [];
   const recommendations = [];
@@ -340,6 +341,7 @@ function handleAdminPipelineHealth_(e, callback) {
         target_game_code: row.game_code,
         target_month: row.period_key,
         run_id: oldRun ? oldRun.run_id : '',
+        search_hash: previousHash,
         previous_hash: previousHash,
         current_hash: currentHash
       }
@@ -359,12 +361,47 @@ function handleAdminPipelineHealth_(e, callback) {
     });
   }
 
+  const dataIndexGameSet = new Set(dataIndexTargetRows.map(row => String(row.game_code || '').trim()).filter(Boolean));
+  const readyGameSet = new Set(readyRows.map(row => String(row.game_code || '').trim()).filter(Boolean));
+  const gamesToCheck = game === 'ALL' ? expectedGames : [game];
+  const missingReadyGames = gamesToCheck.filter(gameCode => gameCode && !readyGameSet.has(gameCode));
+  const missingIndexGames = dataIndexRows.length ? gamesToCheck.filter(gameCode => gameCode && !dataIndexGameSet.has(gameCode)) : [];
+
+  missingReadyGames.forEach(gameCode => {
+    if (reviewRows.some(row => String(row.game_code || '') === gameCode)) return;
+    issues.push({
+      level: 'warn',
+      badge: 'Missing ready run',
+      title: gameCode + ' ยังไม่มี ready run ในเดือนนี้',
+      detail: 'ยังไม่พบ run สถานะ ready ของ ' + gameCode + ' ในรอบ ' + month + ' แนะนำตรวจ PipelineLogs หรือรัน Master Data Update ใหม่หลังเคลียร์ข้อมูลเก่าเรียบร้อย'
+    });
+    recommendations.push({
+      title: 'ตรวจ run ล่าสุดของ ' + gameCode,
+      detail: 'ไปที่ Data Control เลือกเกมนี้และเดือน ' + month + ' แล้วกด FIND เพื่อดู run ล่าสุดก่อนตัดสินใจ Clear หรือ Build',
+      cleanup: {
+        target_game_code: gameCode,
+        target_month: month,
+        run_id: '',
+        search_hash: ''
+      }
+    });
+  });
+
+  missingIndexGames.forEach(gameCode => {
+    issues.push({
+      level: 'warn',
+      badge: 'Missing index',
+      title: gameCode + ' ยังไม่เจอใน DataIndex',
+      detail: 'Central DB ยังไม่มี index ของ ' + gameCode + ' สำหรับรอบ ' + month + ' อาจทำให้ Dashboard หรือ AI CHAT อ่านข้อมูลไม่ครบ'
+    });
+  });
+
   return json_({
     ok: true,
     game,
     month,
     summary: {
-      health_score: reviewRows.length ? 'Needs Review' : 'Healthy',
+      health_score: issues.length ? 'Needs Review' : 'Healthy',
       ready_runs: readyRows.length,
       needs_review: reviewRows.length,
       cleanup_needed: recommendations.length,
@@ -609,10 +646,11 @@ function handleAiAsk_(e, callback) {
     alert_log_limit: 5,
     answer_style_instructions: [
       'ตอบเป็นภาษาไทยแบบเข้าใจง่าย กระชับ และใช้คำที่ทีม Marketing อ่านรู้เรื่องทันที',
+      'เขียนให้เป็นธรรมชาติ เหมือน analyst อธิบายให้ทีมฟัง ไม่ต้องใช้ markdown หนัก ๆ หรือทำตัวหนาทุกบรรทัด',
       'ห้ามพูดศัพท์ระบบภายใน เช่น Flow A, Flow B, cache, webhook, n8n, backend, payload, prompt',
       'ถ้าข้อมูลยังไม่พอ ให้พูดว่า "ข้อมูลส่วนนี้ยังไม่ครบพอสำหรับสรุปชัดเจน แนะนำดูใน Dashboard เพิ่มเติม" แทนการพูดถึง flow หรือ cache',
       'ถ้าต้องแนะนำให้ดูข้อมูลเพิ่ม ให้บอกสิ่งที่ควรดู เช่น เกม, Channel, Period, D1/D3/D7/D14 โดยไม่พูดถึงวิธีทำงานหลังบ้าน',
-      'จัดคำตอบเป็น bullet สั้น ๆ และลงท้ายด้วย next step ที่ทำได้จริง 1-3 ข้อ'
+      'จัดคำตอบเป็นย่อหน้าสั้นหรือ bullet ที่อ่านง่าย และลงท้ายด้วยสิ่งที่ควรตรวจต่อ 1-3 ข้อ'
     ].join('\n'),
     max_answer_chars: 900
   };
