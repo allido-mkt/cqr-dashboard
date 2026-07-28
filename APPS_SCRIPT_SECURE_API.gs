@@ -313,6 +313,9 @@ function handleAdminPipelineHealth_(e, callback) {
 
   const game = String(e.parameter.game || 'ALL').trim();
   const month = String(e.parameter.month || '2026-06').trim();
+  const n8nHealth = tryAdminPipelineHealthViaN8n_(session, game, month);
+  if (n8nHealth) return json_(n8nHealth, callback);
+
   const pipelineRows = readCentralSheetRows_('PipelineLogs');
   const dataIndexRows = readCentralSheetRows_('DataIndex');
   const targetRows = filterPipelineRows_(pipelineRows, game, month);
@@ -357,15 +360,25 @@ function handleAdminPipelineHealth_(e, callback) {
       level: 'warn',
       badge: 'No logs',
       title: 'ยังไม่พบ PipelineLogs สำหรับเงื่อนไขนี้',
-      detail: 'ตรวจว่าเลือกเดือน/เกมถูกต้อง หรือรัน Master Data Update แล้วหรือยัง'
+      detail: 'ยังอ่าน log ของเกม/เดือนนี้ไม่ได้ แนะนำตรวจว่า Central DB ID ถูกต้อง, มีแท็บ PipelineLogs และ n8n เขียน log เข้ามาแล้วหรือยัง'
+    });
+    recommendations.push({
+      title: 'ตรวจแหล่งข้อมูลของ Data Health ก่อน',
+      detail: 'ถ้ามี n8n health workflow แล้ว ให้ตั้ง Script Property CQR_N8N_HEALTH_WEBHOOK_URL เพื่อให้ Data Health ยิง n8n โดยตรง หรือเช็กว่า PipelineLogs ใน Central DB มีข้อมูลของเดือนนี้แล้ว',
+      cleanup: {
+        target_game_code: game,
+        target_month: month,
+        run_id: '',
+        search_hash: ''
+      }
     });
   }
 
   const dataIndexGameSet = new Set(dataIndexTargetRows.map(row => String(row.game_code || '').trim()).filter(Boolean));
   const readyGameSet = new Set(readyRows.map(row => String(row.game_code || '').trim()).filter(Boolean));
   const gamesToCheck = game === 'ALL' ? expectedGames : [game];
-  const missingReadyGames = gamesToCheck.filter(gameCode => gameCode && !readyGameSet.has(gameCode));
-  const missingIndexGames = dataIndexRows.length ? gamesToCheck.filter(gameCode => gameCode && !dataIndexGameSet.has(gameCode)) : [];
+  const missingReadyGames = targetRows.length ? gamesToCheck.filter(gameCode => gameCode && !readyGameSet.has(gameCode)) : [];
+  const missingIndexGames = dataIndexTargetRows.length ? gamesToCheck.filter(gameCode => gameCode && !dataIndexGameSet.has(gameCode)) : [];
 
   missingReadyGames.forEach(gameCode => {
     if (reviewRows.some(row => String(row.game_code || '') === gameCode)) return;
@@ -408,9 +421,83 @@ function handleAdminPipelineHealth_(e, callback) {
       pipeline_logs: targetRows.length,
       data_index_rows: dataIndexTargetRows.length
     },
+    source: 'apps_script_central_db',
     issues,
     recommendations
   }, callback);
+}
+
+function tryAdminPipelineHealthViaN8n_(session, game, month) {
+  const props = PropertiesService.getScriptProperties();
+  const webhookUrl = props.getProperty('CQR_N8N_HEALTH_WEBHOOK_URL');
+  if (!webhookUrl) return null;
+
+  const sharedSecret = props.getProperty('CQR_N8N_ADMIN_SHARED_SECRET') || '';
+  const payload = {
+    request_id: 'ADMIN-HEALTH-' + new Date().toISOString(),
+    command: 'pipeline.health',
+    requested_by: session.email,
+    target_game_code: game,
+    target_month: month,
+    central_db_id: CONFIG.CENTRAL_DB_ID,
+    source: 'cqr_admin_panel'
+  };
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
+    headers: {}
+  };
+  if (sharedSecret) options.headers['X-CQR-Admin-Secret'] = sharedSecret;
+
+  const response = UrlFetchApp.fetch(webhookUrl, options);
+  const status = response.getResponseCode();
+  const text = response.getContentText() || '';
+  const data = safeJsonParse_(text, { raw: text });
+  if (status < 200 || status >= 300) {
+    return {
+      ok: true,
+      game,
+      month,
+      source: 'n8n_health_error',
+      summary: {
+        health_score: 'Needs Review',
+        ready_runs: '-',
+        needs_review: 1,
+        cleanup_needed: 1,
+        pipeline_logs: '-',
+        data_index_rows: '-'
+      },
+      issues: [{
+        level: 'warn',
+        badge: 'n8n health',
+        title: 'Data Health ยิง n8n ไม่สำเร็จ',
+        detail: 'เช็ก CQR_N8N_HEALTH_WEBHOOK_URL หรือ execution ล่าสุดของ n8n health workflow ก่อนใช้งานต่อ'
+      }],
+      recommendations: [{
+        title: 'ตรวจ n8n health workflow',
+        detail: 'เปิด n8n แล้วดู execution ของ Health workflow ว่ารับ request จาก Admin Panel ได้หรือไม่',
+        cleanup: {
+          target_game_code: game,
+          target_month: month,
+          run_id: '',
+          search_hash: ''
+        }
+      }],
+      n8n_status: status,
+      n8n_detail: data
+    };
+  }
+
+  data.ok = data.ok !== false;
+  data.game = data.game || game;
+  data.month = data.month || month;
+  data.source = data.source || 'n8n_health';
+  data.summary = data.summary || {};
+  data.issues = data.issues || [];
+  data.recommendations = data.recommendations || [];
+  return data;
 }
 
 function handleAdminPipelineRunLookup_(e, callback) {
@@ -475,12 +562,16 @@ function handleAdminN8nCommand_(e, callback, command) {
   const game = String(e.parameter.game || 'ALL').trim();
   const month = String(e.parameter.month || '').trim();
   const runId = String(e.parameter.run_id || '').trim();
+  const runIds = safeJsonParse_(e.parameter.run_ids || '[]', [])
+    .map(function (value) { return String(value || '').trim(); })
+    .filter(Boolean);
+  const runItems = safeJsonParse_(e.parameter.run_items || '[]', []);
   const hash = String(e.parameter.hash || '').trim();
   if (!month) throw new Error('Month is required.');
-  if ((command === 'cleanup.preview' || command === 'cleanup.run') && !runId) {
+  if ((command === 'cleanup.preview' || command === 'cleanup.run') && !runId && !runIds.length) {
     throw new Error('Run ID or hash is required for cleanup.');
   }
-  if ((command === 'cleanup.preview' || command === 'cleanup.run') && game === 'ALL') {
+  if ((command === 'cleanup.preview' || command === 'cleanup.run') && game === 'ALL' && !runIds.length) {
     throw new Error('Cleanup requires one selected game, not ALL.');
   }
 
@@ -494,6 +585,8 @@ function handleAdminN8nCommand_(e, callback, command) {
     target_game_code: game,
     target_month: month,
     run_id: runId,
+    run_ids: runIds,
+    run_items: runItems,
     hash,
     confirm_delete: command === 'cleanup.run' ? 'YES' : 'NO',
     run_mode: command === 'master.run' ? 'force' : '',
@@ -652,7 +745,7 @@ function handleAiAsk_(e, callback) {
       'ถ้าต้องแนะนำให้ดูข้อมูลเพิ่ม ให้บอกสิ่งที่ควรดู เช่น เกม, Channel, Period, D1/D3/D7/D14 โดยไม่พูดถึงวิธีทำงานหลังบ้าน',
       'จัดคำตอบเป็นย่อหน้าสั้นหรือ bullet ที่อ่านง่าย และลงท้ายด้วยสิ่งที่ควรตรวจต่อ 1-3 ข้อ'
     ].join('\n'),
-    max_answer_chars: 900
+    max_answer_chars: 1800
   };
 
   const response = UrlFetchApp.fetch(webhookUrl, {

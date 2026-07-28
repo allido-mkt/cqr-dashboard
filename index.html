@@ -41,7 +41,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);border-
 .auth-ready .auth-logout{display:inline-flex;align-items:center;gap:6px;}
 .auth-logout:hover{background:#ffedd5;}
 .admin-panel-link{display:none;height:42px;border:1px solid #99f6e4;background:#f0fdfa;color:#115e59;border-radius:12px;padding:0 13px;font-family:'Sarabun';font-size:11.5px;font-weight:900;text-decoration:none;align-items:center;gap:6px;}
-.auth-ready.manager-plus .admin-panel-link{display:inline-flex;}
+.auth-ready .admin-panel-link{display:inline-flex;}
 .admin-panel-link:hover{background:#ccfbf1;}
 
 .wrap{max-width:1360px;margin:0 auto;padding:20px 22px 100px;}
@@ -286,8 +286,8 @@ td{vertical-align:middle;}
           <button type="button" onclick="exportDashboardFile('json')">Export JSON</button>
         </div>
       </details>
-      <a class="admin-panel-link" id="adminPanelLink" href="copilot.html?panel=admin">Admin Panel</a>
-      <button class="auth-logout" id="authLogout" type="button" onclick="signOutUser()">Sign out</button>
+      <a class="admin-panel-link" id="adminPanelLink" href="copilot.html?panel=admin">ADMIN PANEL</a>
+      <button class="auth-logout" id="authLogout" type="button" onclick="signOutUser()">SIGN OUT</button>
     </div>
   </div>
 </header>
