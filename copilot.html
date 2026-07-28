@@ -145,6 +145,16 @@ tbody tr:hover{background:#fbfaf8}
 .copy-line:last-child{border-bottom:none;padding-bottom:0}
 .copy-line code{font-family:'Inter',sans-serif;color:#7c2d12;word-break:break-word;text-align:right}
 .soft-note{font-size:11.5px;color:var(--sub);line-height:1.55;margin-top:10px}
+.step-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.step-card{border:1px solid #f1f0ee;background:#fff;border-radius:14px;padding:12px;min-height:112px;display:flex;flex-direction:column;gap:7px}
+.step-card.active-step{border-color:#fed7aa;background:#fffaf0}
+.step-num{width:28px;height:28px;border-radius:9px;background:#ff9800;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:12px}
+.step-card b{font-size:12.5px;line-height:1.25}
+.step-card p{margin:0;color:var(--sub);font-size:11.2px;line-height:1.45}
+.explain-box{border:1px solid #fed7aa;background:#fffaf0;border-radius:14px;padding:13px;margin:0 0 14px;font-size:12px;line-height:1.6;color:var(--sub)}
+.explain-box b{color:var(--ink)}
+.field-help{font-size:10.8px;line-height:1.45;color:var(--sub);margin-top:6px}
+.action-tag{display:inline-flex;align-items:center;width:max-content;border-radius:999px;background:#fff7ed;color:#9a3412;font-size:10px;font-weight:900;padding:4px 8px}
 .action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
 .action-card{border:1px solid #fed7aa;background:#fffaf0;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:9px;min-height:150px}
 .action-card.danger{border-color:#fecdd3;background:#fff1f2}
@@ -157,12 +167,12 @@ tbody tr:hover{background:#fbfaf8}
 .action-result{border:1px solid #f1f0ee;background:#fbfaf8;border-radius:12px;padding:12px;margin-top:12px;font-size:12px;line-height:1.6;white-space:pre-wrap}
 @media(max-width:1040px){
  .ai-layout,.admin-layout{grid-template-columns:1fr}
- .filter-grid,.tool-grid,.status-grid,.run-meta,.action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .filter-grid,.tool-grid,.status-grid,.run-meta,.action-grid,.step-list{grid-template-columns:repeat(2,minmax(0,1fr))}
  .context-submit{grid-column:1/-1}
 }
 @media(max-width:720px){
  .shell{padding:0 14px 32px}.topbar{align-items:flex-start;flex-direction:column}
- .form-grid,.filter-grid,.question-grid,.tool-grid,.status-grid,.run-meta,.admin-tabs,.action-grid{grid-template-columns:1fr}
+ .form-grid,.filter-grid,.question-grid,.tool-grid,.status-grid,.run-meta,.admin-tabs,.action-grid,.step-list{grid-template-columns:1fr}
  .chat-card{min-height:560px}.chat-feed{max-height:520px}
 }
 </style>
@@ -303,8 +313,8 @@ tbody tr:hover{background:#fbfaf8}
             <div class="admin-nav">
               <div class="admin-tabs">
                 <button class="admin-tab active" id="adminTabUsers" type="button" onclick="switchAdminTool('users')">User Access<small>จัดการสิทธิ์และรายชื่อผู้ใช้</small></button>
-                <button class="admin-tab" id="adminTabPipeline" type="button" onclick="switchAdminTool('pipeline')">Run & Cleanup<small>หา run_id / hash และเตรียม cleanup</small></button>
-                <button class="admin-tab" id="adminTabHealth" type="button" onclick="switchAdminTool('health')">File Health<small>ตรวจไฟล์ค้างและคำแนะนำแก้ปัญหา</small></button>
+                <button class="admin-tab" id="adminTabHealth" type="button" onclick="switchAdminTool('health')">Data Health Checkup<small>เช็กไฟล์ค้างและสิ่งที่ควรแก้ก่อน</small></button>
+                <button class="admin-tab" id="adminTabPipeline" type="button" onclick="switchAdminTool('pipeline')">Data Control<small>หา run_id และส่งคำสั่งไป n8n</small></button>
               </div>
             </div>
 
@@ -348,6 +358,32 @@ tbody tr:hover{background:#fbfaf8}
 
             <div class="admin-view" id="adminViewPipeline">
               <div style="padding:18px 20px">
+                <div class="step-list">
+                  <div class="step-card">
+                    <span class="step-num">1</span>
+                    <b>เช็กข้อมูลก่อน</b>
+                    <p>ไปที่ Data Health Checkup เพื่อดูว่าเกม/เดือนนี้มีไฟล์ค้างหรือ hash ชนกันไหม</p>
+                  </div>
+                  <div class="step-card active-step">
+                    <span class="step-num">2</span>
+                    <b>หา Run ID</b>
+                    <p>ใช้ปุ่ม Find Run ID เพื่อหาว่า run ไหนเป็นข้อมูลเก่าที่ต้องตรวจต่อ</p>
+                  </div>
+                  <div class="step-card">
+                    <span class="step-num">3</span>
+                    <b>Preview Cleanup</b>
+                    <p>ให้ n8n สรุปก่อนว่าจะลบกี่แถว ยังไม่ลบข้อมูลจริงในขั้นตอนนี้</p>
+                  </div>
+                  <div class="step-card">
+                    <span class="step-num">4</span>
+                    <b>Cleanup แล้ว Update</b>
+                    <p>ถ้าจำนวนแถวถูกต้อง ค่อย Run Cleanup แล้วตามด้วย Run Update</p>
+                  </div>
+                </div>
+                <div class="explain-box">
+                  <b>Run ID / Hash ใช้ต่างกันยังไง</b><br>
+                  ใส่ <b>Run ID</b> เมื่อต้องการตรวจ run ที่รู้แน่ชัดแล้ว · ใส่ <b>Hash</b> เมื่อต้องการหา run ที่ทำให้เกิดปัญหา hash mismatch · ถ้าไม่ใส่อะไร ระบบจะค้น run ที่เกี่ยวข้องกับเกมและเดือนที่เลือกให้กว้างขึ้น
+                </div>
                 <div class="tool-grid">
                   <div>
                     <label>Game</label>
@@ -364,43 +400,64 @@ tbody tr:hover{background:#fbfaf8}
                     <input id="toolMonth" value="2026-06" placeholder="2026-06">
                   </div>
                   <div>
-                    <label>Run ID หรือ Hash</label>
+                    <label>Run ID / Hash สำหรับค้นหา</label>
                     <input id="toolRunQuery" placeholder="RUN-... หรือ ew6tt">
+                    <div class="field-help">ไม่จำเป็นต้องใส่เสมอไป แต่ถ้าเจอ hash จากหน้า Health ให้ใส่ตรงนี้เพื่อหา run_id</div>
                   </div>
-                  <button class="context-submit" type="button" onclick="inspectRun()">Inspect Run</button>
-                </div>
-                <div class="toolbar">
-                  <button class="ghost-btn" type="button" onclick="switchAdminTool('health')">Check File Health</button>
-                  <button class="ghost-btn" type="button" onclick="fillKnownIssue('CBM_SEA','2026-06','oa960n')">CBM SEA issue</button>
-                  <button class="ghost-btn" type="button" onclick="fillKnownIssue('CBPC_TH','2026-06','a1oxij')">CBPC TH issue</button>
-                  <button class="ghost-btn" type="button" onclick="fillKnownIssue('CBPC_SEA','2026-06','je7lw')">CBPC SEA issue</button>
+                  <button class="context-submit" type="button" onclick="inspectRun()">Find Run ID</button>
                 </div>
                 <div class="action-grid">
                   <div class="action-card">
+                    <span class="action-tag">Step 3</span>
                     <strong>Preview Cleanup</strong>
                     <p>ส่งคำสั่งไปที่ n8n เพื่อเช็กก่อนว่าจะลบแถวไหนบ้าง ยังไม่ลบข้อมูลจริง ใช้ปุ่มนี้ก่อนทุกครั้ง</p>
                     <button class="action-btn" type="button" onclick="runPipelineCommand('cleanup.preview')">Preview Cleanup</button>
                   </div>
                   <div class="action-card danger">
+                    <span class="action-tag">Step 4A</span>
                     <strong>Run Cleanup</strong>
                     <p>ส่งคำสั่งลบข้อมูลเก่าผ่าน n8n ใช้เฉพาะหลัง Preview แล้วจำนวนแถวถูกต้องเท่านั้น</p>
                     <button class="action-btn danger" type="button" onclick="runPipelineCommand('cleanup.run')">Run Cleanup</button>
                   </div>
                   <div class="action-card">
+                    <span class="action-tag">Step 4B</span>
                     <strong>Run Master Data Update</strong>
                     <p>ส่งคำสั่งให้ n8n อ่าน raw file แล้วเขียน Master / Central DB ใหม่สำหรับเกมและเดือนที่เลือก</p>
                     <button class="action-btn secondary" type="button" onclick="runPipelineCommand('master.run')">Run Update</button>
                   </div>
                 </div>
-                <div id="pipelineActionResult" class="action-result">ปุ่มด้านบนจะทำงานผ่าน n8n โดย Apps Script จะตรวจสิทธิ์ super_admin ก่อนส่งคำสั่ง</div>
+                <div id="pipelineActionResult" class="action-result">ยังไม่มีคำสั่งล่าสุด
+เริ่มจาก Data Health Checkup ก่อน ถ้าเจอปัญหา hash mismatch ค่อยกลับมาที่ Data Control เพื่อ Find Run ID, Preview Cleanup, Run Cleanup และ Run Update ตามลำดับ</div>
                 <div id="runInspectorResult" class="run-card">
-                  เลือกเกม/เดือน แล้วใส่ run_id หรือ hash เพื่อเช็กว่าควร cleanup อะไรต่อ
+                  เลือกเกม/เดือน แล้วกด Find Run ID เพื่อดู run ที่เกี่ยวข้องและคำแนะนำขั้นตอนถัดไป
                 </div>
               </div>
             </div>
 
             <div class="admin-view" id="adminViewHealth">
               <div style="padding:18px 20px">
+                <div class="step-list">
+                  <div class="step-card active-step">
+                    <span class="step-num">1</span>
+                    <b>Check Data Health</b>
+                    <p>ดูว่าไฟล์ของเกม/เดือนนี้พร้อมใช้ หรือมีข้อมูลเก่าค้างอยู่</p>
+                  </div>
+                  <div class="step-card">
+                    <span class="step-num">2</span>
+                    <b>อ่านคำแนะนำ</b>
+                    <p>ถ้ามีปัญหา ระบบจะบอกเกม เดือน hash และสิ่งที่ควรทำต่อ</p>
+                  </div>
+                  <div class="step-card">
+                    <span class="step-num">3</span>
+                    <b>ไป Data Control</b>
+                    <p>ใช้ hash หรือ run_id จากหน้านี้เพื่อ Preview Cleanup ผ่าน n8n</p>
+                  </div>
+                  <div class="step-card">
+                    <span class="step-num">4</span>
+                    <b>Update ใหม่</b>
+                    <p>หลัง Cleanup สำเร็จ ค่อยรัน Master Data Update สำหรับเกม/เดือนนั้น</p>
+                  </div>
+                </div>
                 <div class="tool-grid">
                   <div>
                     <label>Game</label>
@@ -416,7 +473,7 @@ tbody tr:hover{background:#fbfaf8}
                     <label>Month</label>
                     <input id="healthMonth" value="2026-06" placeholder="2026-06">
                   </div>
-                  <button class="context-submit" type="button" onclick="loadPipelineHealth()">Check Health</button>
+                  <button class="context-submit" type="button" onclick="loadPipelineHealth()">Check Data Health</button>
                 </div>
                 <div class="status-grid" id="healthScoreCards">
                   <div class="status-card"><span>Health</span><strong>-</strong></div>
@@ -425,7 +482,7 @@ tbody tr:hover{background:#fbfaf8}
                   <div class="status-card"><span>Cleanup Needed</span><strong>-</strong></div>
                 </div>
                 <div class="health-list" id="healthIssueList">
-                  <div class="health-item ok"><div><b>รอเช็กข้อมูล</b><p>กด Check Health เพื่อดูความผิดปกติของไฟล์และคำแนะนำ</p></div><span class="health-badge ok">Ready</span></div>
+                  <div class="health-item ok"><div><b>รอเช็กข้อมูล</b><p>กด Check Data Health เพื่อดูความผิดปกติของไฟล์และคำแนะนำ</p></div><span class="health-badge ok">Ready</span></div>
                 </div>
                 <div class="recommend-list" id="healthRecommendationList"></div>
               </div>
@@ -439,7 +496,7 @@ tbody tr:hover{background:#fbfaf8}
               <div class="system-line"><span>Session</span><b id="sysSession">ACTIVE</b></div>
               <div class="system-line"><span>Expires</span><b id="sysExpires">-</b></div>
             </div>
-            <div class="soft-note">Run & Cleanup จะอ่านสถานะจาก Central DB เพื่อช่วยหา run_id/hash ที่ควรล้างข้อมูลเก่า และแนะนำขั้นตอนถัดไปแบบไม่ต้องไล่ชีทเอง</div>
+            <div class="soft-note">Data Health Checkup ใช้เช็กไฟล์ที่ควรตรวจเพิ่ม ส่วน Data Control ใช้ส่งคำสั่งไป n8n เพื่อ Preview Cleanup, Run Cleanup และ Run Update</div>
           </aside>
         </div>
       </section>
@@ -920,7 +977,7 @@ async function inspectRun(){
   const game = document.getElementById('toolGame').value;
   const month = document.getElementById('toolMonth').value.trim() || '2026-06';
   const query = document.getElementById('toolRunQuery').value.trim();
-  resultBox.textContent = 'กำลังตรวจ run_id / hash...';
+  resultBox.textContent = 'กำลังค้นหา run_id / hash ที่เกี่ยวข้อง...';
   try{
     const result = await callAppsScript('admin.pipeline.run.lookup', {
       session_token: session.sessionToken,
@@ -931,7 +988,7 @@ async function inspectRun(){
     if(!result.ok) throw new Error(result.message || 'Cannot inspect run');
     renderRunInspector(result);
   }catch(error){
-    resultBox.innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ Run Inspector</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.run.lookup เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
+    resultBox.innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ Find Run ID</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.run.lookup เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
   }
 }
 
@@ -950,7 +1007,7 @@ async function loadPipelineHealth(){
     if(!result.ok) throw new Error(result.message || 'Cannot load health');
     renderPipelineHealth(result);
   }catch(error){
-    document.getElementById('healthIssueList').innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ File Health</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.health เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
+    document.getElementById('healthIssueList').innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ Data Health Checkup</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.health เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
   }
 }
 
@@ -979,11 +1036,14 @@ async function runPipelineCommand(command){
     'master.run': 'Run Master Data Update'
   };
   if((command === 'cleanup.preview' || command === 'cleanup.run') && !cleanupRunId){
-    resultBox.textContent = 'กรุณาใส่ run_id หรือค้นด้วย Run Inspector ก่อนใช้ปุ่ม Cleanup';
+    resultBox.textContent = 'กรุณาใส่ Run ID หรือกด Find Run ID ก่อนใช้ปุ่ม Cleanup';
     return;
   }
   if(command === 'cleanup.run'){
-    const ok = confirm(`Run Cleanup จริงสำหรับ ${game} / ${month}?\\nRun ID: ${cleanupRunId}\\n\\nควรกด Preview Cleanup ก่อน และตรวจจำนวนแถวให้ถูกต้องแล้วเท่านั้น`);
+    const ok = confirm(`Run Cleanup จริงสำหรับ ${game} / ${month}?
+Run ID: ${cleanupRunId}
+
+ควรกด Preview Cleanup ก่อน และตรวจจำนวนแถวให้ถูกต้องแล้วเท่านั้น`);
     if(!ok) return;
   }
   resultBox.textContent = `กำลังส่งคำสั่ง ${labelMap[command]} ไปที่ n8n...`;
@@ -999,7 +1059,9 @@ async function runPipelineCommand(command){
     if(!result.ok) throw new Error(result.message || 'n8n command failed');
     renderPipelineActionResult(labelMap[command], result);
   }catch(error){
-    resultBox.textContent = `${labelMap[command]} ยังทำงานไม่ได้: ${error.message || error}\\n\\nตรวจว่า Apps Script ตั้งค่า webhook ของ n8n ไว้ใน Script Properties แล้วหรือยัง`;
+    resultBox.textContent = `${labelMap[command]} ยังทำงานไม่ได้: ${error.message || error}
+
+ตรวจว่า Apps Script ตั้งค่า webhook ของ n8n ไว้ใน Script Properties แล้วหรือยัง`;
   }finally{
     setPipelineActionBusy(false);
   }
@@ -1020,7 +1082,7 @@ function renderPipelineActionResult(label, result){
     result.execution_url ? `Execution: ${result.execution_url}` : '',
     payload.message ? `Message: ${payload.message}` : ''
   ].filter(Boolean);
-  document.getElementById('pipelineActionResult').textContent = lines.join('\\n');
+  document.getElementById('pipelineActionResult').textContent = lines.join('\n');
 }
 
 function renderRunInspector(result){
@@ -1039,16 +1101,17 @@ function renderRunInspector(result){
   `).join('') : '<tr><td colspan="6">ไม่พบ run ที่ตรงกับเงื่อนไข</td></tr>';
   const suggestion = target.run_id ? `
     <div class="copy-box">
-      <b>Cleanup Config ที่แนะนำ</b>
+      <b>ข้อมูลสำหรับขั้นตอนถัดไป</b>
       <div class="copy-line"><span>target_game_code</span><code>${escapeHtml(target.target_game_code)}</code></div>
       <div class="copy-line"><span>target_month</span><code>${escapeHtml(target.target_month)}</code></div>
       <div class="copy-line"><span>run_id</span><code>${escapeHtml(target.run_id)}</code></div>
       <div class="copy-line"><span>confirm_delete</span><code>NO ก่อน แล้วค่อย YES</code></div>
+      <div class="soft-note">ขั้นตอนแนะนำ: กด Preview Cleanup ก่อน ถ้าจำนวนแถวถูกต้องค่อย Run Cleanup แล้วตามด้วย Run Update</div>
     </div>
   ` : '';
   document.getElementById('runInspectorResult').innerHTML = `
     <div class="health-item ${result.risk_level || 'ok'}">
-      <div><b>${escapeHtml(result.title || 'Run Inspector')}</b><p>${escapeHtml(result.summary || 'ตรวจพบข้อมูลตามเงื่อนไข')}</p></div>
+      <div><b>${escapeHtml(result.title || 'Find Run ID')}</b><p>${escapeHtml(result.summary || 'ตรวจพบข้อมูลตามเงื่อนไข')}</p></div>
       <span class="health-badge ${result.risk_level || 'ok'}">${escapeHtml(result.badge || 'Result')}</span>
     </div>
     ${suggestion}
@@ -1083,7 +1146,8 @@ function renderPipelineHealth(result){
       ${item.cleanup ? `
         <div class="copy-line"><span>target_game_code</span><code>${escapeHtml(item.cleanup.target_game_code)}</code></div>
         <div class="copy-line"><span>target_month</span><code>${escapeHtml(item.cleanup.target_month)}</code></div>
-        <div class="copy-line"><span>run_id</span><code>${escapeHtml(item.cleanup.run_id || 'หา run_id จาก Run Inspector')}</code></div>
+        ${item.cleanup.search_hash ? `<div class="copy-line"><span>hash สำหรับค้นหา</span><code>${escapeHtml(item.cleanup.search_hash)}</code></div>` : ''}
+        ${item.cleanup.run_id ? `<div class="copy-line"><span>run_id</span><code>${escapeHtml(item.cleanup.run_id)}</code></div>` : '<div class="copy-line"><span>run_id</span><code>กด Find Run ID ใน Data Control</code></div>'}
       ` : ''}
     </div>
   `).join('');
@@ -1115,8 +1179,8 @@ function buildMockPipelineHealth(params){
     })),
     recommendations: needs.map(row => ({
       title:`ล้างข้อมูลเก่าของ ${row.game_code} ก่อนรัน Master Data Update ใหม่`,
-      detail:'เปิดเครื่องมือ Clean Old Run Data แล้ว Preview ก่อน ถ้าตัวเลขถูกต้องค่อย confirm_delete=YES จากนั้นกลับมารัน Master Data Update อีกครั้ง',
-      cleanup:{target_game_code:row.game_code,target_month:month,run_id:`run เก่าที่มี hash ${row.previous_hash}`}
+      detail:'ไปที่ Data Control แล้วใส่ hash เพื่อหา Run ID จากนั้นกด Preview Cleanup ก่อน ถ้าจำนวนแถวถูกต้องค่อย Run Cleanup และ Run Update',
+      cleanup:{target_game_code:row.game_code,target_month:month,search_hash:row.previous_hash}
     }))
   };
 }
@@ -1125,15 +1189,15 @@ function buildMockRunLookup(params){
   const query = String(params.query || '').trim();
   const health = buildMockPipelineHealth(params);
   const rows = [
-    {game_code:'CBM_SEA',period_key:'2026-06',status:'ready',data_hash_after:'oa960n',rows_written:50352,run_id:'หา run_id เก่าใน PipelineLogs จาก hash oa960n'},
-    {game_code:'CBPC_TH',period_key:'2026-06',status:'ready',data_hash_after:'a1oxij',rows_written:19348,run_id:'หา run_id เก่าใน PipelineLogs จาก hash a1oxij'},
-    {game_code:'CBPC_SEA',period_key:'2026-06',status:'ready',data_hash_after:'je7lw',rows_written:14427,run_id:'หา run_id เก่าใน PipelineLogs จาก hash je7lw'},
+    {game_code:'CBM_SEA',period_key:'2026-06',status:'ready',data_hash_after:'oa960n',rows_written:50352,run_id:'RUN-2026-07-26T09:18:11.123Z'},
+    {game_code:'CBPC_TH',period_key:'2026-06',status:'ready',data_hash_after:'a1oxij',rows_written:19348,run_id:'RUN-2026-07-26T09:20:31.456Z'},
+    {game_code:'CBPC_SEA',period_key:'2026-06',status:'ready',data_hash_after:'je7lw',rows_written:14427,run_id:'RUN-2026-07-26T09:22:44.789Z'},
     {game_code:'CBM_TH',period_key:'2026-06',status:'ready',data_hash_after:'mhbptw',rows_written:4848,run_id:'RUN-2026-07-28T09:37:52.900Z'}
   ].filter(row => (!params.game || params.game === 'ALL' || row.game_code === params.game) && (!query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())));
   return {
     ok:true,
     title: rows.length ? 'พบ run ที่เกี่ยวข้อง' : 'ไม่พบ run ที่ตรงเงื่อนไข',
-    summary: rows.length ? 'ใช้ข้อมูลนี้เพื่อกรอก Cleanup Config หรือยืนยันว่ารอบล่าสุดเขียนสำเร็จแล้ว' : 'ลองค้นด้วย hash เก่า เช่น oa960n, a1oxij, je7lw หรือใส่ run_id เต็ม',
+    summary: rows.length ? 'ใช้ Run ID จากตารางนี้เพื่อ Preview Cleanup หรือเช็กว่ารอบล่าสุดเขียนสำเร็จแล้ว' : 'ลองค้นด้วย hash เก่า เช่น oa960n, a1oxij, je7lw หรือใส่ Run ID เต็ม',
     risk_level: rows.some(row => row.status === 'ready' && query && row.data_hash_after === query) ? 'warn' : 'ok',
     badge: rows.length ? `${rows.length} match` : 'No match',
     matches: rows,
