@@ -23,16 +23,19 @@ body.auth-locked header,body.auth-locked .wrap,body.auth-locked .fab{filter:blur
 .num{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;}
 
 header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 1px 3px rgba(20,23,31,.05);}
-.hbar{max-width:1360px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.hbar{max-width:1360px;margin:0 auto;padding:16px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .hbar h1{font-size:16px;font-weight:800;margin:0;white-space:nowrap;}
 .hbar h1 span{color:var(--accent2);}
-.hfilters{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;}
-.hfilters select{font-family:'Sarabun';font-size:11.5px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:#fbfaf8;min-width:118px;}
+.hfilters{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid #e7e3dc;border-radius:16px;padding:8px;box-shadow:0 18px 42px -32px rgba(20,23,31,.65);}
+.hfilters select{font-family:'Sarabun';font-size:11.5px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:#fbfaf8;min-width:118px;height:38px;font-weight:700;color:var(--ink);}
+.hfilters select:focus{outline:none;border-color:#fdba74;background:#fff;box-shadow:0 0 0 3px #ffedd5;}
+.export-btn{height:38px;border:0;background:#14171f;color:#fff;border-radius:10px;padding:0 13px;font-family:'Sarabun';font-size:11.5px;font-weight:900;cursor:pointer;}
+.export-btn:hover{background:#2a2f3b;}
 .auth-logout{display:none;height:36px;border:1px solid #fed7aa;background:#fff7ed;color:#7c2d12;border-radius:10px;padding:0 12px;font-family:'Sarabun';font-size:11.5px;font-weight:800;cursor:pointer;}
 .auth-ready .auth-logout{display:inline-flex;align-items:center;gap:6px;}
 .auth-logout:hover{background:#ffedd5;}
 .admin-panel-link{display:none;height:36px;border:1px solid #99f6e4;background:#f0fdfa;color:#115e59;border-radius:10px;padding:0 12px;font-family:'Sarabun';font-size:11.5px;font-weight:800;text-decoration:none;align-items:center;gap:6px;}
-.auth-ready.super-admin .admin-panel-link{display:inline-flex;}
+.auth-ready.manager-plus .admin-panel-link{display:inline-flex;}
 .admin-panel-link:hover{background:#ccfbf1;}
 
 .wrap{max-width:1360px;margin:0 auto;padding:20px 22px 100px;}
@@ -160,13 +163,13 @@ td{padding:8px 5px;border-bottom:1px solid #f4f2ef;text-align:right;vertical-ali
 
 .card{position:relative;}
 .hbar{padding:16px 22px;}
-.brand-title{display:flex;align-items:center;gap:12px;min-width:280px;}
-.brand-mark{width:36px;height:36px;border-radius:12px;background:#14171f;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;letter-spacing:.02em;box-shadow:0 10px 22px -16px rgba(20,23,31,.7);}
+.brand-title{display:flex;align-items:center;gap:13px;min-width:320px;}
+.brand-mark{width:40px;height:40px;border-radius:14px;background:linear-gradient(145deg,#14171f,#252a36);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;letter-spacing:.02em;box-shadow:0 16px 34px -22px rgba(20,23,31,.95), inset 0 0 0 1px rgba(255,255,255,.08);}
 .brand-copy{display:flex;flex-direction:column;gap:1px;}
-.brand-main{font-size:19px;font-weight:800;line-height:1.08;letter-spacing:0;text-transform:none;color:var(--ink);}
+.brand-main{font-size:21px;font-weight:800;line-height:1.02;letter-spacing:.015em;text-transform:uppercase;color:var(--ink);}
 .brand-main span{color:#0d9488;}
-.brand-sub{font-size:10.5px;color:var(--sub);font-weight:600;letter-spacing:.02em;text-transform:uppercase;}
-.hfilters select{height:36px;border-radius:10px;background:#fff;border-color:#e5e7eb;box-shadow:0 1px 2px rgba(20,23,31,.03);}
+.brand-sub{font-size:11px;color:var(--sub);font-weight:700;letter-spacing:.02em;text-transform:none;margin-top:3px;line-height:1.35;}
+.hfilters select{height:38px;border-radius:10px;background:#fbfaf8;border-color:#e5e7eb;box-shadow:0 1px 2px rgba(20,23,31,.03);}
 .card>.title{display:flex;align-items:center;gap:10px;color:var(--ink);line-height:1.2;margin-bottom:3px;font-size:18px;font-weight:800;letter-spacing:.015em;text-transform:uppercase;}
 .card>.title:before{content:"";width:5px;height:24px;border-radius:99px;background:linear-gradient(180deg,#14171f 0%,#0d9488 100%);display:inline-block;flex-shrink:0;box-shadow:0 8px 18px -12px rgba(13,148,136,.85);}
 .desc{font-size:12px;}
@@ -193,10 +196,11 @@ td{vertical-align:middle;}
 .mini-ret{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .mini-ret .kcard{text-align:center;padding:12px 8px;}
 .pending-note{border:1.5px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--sub);font-size:11px;line-height:1.6;}
-.fab{height:44px;padding:0 15px;border-radius:14px;background:linear-gradient(135deg,#fff7ed 0%,#fef3c7 100%);color:#7c2d12;border:1px solid #fdba74;box-shadow:0 16px 34px -22px rgba(217,119,6,.9),0 0 0 1px rgba(255,255,255,.7) inset;gap:8px;}
+.fab{height:58px;padding:0 18px;border-radius:18px;background:linear-gradient(135deg,#fff7ed 0%,#fef3c7 100%);color:#7c2d12;border:1px solid #fdba74;box-shadow:0 16px 34px -22px rgba(217,119,6,.9),0 0 0 1px rgba(255,255,255,.7) inset;gap:10px;right:28px;bottom:28px;}
 .fab:hover{transform:translateY(-1px);box-shadow:0 20px 42px -24px rgba(217,119,6,1);}
-.fab svg{width:16px;height:16px;color:#d97706;}
-.fab span{font-weight:800;letter-spacing:0;font-size:12px;}
+.fab svg{width:20px;height:20px;color:#d97706;}
+.fab span{font-weight:900;letter-spacing:0;font-size:14px;}
+.fab span:after{content:"ถาม AI จากข้อมูลหน้านี้";display:block;font-size:10px;font-weight:700;color:#9a3412;margin-top:1px;}
 .chat-panel{width:360px;border-radius:16px;border:1px solid #fed7aa;box-shadow:0 28px 70px -34px rgba(124,45,18,.72);background:#fff;}
 .chat-head{background:linear-gradient(135deg,#fff7ed 0%,#fffbeb 100%);color:var(--ink);border-bottom:1px solid #fed7aa;padding:14px 16px;}
 .chat-head .ic{width:30px;height:30px;border-radius:10px;background:#ffedd5;color:#d97706;}
@@ -245,7 +249,7 @@ td{vertical-align:middle;}
 
 <header>
   <div class="hbar">
-    <div class="brand-title"><div class="brand-mark">CQR</div><div class="brand-copy"><div class="brand-main">CQR Channel Quality Report</div><div class="brand-sub">Unified Performance Dashboard</div></div></div>
+    <div class="brand-title"><div class="brand-mark">CQR</div><div class="brand-copy"><div class="brand-main">CHANNEL QUALITY REPORT</div><div class="brand-sub">รีพอร์ตคุณภาพผู้เล่นจาก Register, Channel และ Retention รายเกม</div></div></div>
     <div class="hfilters">
       <select id="f-game" onchange="renderAll()">
         <option value="ALL" selected>ทุกเกม (รวม 4 เกม)</option>
@@ -267,6 +271,12 @@ td{vertical-align:middle;}
         <option value="week">Weekly View</option>
       </select>
       <select id="f-week" class="period-hidden" onchange="renderAll()"></select>
+      <select id="export-format" aria-label="Export format">
+        <option value="md">Export MD</option>
+        <option value="csv">Export CSV</option>
+        <option value="json">Export JSON</option>
+      </select>
+      <button class="export-btn" type="button" onclick="exportDashboardFile()">Export</button>
       <a class="admin-panel-link" id="adminPanelLink" href="copilot.html?panel=admin">Admin Panel</a>
       <button class="auth-logout" id="authLogout" type="button" onclick="signOutUser()">Sign out</button>
     </div>
@@ -432,8 +442,14 @@ function isSuperAdminSession(session){
   return String(session?.role_id || session?.role || '').toLowerCase() === 'super_admin' || session?.is_super_admin === true;
 }
 
+function isManagerPlusSession(session){
+  const role = String(session?.role_id || session?.role || '').toLowerCase();
+  return ['manager','admin','super_admin'].includes(role) || session?.is_super_admin === true;
+}
+
 function updateAdminPanelAccess(session){
   document.body.classList.toggle('super-admin', isSuperAdminSession(session));
+  document.body.classList.toggle('manager-plus', isManagerPlusSession(session));
 }
 
 function unlockDashboard(profile, authToken){
@@ -580,6 +596,7 @@ function signOutUser(){
   document.body.classList.add('auth-locked');
   document.body.classList.remove('auth-ready');
   document.body.classList.remove('super-admin');
+  document.body.classList.remove('manager-plus');
   if(window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
   initAuth();
 }
@@ -612,6 +629,83 @@ function getAiAskFilters(){
     period: activePeriod().key || document.getElementById('f-month')?.value || '2026-06',
     view: periodType === 'week' ? 'weekly' : 'monthly'
   };
+}
+
+function downloadTextFile(filename, content, mime){
+  const blob = new Blob([content], {type:mime || 'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function getDashboardExportSnapshot(){
+  if(!D) throw new Error('ยังไม่มีข้อมูลสำหรับ Export');
+  const game = document.getElementById('f-game')?.value || 'ALL';
+  const channel = document.getElementById('f-channel')?.value || 'all';
+  const period = activePeriod();
+  const key = `${game}|${period.key}`;
+  return {
+    game,
+    game_label: GAME_LABEL[game] || game,
+    channel: channel === 'all' ? 'ALL' : channel,
+    period: period.key,
+    period_label: period.label,
+    view: period.mode,
+    overview: D.overview_data?.[key] || {},
+    channels: (D.channel_data?.[key] || []).filter(row => channel === 'all' || row.channel === channel),
+    game_channel_detail: D.game_channel_full?.[period.key] || [],
+    exported_at: new Date().toISOString()
+  };
+}
+
+function exportDashboardFile(){
+  try{
+    const format = document.getElementById('export-format')?.value || 'md';
+    const snapshot = getDashboardExportSnapshot();
+    const safePeriod = snapshot.period.replace(/[^a-zA-Z0-9-]/g,'_');
+    const safeGame = snapshot.game.replace(/[^a-zA-Z0-9-]/g,'_');
+    if(format === 'json'){
+      downloadTextFile(`cqr-dashboard-${safeGame}-${safePeriod}.json`, JSON.stringify(snapshot, null, 2), 'application/json;charset=utf-8');
+      return;
+    }
+    if(format === 'csv'){
+      const rows = [['channel','register','d1','d3','d7','d14','verdict']];
+      snapshot.channels.forEach(row => rows.push([row.channel,row.register,row.d1,row.d3,row.d7,row.d14,row.verdict_text || '']));
+      const csv = rows.map(row => row.map(value => `"${String(value ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+      downloadTextFile(`cqr-channel-quality-${safeGame}-${safePeriod}.csv`, csv, 'text/csv;charset=utf-8');
+      return;
+    }
+    const ov = snapshot.overview || {};
+    const lines = [
+      `# CHANNEL QUALITY REPORT`,
+      ``,
+      `Game: ${snapshot.game_label}`,
+      `Period: ${snapshot.period_label} (${snapshot.period})`,
+      `Channel: ${snapshot.channel}`,
+      `Exported at: ${snapshot.exported_at}`,
+      ``,
+      `## Overview`,
+      `- New Register: ${ov.new_register ?? '-'}`,
+      `- Paid Ads Register: ${ov.paid_register ?? '-'}`,
+      `- Avg. Days Active: ${ov.avg_days_active ?? '-'}`,
+      `- Retention D3 / D7 / D14: ${ov.d3 ?? '-'}% / ${ov.d7 ?? '-'}% / ${ov.d14 ?? '-'}%`,
+      ``,
+      `## Channel Quality`,
+      `| Channel | Register | D1 | D3 | D7 | D14 | Note |`,
+      `|---|---:|---:|---:|---:|---:|---|`
+    ];
+    snapshot.channels.forEach(row => {
+      lines.push(`| ${row.channel} | ${row.register} | ${row.d1}% | ${row.d3}% | ${row.d7}% | ${row.d14}% | ${(row.verdict_text || '').replace(/\|/g,'/')} |`);
+    });
+    downloadTextFile(`cqr-channel-quality-${safeGame}-${safePeriod}.md`, lines.join('\n'), 'text/markdown;charset=utf-8');
+  }catch(error){
+    alert(error.message || String(error));
+  }
 }
 
 function appendAiMessage(text, role){

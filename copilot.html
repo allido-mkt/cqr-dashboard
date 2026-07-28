@@ -45,13 +45,14 @@ button,input,select,textarea{font-family:'Sarabun',sans-serif}
 .workspace-grid>div{padding:0}
 .panel{display:none}
 .panel.active{display:block}
+.panel{padding-top:22px}
 .ai-layout{display:block}
 .card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px -34px rgba(20,23,31,.55)}
-.chat-card{min-height:680px;display:flex;flex-direction:column;overflow:hidden}
+.chat-card{min-height:700px;display:flex;flex-direction:column;overflow:hidden;background:linear-gradient(180deg,#fff 0,#fffaf0 100%)}
 .card-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
 .card-title{font-size:20px;font-weight:800;line-height:1.2;margin:0}
 .card-desc{font-size:12px;color:var(--sub);line-height:1.55;margin-top:4px}
-.chat-feed{padding:20px;display:flex;flex-direction:column;gap:14px;min-height:470px;max-height:640px;overflow-y:auto;background:linear-gradient(180deg,#fff 0,#fbfaf8 100%)}
+.chat-feed{padding:22px;display:flex;flex-direction:column;gap:14px;min-height:490px;max-height:660px;overflow-y:auto;background:linear-gradient(180deg,#fff 0,#fbfaf8 100%)}
 .msg{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:start;max-width:94%}
 .msg.user{align-self:flex-end;grid-template-columns:minmax(0,1fr) 34px}
 .avatar{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:11px;font-weight:800}
@@ -68,14 +69,15 @@ button,input,select,textarea{font-family:'Sarabun',sans-serif}
 .chat-note{font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:8px}
 .composer-suggest{border-top:1px solid #f3efe8;margin-top:12px;padding-top:12px}
 .composer-suggest-head{font-size:11px;color:var(--sub);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
-.context-bar{padding:14px 16px;margin-bottom:16px}
+.context-bar{padding:16px;margin-bottom:18px;background:linear-gradient(135deg,#fff 0,#fffaf0 100%)}
 .context-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:12px}
-.context-title{font-size:15px;font-weight:800}
+.context-title{font-size:16px;font-weight:900}
 .context-desc{font-size:11.5px;color:var(--sub);line-height:1.45;margin-top:2px}
-.filter-grid{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr)) auto;gap:9px;align-items:end}
+.filter-grid{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr)) auto;gap:10px;align-items:end}
 .filter-field label{display:block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 5px 2px}
-.filter-field select{width:100%;height:38px;border:1px solid var(--line);border-radius:10px;background:#fbfaf8;padding:0 10px;font-size:12px}
-.context-submit{height:38px;border:0;border-radius:10px;background:#14171f;color:#fff;padding:0 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.filter-field select{width:100%;height:42px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 11px;font-size:12px;font-weight:700;box-shadow:0 10px 26px -24px rgba(20,23,31,.75)}
+.filter-field select:focus{outline:none;border-color:#fdba74;box-shadow:0 0 0 3px #ffedd5}
+.context-submit{height:42px;border:0;border-radius:12px;background:#14171f;color:#fff;padding:0 16px;font-size:12px;font-weight:900;cursor:pointer;white-space:nowrap}
 .question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .ask-chip{border:1px solid #fed7aa;background:#fffaf0;color:#7c2d12;border-radius:12px;padding:10px 11px;font-size:11.5px;font-weight:800;cursor:pointer;text-align:left;line-height:1.35}
 .ask-chip small{display:block;color:#9a3412;font-size:10px;font-weight:700;margin-top:3px;line-height:1.35}
@@ -118,11 +120,23 @@ tbody tr:hover{background:#fbfaf8}
 #adminTabHealth:before{content:"🩺"}
 .admin-view{display:none}
 .admin-view.active{display:block}
-.tool-grid{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px;align-items:end}
-.tool-grid input,.tool-grid select{height:40px;border:1px solid var(--line);border-radius:10px;background:#fbfaf8;padding:0 10px;font-size:12px}
+.tool-panel{border:1px solid #fed7aa;background:linear-gradient(135deg,#fffaf0 0,#fff 100%);border-radius:16px;padding:14px;margin:14px 0;box-shadow:0 18px 42px -34px rgba(154,52,18,.7)}
+.tool-grid{display:grid;grid-template-columns:1fr 1fr minmax(230px,1.4fr) auto;gap:12px;align-items:end}
+.tool-grid.health-tool{grid-template-columns:1fr 1fr auto}
+.tool-grid input,.tool-grid select{height:44px;border:1px solid #e7e3dc;border-radius:12px;background:#fff;padding:0 12px;font-size:13px;font-weight:700;box-shadow:0 10px 26px -24px rgba(20,23,31,.75)}
+.tool-grid input:focus,.tool-grid select:focus{outline:none;border-color:#fdba74;box-shadow:0 0 0 3px #ffedd5}
 .tool-grid label{display:block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 5px 2px}
+.section-intro{border:1px solid #f1f0ee;background:#fff;border-radius:16px;padding:16px;margin-bottom:14px}
+.section-eyebrow{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#d97706;margin-bottom:5px}
+.section-title{font-size:22px;font-weight:900;letter-spacing:.02em;text-transform:uppercase;line-height:1.1}
+.section-desc{font-size:12.5px;color:var(--sub);line-height:1.65;margin-top:6px;max-width:820px}
 .status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
-.status-card{border:1px solid #f1f0ee;background:#fbfaf8;border-radius:12px;padding:12px;min-height:86px}
+.status-card{border:1px solid #f1f0ee;background:#fbfaf8;border-radius:14px;padding:13px;min-height:92px;position:relative;overflow:hidden}
+.status-card:before{content:attr(data-icon);position:absolute;right:12px;top:10px;font-size:24px;opacity:.35}
+.status-card.health{background:#eff6ff;border-color:#bfdbfe}
+.status-card.ready{background:#f0fdfa;border-color:#99f6e4}
+.status-card.review{background:#fff7ed;border-color:#fed7aa}
+.status-card.cleanup{background:#fff1f2;border-color:#fecdd3}
 .status-card strong{display:block;font-size:18px;font-family:'Inter',sans-serif;line-height:1.1;margin-top:8px}
 .status-card span{font-size:10.5px;color:var(--sub);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
 .health-list,.recommend-list{display:grid;gap:10px;margin-top:14px}
@@ -136,6 +150,27 @@ tbody tr:hover{background:#fbfaf8}
 .health-badge.warn{background:#fffbeb;color:#92400e}
 .health-badge.danger{background:#ffe4e6;color:#9f1239}
 .health-badge.ok{background:#dcfce7;color:#166534}
+.copy-chip{border:1px solid #fed7aa;background:#fff;color:#7c2d12;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900;cursor:pointer;margin-left:8px}
+.handoff-bar{display:none;border:1px solid #99f6e4;background:#f0fdfa;border-radius:14px;padding:12px;margin-top:14px;align-items:center;justify-content:space-between;gap:10px}
+.handoff-bar.active{display:flex}
+.handoff-bar b{font-size:13px}
+.handoff-bar p{font-size:11.5px;color:var(--sub);line-height:1.45;margin:3px 0 0}
+.run-list{display:grid;gap:10px;margin-top:12px}
+.run-item{border:1px solid #f1f0ee;background:#fff;border-radius:14px;padding:12px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start}
+.run-item input{margin-top:4px}
+.run-item b{font-size:13px}
+.run-item p{margin:3px 0 0;font-size:11.5px;color:var(--sub);line-height:1.5}
+.run-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.mini-btn{height:30px;border:1px solid #fed7aa;background:#fffaf0;color:#7c2d12;border-radius:9px;padding:0 9px;font-size:10.5px;font-weight:900;cursor:pointer}
+.batch-actions{display:none;border:1px solid #fed7aa;background:#fffaf0;border-radius:16px;padding:12px;margin-top:12px}
+.batch-actions.active{display:block}
+.batch-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
+.batch-head b{font-size:13.5px}
+.batch-head span{font-size:11px;color:var(--sub)}
+.batch-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.history-panel{border:1px solid #f1f0ee;background:#fbfaf8;border-radius:16px;padding:13px;margin-top:12px}
+.history-panel h4{margin:0 0 8px;font-size:13px}
+.history-panel p{margin:0;color:var(--sub);font-size:11.5px;line-height:1.55}
 .run-card{border:1px solid #f1f0ee;border-radius:12px;background:#fbfaf8;padding:12px;margin-top:12px}
 .run-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
 .run-meta div{border:1px solid #ede9e3;border-radius:10px;background:#fff;padding:9px;font-size:11px;color:var(--sub)}
@@ -211,8 +246,8 @@ tbody tr:hover{background:#fbfaf8}
         <div class="card context-bar">
           <div class="context-head">
             <div>
-              <div class="context-title">Current Context</div>
-              <div class="context-desc">เลือกมุมมองข้อมูลก่อนถาม AI CHAT แล้วกด Apply Context เพื่อยืนยันชุด filter</div>
+              <div class="context-title">ชุดข้อมูลที่ต้องการถาม</div>
+              <div class="context-desc">เลือก Game, Channel และช่วงเวลาก่อนถาม AI CHAT แล้วกด APPLY เพื่อใช้ชุดข้อมูลนี้</div>
             </div>
           </div>
           <div class="filter-grid">
@@ -262,7 +297,7 @@ tbody tr:hover{background:#fbfaf8}
                 <option value="2026-06-W1">Week 1</option>
               </select>
             </div>
-            <button class="context-submit" type="button" onclick="applyContext()">Apply Context</button>
+            <button class="context-submit" type="button" onclick="applyContext()">APPLY</button>
           </div>
         </div>
         <div class="ai-layout">
@@ -270,22 +305,25 @@ tbody tr:hover{background:#fbfaf8}
             <div class="card-head">
               <div>
                 <h2 class="card-title">AI CHAT</h2>
-                <div class="card-desc">พื้นที่สนทนาเต็มจอสำหรับถามเรื่อง dashboard, channel quality, retention และ weekly/monthly view</div>
+                <div class="card-desc">ถามเรื่อง Dashboard, Channel Quality, Retention หรือ Weekly Alert ได้ในพื้นที่อ่านคำตอบแบบเต็มหน้า</div>
               </div>
-              <button class="ghost-btn" type="button" onclick="clearChat()">Clear</button>
+              <div class="top-actions">
+                <button class="ghost-btn" type="button" onclick="downloadChatLog()">Download MD</button>
+                <button class="ghost-btn" type="button" onclick="clearChat()">Clear</button>
+              </div>
             </div>
             <div class="chat-feed" id="chatFeed">
               <div class="msg assistant">
                 <div class="avatar">AI</div>
-                <div class="bubble">พร้อมอ่าน CQR ให้ครับ เลือกคำถามตัวอย่าง หรือพิมพ์โจทย์ยาว ๆ ได้เลย พื้นที่นี้ออกแบบมาสำหรับคำตอบที่ละเอียดกว่าเดิม</div>
+                <div class="bubble">พร้อมช่วยอ่านข้อมูล CQR ให้ครับ เลือกคำถามตัวอย่างหรือพิมพ์คำถามได้เลย คำตอบจะอิงจาก Summary Cache, Weekly Alert Log และ filter ที่เลือกอยู่</div>
               </div>
             </div>
             <div class="composer">
               <div class="composer-row">
-                <textarea id="aiAskInput" placeholder="Ask about CQR performance, retention, channel quality, or current filters..." maxlength="1200"></textarea>
+                <textarea id="aiAskInput" placeholder="ถาม AI CHAT เกี่ยวกับ Performance, Retention, Channel Quality หรือ Weekly Alert..." maxlength="1200"></textarea>
                 <button class="send-btn" id="aiAskSend" type="button" onclick="sendAiAsk()">↑</button>
               </div>
-              <div class="chat-note" id="aiAskNote">Gemini 2.5 · grounded by summary cache + weekly alert log</div>
+              <div class="chat-note" id="aiAskNote">AI CHAT ใช้ข้อมูลจาก Summary Cache และ Weekly Alert Log · สามารถดาวน์โหลดบทสนทนาเป็น MD ได้</div>
               <div class="composer-suggest">
                 <div class="composer-suggest-head">Suggested Questions</div>
                 <div class="question-grid">
@@ -313,7 +351,7 @@ tbody tr:hover{background:#fbfaf8}
             <div class="admin-nav">
               <div class="admin-tabs">
                 <button class="admin-tab active" id="adminTabUsers" type="button" onclick="switchAdminTool('users')">User Access<small>จัดการสิทธิ์และรายชื่อผู้ใช้</small></button>
-                <button class="admin-tab" id="adminTabHealth" type="button" onclick="switchAdminTool('health')">Data Health Checkup<small>เช็กไฟล์ค้างและสิ่งที่ควรแก้ก่อน</small></button>
+                <button class="admin-tab" id="adminTabHealth" type="button" onclick="switchAdminTool('health')">Data Health<small>เช็กไฟล์ค้างและสิ่งที่ควรแก้ก่อน</small></button>
                 <button class="admin-tab" id="adminTabPipeline" type="button" onclick="switchAdminTool('pipeline')">Data Control<small>หา run_id และส่งคำสั่งไป n8n</small></button>
               </div>
             </div>
@@ -361,104 +399,91 @@ tbody tr:hover{background:#fbfaf8}
                 <div class="step-list">
                   <div class="step-card">
                     <span class="step-num">1</span>
-                    <b>เช็กข้อมูลก่อน</b>
-                    <p>ไปที่ Data Health Checkup เพื่อดูว่าเกม/เดือนนี้มีไฟล์ค้างหรือ hash ชนกันไหม</p>
+                    <b>เริ่มจาก Data Health</b>
+                    <p>ตรวจเจอ hash หรือรายการที่ต้องแก้แล้วค่อยเข้าหน้านี้</p>
                   </div>
                   <div class="step-card active-step">
                     <span class="step-num">2</span>
-                    <b>หา Run ID</b>
-                    <p>ใช้ปุ่ม Find Run ID เพื่อหาว่า run ไหนเป็นข้อมูลเก่าที่ต้องตรวจต่อ</p>
+                    <b>FIND รายการ</b>
+                    <p>เลือก ALL + เดือน เพื่อดูทุกเกมที่ต้องจัดการ หรือใส่ hash/run_id เพื่อเจาะรายการเดียว</p>
                   </div>
                   <div class="step-card">
                     <span class="step-num">3</span>
-                    <b>Preview Cleanup</b>
-                    <p>ให้ n8n สรุปก่อนว่าจะลบกี่แถว ยังไม่ลบข้อมูลจริงในขั้นตอนนี้</p>
+                    <b>Preview ก่อน</b>
+                    <p>เลือก Run ID ที่ต้องการ แล้วให้ n8n สรุปจำนวนแถวก่อนลบจริง</p>
                   </div>
                   <div class="step-card">
                     <span class="step-num">4</span>
-                    <b>Cleanup แล้ว Update</b>
-                    <p>ถ้าจำนวนแถวถูกต้อง ค่อย Run Cleanup แล้วตามด้วย Run Update</p>
+                    <b>Cleanup & Update</b>
+                    <p>หลัง Preview ถูกต้อง ค่อย Cleanup และ Run Update พร้อมบันทึกประวัติ</p>
                   </div>
                 </div>
                 <div class="explain-box">
-                  <b>Run ID / Hash ใช้ต่างกันยังไง</b><br>
-                  ใส่ <b>Run ID</b> เมื่อต้องการตรวจ run ที่รู้แน่ชัดแล้ว · ใส่ <b>Hash</b> เมื่อต้องการหา run ที่ทำให้เกิดปัญหา hash mismatch · ถ้าไม่ใส่อะไร ระบบจะค้น run ที่เกี่ยวข้องกับเกมและเดือนที่เลือกให้กว้างขึ้น
+                  <b>วิธีค้นหาที่แนะนำ</b><br>
+                  ถ้าต้องการจัดการหลายเกม ให้เลือก <b>Game = ALL</b> และเลือกเดือนแล้วกด <b>FIND</b> ระบบจะแสดงรายการ run ที่เกี่ยวข้องให้เลือกจัดการเป็นชุดได้ · ถ้าใส่ Run ID ของเกมเดียว ระบบจะยึดเกมจาก Run ID นั้น ไม่ใช้ค่า ALL ในการ Preview
                 </div>
+                <div class="tool-panel">
                 <div class="tool-grid">
                   <div>
                     <label>Game</label>
                     <select id="toolGame">
+                      <option value="ALL">ALL</option>
                       <option value="CBM_TH">CBM TH</option>
                       <option value="CBM_SEA">CBM SEA</option>
                       <option value="CBPC_TH">CBPC TH</option>
                       <option value="CBPC_SEA">CBPC SEA</option>
-                      <option value="ALL">ALL</option>
                     </select>
                   </div>
                   <div>
                     <label>Month</label>
-                    <input id="toolMonth" value="2026-06" placeholder="2026-06">
+                    <select id="toolMonth">
+                      <option value="2026-06">มิถุนายน 2026</option>
+                      <option value="2026-05">พฤษภาคม 2026</option>
+                      <option value="2026-04">เมษายน 2026</option>
+                      <option value="2026-03">มีนาคม 2026</option>
+                      <option value="2026-02">กุมภาพันธ์ 2026</option>
+                    </select>
                   </div>
                   <div>
                     <label>Run ID / Hash สำหรับค้นหา</label>
                     <input id="toolRunQuery" placeholder="RUN-... หรือ ew6tt">
-                    <div class="field-help">ไม่จำเป็นต้องใส่เสมอไป แต่ถ้าเจอ hash จากหน้า Health ให้ใส่ตรงนี้เพื่อหา run_id</div>
+                    <div class="field-help">ปล่อยว่างได้ ถ้าต้องการดูทุกรายการของเกม/เดือนที่เลือก</div>
                   </div>
-                  <button class="context-submit" type="button" onclick="inspectRun()">Find Run ID</button>
+                  <button class="context-submit" type="button" onclick="inspectRun()">FIND</button>
                 </div>
-                <div class="action-grid">
-                  <div class="action-card">
-                    <span class="action-tag">Step 3</span>
-                    <strong>Preview Cleanup</strong>
-                    <p>ส่งคำสั่งไปที่ n8n เพื่อเช็กก่อนว่าจะลบแถวไหนบ้าง ยังไม่ลบข้อมูลจริง ใช้ปุ่มนี้ก่อนทุกครั้ง</p>
+                </div>
+                <div id="pipelineActionResult" class="action-result">ยังไม่มีคำสั่งล่าสุด
+เริ่มจาก Data Health ก่อน ถ้าเจอปัญหา hash mismatch ค่อยกลับมาที่ Data Control เพื่อ FIND, Preview Cleanup, Run Cleanup และ Run Update ตามลำดับ</div>
+                <div id="runInspectorResult" class="run-card">
+                  เลือกเกม/เดือน แล้วกด FIND เพื่อดู run ที่เกี่ยวข้องและคำแนะนำขั้นตอนถัดไป
+                </div>
+                <div class="batch-actions" id="batchActions">
+                  <div class="batch-head">
+                    <div><b>Batch Actions</b><span id="batchCount">เลือกรายการที่ต้องจัดการก่อน</span></div>
+                    <button class="mini-btn" type="button" onclick="selectAllRunItems()">Select all</button>
+                  </div>
+                  <div class="batch-buttons">
                     <button class="action-btn" type="button" onclick="runPipelineCommand('cleanup.preview')">Preview Cleanup</button>
-                  </div>
-                  <div class="action-card danger">
-                    <span class="action-tag">Step 4A</span>
-                    <strong>Run Cleanup</strong>
-                    <p>ส่งคำสั่งลบข้อมูลเก่าผ่าน n8n ใช้เฉพาะหลัง Preview แล้วจำนวนแถวถูกต้องเท่านั้น</p>
                     <button class="action-btn danger" type="button" onclick="runPipelineCommand('cleanup.run')">Run Cleanup</button>
-                  </div>
-                  <div class="action-card">
-                    <span class="action-tag">Step 4B</span>
-                    <strong>Run Master Data Update</strong>
-                    <p>ส่งคำสั่งให้ n8n อ่าน raw file แล้วเขียน Master / Central DB ใหม่สำหรับเกมและเดือนที่เลือก</p>
                     <button class="action-btn secondary" type="button" onclick="runPipelineCommand('master.run')">Run Update</button>
                   </div>
                 </div>
-                <div id="pipelineActionResult" class="action-result">ยังไม่มีคำสั่งล่าสุด
-เริ่มจาก Data Health Checkup ก่อน ถ้าเจอปัญหา hash mismatch ค่อยกลับมาที่ Data Control เพื่อ Find Run ID, Preview Cleanup, Run Cleanup และ Run Update ตามลำดับ</div>
-                <div id="runInspectorResult" class="run-card">
-                  เลือกเกม/เดือน แล้วกด Find Run ID เพื่อดู run ที่เกี่ยวข้องและคำแนะนำขั้นตอนถัดไป
+                <div class="history-panel">
+                  <h4>ประวัติการทำงาน</h4>
+                  <p>ทุกครั้งที่ Super Admin กด Preview Cleanup, Run Cleanup หรือ Run Update ควรบันทึก log ลง Central DB แท็บ <b>PipelineLogs</b> และสามารถแยกแท็บ <b>AdminActionLogs</b> เพิ่มในอนาคตเพื่อดูประวัติว่าใครทำอะไร เวลาไหน กับ run_id ใด</p>
                 </div>
               </div>
             </div>
 
             <div class="admin-view" id="adminViewHealth">
               <div style="padding:18px 20px">
-                <div class="step-list">
-                  <div class="step-card active-step">
-                    <span class="step-num">1</span>
-                    <b>Check Data Health</b>
-                    <p>ดูว่าไฟล์ของเกม/เดือนนี้พร้อมใช้ หรือมีข้อมูลเก่าค้างอยู่</p>
-                  </div>
-                  <div class="step-card">
-                    <span class="step-num">2</span>
-                    <b>อ่านคำแนะนำ</b>
-                    <p>ถ้ามีปัญหา ระบบจะบอกเกม เดือน hash และสิ่งที่ควรทำต่อ</p>
-                  </div>
-                  <div class="step-card">
-                    <span class="step-num">3</span>
-                    <b>ไป Data Control</b>
-                    <p>ใช้ hash หรือ run_id จากหน้านี้เพื่อ Preview Cleanup ผ่าน n8n</p>
-                  </div>
-                  <div class="step-card">
-                    <span class="step-num">4</span>
-                    <b>Update ใหม่</b>
-                    <p>หลัง Cleanup สำเร็จ ค่อยรัน Master Data Update สำหรับเกม/เดือนนั้น</p>
-                  </div>
+                <div class="section-intro">
+                  <div class="section-eyebrow">Admin Tool</div>
+                  <div class="section-title">DATA HEALTH CHECK</div>
+                  <div class="section-desc">เลือก Game และ Month แล้วกด CHECKUP เพื่อตรวจว่า Master / Central DB มีข้อมูลเก่าค้าง, hash mismatch หรือรายการที่ควรแก้ก่อนรันข้อมูลใหม่หรือไม่ ถ้าพบปัญหา สามารถส่งรายการไปต่อที่ Data Control ได้ทันที</div>
                 </div>
-                <div class="tool-grid">
+                <div class="tool-panel">
+                <div class="tool-grid health-tool">
                   <div>
                     <label>Game</label>
                     <select id="healthGame">
@@ -471,18 +496,29 @@ tbody tr:hover{background:#fbfaf8}
                   </div>
                   <div>
                     <label>Month</label>
-                    <input id="healthMonth" value="2026-06" placeholder="2026-06">
+                    <select id="healthMonth">
+                      <option value="2026-06">มิถุนายน 2026</option>
+                      <option value="2026-05">พฤษภาคม 2026</option>
+                      <option value="2026-04">เมษายน 2026</option>
+                      <option value="2026-03">มีนาคม 2026</option>
+                      <option value="2026-02">กุมภาพันธ์ 2026</option>
+                    </select>
                   </div>
-                  <button class="context-submit" type="button" onclick="loadPipelineHealth()">Check Data Health</button>
+                  <button class="context-submit" type="button" onclick="loadPipelineHealth()">CHECKUP</button>
+                </div>
                 </div>
                 <div class="status-grid" id="healthScoreCards">
-                  <div class="status-card"><span>Health</span><strong>-</strong></div>
-                  <div class="status-card"><span>Ready Runs</span><strong>-</strong></div>
-                  <div class="status-card"><span>Needs Review</span><strong>-</strong></div>
-                  <div class="status-card"><span>Cleanup Needed</span><strong>-</strong></div>
+                  <div class="status-card health" data-icon="🩺"><span>Health</span><strong>-</strong></div>
+                  <div class="status-card ready" data-icon="✅"><span>Ready Runs</span><strong>-</strong></div>
+                  <div class="status-card review" data-icon="🔎"><span>Needs Review</span><strong>-</strong></div>
+                  <div class="status-card cleanup" data-icon="🧹"><span>Cleanup Needed</span><strong>-</strong></div>
                 </div>
                 <div class="health-list" id="healthIssueList">
-                  <div class="health-item ok"><div><b>รอเช็กข้อมูล</b><p>กด Check Data Health เพื่อดูความผิดปกติของไฟล์และคำแนะนำ</p></div><span class="health-badge ok">Ready</span></div>
+                  <div class="health-item ok"><div><b>รอเช็กข้อมูล</b><p>กด CHECKUP เพื่อดูความผิดปกติของไฟล์และคำแนะนำ</p></div><span class="health-badge ok">Ready</span></div>
+                </div>
+                <div class="handoff-bar" id="healthHandoff">
+                  <div><b>ส่งรายการนี้ไป Data Control</b><p>ระบบจะนำ Game, Month และ Hash ที่พบไปเตรียมค้นหา Run ID ให้ต่อ</p></div>
+                  <button class="context-submit" type="button" onclick="sendHealthToDataControl()">SEND TO DATA CONTROL</button>
                 </div>
                 <div class="recommend-list" id="healthRecommendationList"></div>
               </div>
@@ -496,7 +532,7 @@ tbody tr:hover{background:#fbfaf8}
               <div class="system-line"><span>Session</span><b id="sysSession">ACTIVE</b></div>
               <div class="system-line"><span>Expires</span><b id="sysExpires">-</b></div>
             </div>
-            <div class="soft-note">Data Health Checkup ใช้เช็กไฟล์ที่ควรตรวจเพิ่ม ส่วน Data Control ใช้ส่งคำสั่งไป n8n เพื่อ Preview Cleanup, Run Cleanup และ Run Update</div>
+            <div class="soft-note">Data Health ใช้เช็กไฟล์ที่ควรตรวจเพิ่ม ส่วน Data Control ใช้ส่งคำสั่งไป n8n เพื่อ Preview Cleanup, Run Cleanup และ Run Update</div>
           </aside>
         </div>
       </section>
@@ -521,6 +557,8 @@ const LOCAL_PREVIEW_ALLOWED = location.protocol === 'file:' || ['localhost','127
 let previewMode = false;
 let selectedUserEmail = '';
 let lastCleanupSuggestion = null;
+let lastHealthRecommendations = [];
+let lastRunMatches = [];
 
 function decodeJwtPayload(token){
   try{
@@ -830,6 +868,38 @@ function clearChat(){
   document.getElementById('chatFeed').innerHTML = '<div class="msg assistant"><div class="avatar">AI</div><div class="bubble">ล้างบทสนทนาแล้วครับ เริ่มถามเรื่อง CQR รอบใหม่ได้เลย</div></div>';
 }
 
+function downloadTextFile(filename, content, mime){
+  const blob = new Blob([content], {type:mime || 'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function downloadChatLog(){
+  const filters = getAiAskFilters();
+  const rows = [...document.querySelectorAll('#chatFeed .msg')].map(msg => {
+    const who = msg.classList.contains('user') ? 'User' : 'AI';
+    const text = msg.querySelector('.bubble')?.textContent || '';
+    return `## ${who}\n\n${text}`;
+  });
+  const body = [
+    '# CQR AI CHAT LOG',
+    '',
+    `Exported: ${new Date().toISOString()}`,
+    `Context: ${filters.game} / ${filters.channel} / ${filters.period} / ${filters.view}`,
+    '',
+    ...rows,
+    '',
+    'Note: ตอนนี้เป็นไฟล์ดาวน์โหลดจากหน้าเว็บ ถ้าต้องการเก็บถาวรเพื่อวิเคราะห์ซ้ำ ควรเพิ่ม backend action ให้บันทึกเข้า AI_ChatLogs ใน Central DB หรือ AI Summary Sheet'
+  ].join('\n');
+  downloadTextFile(`cqr-ai-chat-log-${filters.period}.md`, body, 'text/markdown;charset=utf-8');
+}
+
 async function loadUsers(){
   const session = getSavedSession();
   if(!session || !session.sessionToken) return;
@@ -988,7 +1058,7 @@ async function inspectRun(){
     if(!result.ok) throw new Error(result.message || 'Cannot inspect run');
     renderRunInspector(result);
   }catch(error){
-    resultBox.innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ Find Run ID</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.run.lookup เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
+    resultBox.innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ FIND</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.run.lookup เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
   }
 }
 
@@ -997,6 +1067,7 @@ async function loadPipelineHealth(){
   if(!session || !session.sessionToken) return;
   const game = document.getElementById('healthGame')?.value || document.getElementById('toolGame')?.value || 'ALL';
   const month = document.getElementById('healthMonth')?.value.trim() || document.getElementById('toolMonth')?.value.trim() || '2026-06';
+  document.getElementById('healthHandoff')?.classList.remove('active');
   document.getElementById('healthIssueList').innerHTML = '<div class="health-item"><div><b>กำลังเช็กไฟล์</b><p>กำลังอ่าน PipelineLogs และ DataIndex เพื่อหา hash ที่ชนหรือ run ที่ยังต้อง review</p></div><span class="health-badge">Checking</span></div>';
   try{
     const result = await callAppsScript('admin.pipeline.health', {
@@ -1007,7 +1078,8 @@ async function loadPipelineHealth(){
     if(!result.ok) throw new Error(result.message || 'Cannot load health');
     renderPipelineHealth(result);
   }catch(error){
-    document.getElementById('healthIssueList').innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ Data Health Checkup</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.health เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
+    document.getElementById('healthHandoff')?.classList.remove('active');
+    document.getElementById('healthIssueList').innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ Data Health</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.health เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
   }
 }
 
@@ -1021,10 +1093,12 @@ async function runPipelineCommand(command){
   const game = document.getElementById('toolGame').value;
   const month = document.getElementById('toolMonth').value.trim() || '2026-06';
   const query = document.getElementById('toolRunQuery').value.trim();
+  const selectedRuns = getSelectedRunItems();
   const suggestedRunId = lastCleanupSuggestion && lastCleanupSuggestion.target_game_code === game && lastCleanupSuggestion.target_month === month
     ? lastCleanupSuggestion.run_id
     : '';
-  const cleanupRunId = suggestedRunId || query;
+  const cleanupRunId = selectedRuns[0]?.run_id || suggestedRunId || query;
+  const effectiveGame = selectedRuns.length === 1 ? selectedRuns[0].game_code : game;
   const actionMap = {
     'cleanup.preview': 'admin.n8n.cleanup.preview',
     'cleanup.run': 'admin.n8n.cleanup.run',
@@ -1036,12 +1110,14 @@ async function runPipelineCommand(command){
     'master.run': 'Run Master Data Update'
   };
   if((command === 'cleanup.preview' || command === 'cleanup.run') && !cleanupRunId){
-    resultBox.textContent = 'กรุณาใส่ Run ID หรือกด Find Run ID ก่อนใช้ปุ่ม Cleanup';
+    resultBox.textContent = 'กรุณาใส่ Run ID หรือกด FIND ก่อนใช้ปุ่ม Cleanup';
     return;
   }
   if(command === 'cleanup.run'){
-    const ok = confirm(`Run Cleanup จริงสำหรับ ${game} / ${month}?
-Run ID: ${cleanupRunId}
+    const ok = confirm(`Run Cleanup จริงสำหรับ ${selectedRuns.length || 1} รายการ?
+Game: ${effectiveGame}
+Month: ${month}
+Run ID: ${selectedRuns.length > 1 ? selectedRuns.map(run => run.run_id).join(', ') : cleanupRunId}
 
 ควรกด Preview Cleanup ก่อน และตรวจจำนวนแถวให้ถูกต้องแล้วเท่านั้น`);
     if(!ok) return;
@@ -1051,9 +1127,11 @@ Run ID: ${cleanupRunId}
   try{
     const result = await callAppsScript(actionMap[command], {
       session_token: session.sessionToken,
-      game,
+      game: effectiveGame,
       month,
       run_id: cleanupRunId,
+      run_ids: selectedRuns.length ? JSON.stringify(selectedRuns.map(run => run.run_id)) : '',
+      run_items: selectedRuns.length ? JSON.stringify(selectedRuns) : '',
       hash: query
     });
     if(!result.ok) throw new Error(result.message || 'n8n command failed');
@@ -1069,6 +1147,35 @@ Run ID: ${cleanupRunId}
 
 function setPipelineActionBusy(isBusy){
   document.querySelectorAll('.action-btn').forEach(button => button.disabled = isBusy);
+}
+
+function getSelectedRunItems(){
+  const checked = [...document.querySelectorAll('.run-select:checked')].map(input => {
+    const row = lastRunMatches.find(run => run.run_id === input.value);
+    return row || null;
+  }).filter(Boolean);
+  if(checked.length) return checked;
+  if(lastCleanupSuggestion?.run_id){
+    return [{
+      game_code:lastCleanupSuggestion.target_game_code,
+      period_key:lastCleanupSuggestion.target_month,
+      run_id:lastCleanupSuggestion.run_id,
+      data_hash_after:lastCleanupSuggestion.hash || '',
+      rows_written:lastCleanupSuggestion.rows_written || 0
+    }];
+  }
+  return [];
+}
+
+function selectAllRunItems(){
+  document.querySelectorAll('.run-select').forEach(input => input.checked = true);
+  updateBatchCount();
+}
+
+function updateBatchCount(){
+  const count = document.querySelectorAll('.run-select:checked').length;
+  const label = document.getElementById('batchCount');
+  if(label) label.textContent = count ? `เลือก ${count} รายการสำหรับส่งคำสั่งผ่าน n8n` : 'เลือกรายการที่ต้องจัดการก่อน';
 }
 
 function renderPipelineActionResult(label, result){
@@ -1089,16 +1196,21 @@ function renderRunInspector(result){
   const matches = result.matches || [];
   const target = result.cleanup_suggestion || {};
   lastCleanupSuggestion = target && target.run_id ? target : null;
-  const rows = matches.length ? matches.map(run => `
-    <tr>
-      <td>${escapeHtml(run.game_code)}</td>
-      <td>${escapeHtml(run.period_key)}</td>
-      <td>${escapeHtml(run.status)}</td>
-      <td>${escapeHtml(run.data_hash_after || run.data_hash_before || '')}</td>
-      <td>${escapeHtml(run.rows_written || 0)}</td>
-      <td>${escapeHtml(run.run_id)}</td>
-    </tr>
-  `).join('') : '<tr><td colspan="6">ไม่พบ run ที่ตรงกับเงื่อนไข</td></tr>';
+  lastRunMatches = matches;
+  const cards = matches.length ? matches.map(run => `
+    <div class="run-item">
+      <input class="run-select" type="checkbox" value="${escapeAttr(run.run_id || '')}" onchange="updateBatchCount()" checked>
+      <div>
+        <b>${escapeHtml(run.game_code)} · ${escapeHtml(run.period_key)}</b>
+        <p>Status: ${escapeHtml(run.status)} · Rows: ${escapeHtml(run.rows_written || 0)} · Hash: ${escapeHtml(run.data_hash_after || run.data_hash_before || '-')}</p>
+        <p><b>Run ID:</b> ${escapeHtml(run.run_id || '-')}</p>
+      </div>
+      <div class="run-actions">
+        <button class="mini-btn" type="button" onclick="copyText('${escapeAttr(run.run_id || '')}', this)">Copy Run ID</button>
+        <button class="mini-btn" type="button" onclick="fillRunForSingleAction('${escapeAttr(run.game_code)}','${escapeAttr(run.period_key)}','${escapeAttr(run.run_id || '')}')">Use</button>
+      </div>
+    </div>
+  `).join('') : '<div class="health-item ok"><div><b>ไม่พบ run ที่ตรงเงื่อนไข</b><p>ลองเลือก Game = ALL และเดือนที่ต้องการ หรือใส่ hash จาก Data Health</p></div><span class="health-badge ok">No match</span></div>';
   const suggestion = target.run_id ? `
     <div class="copy-box">
       <b>ข้อมูลสำหรับขั้นตอนถัดไป</b>
@@ -1111,26 +1223,24 @@ function renderRunInspector(result){
   ` : '';
   document.getElementById('runInspectorResult').innerHTML = `
     <div class="health-item ${result.risk_level || 'ok'}">
-      <div><b>${escapeHtml(result.title || 'Find Run ID')}</b><p>${escapeHtml(result.summary || 'ตรวจพบข้อมูลตามเงื่อนไข')}</p></div>
+      <div><b>${escapeHtml(result.title || 'FIND')}</b><p>${escapeHtml(result.summary || 'ตรวจพบข้อมูลตามเงื่อนไข')}</p></div>
       <span class="health-badge ${result.risk_level || 'ok'}">${escapeHtml(result.badge || 'Result')}</span>
     </div>
-    ${suggestion}
-    <div class="table-wrap" style="margin-top:12px">
-      <table>
-        <thead><tr><th>Game</th><th>Month</th><th>Status</th><th>Hash</th><th>Rows</th><th>Run ID</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
+    <div class="run-list">${cards}</div>
+    ${matches.length === 1 ? suggestion : ''}
   `;
+  document.getElementById('batchActions').classList.toggle('active', matches.length > 0);
+  updateBatchCount();
 }
 
 function renderPipelineHealth(result){
   const summary = result.summary || {};
+  lastHealthRecommendations = result.recommendations || [];
   document.getElementById('healthScoreCards').innerHTML = `
-    <div class="status-card"><span>Health</span><strong>${escapeHtml(summary.health_score || '-')}</strong></div>
-    <div class="status-card"><span>Ready Runs</span><strong>${escapeHtml(summary.ready_runs ?? '-')}</strong></div>
-    <div class="status-card"><span>Needs Review</span><strong>${escapeHtml(summary.needs_review ?? '-')}</strong></div>
-    <div class="status-card"><span>Cleanup Needed</span><strong>${escapeHtml(summary.cleanup_needed ?? '-')}</strong></div>
+    <div class="status-card health" data-icon="🩺"><span>Health</span><strong>${escapeHtml(summary.health_score || '-')}</strong></div>
+    <div class="status-card ready" data-icon="✅"><span>Ready Runs</span><strong>${escapeHtml(summary.ready_runs ?? '-')}</strong></div>
+    <div class="status-card review" data-icon="🔎"><span>Needs Review</span><strong>${escapeHtml(summary.needs_review ?? '-')}</strong></div>
+    <div class="status-card cleanup" data-icon="🧹"><span>Cleanup Needed</span><strong>${escapeHtml(summary.cleanup_needed ?? '-')}</strong></div>
   `;
   const issues = result.issues || [];
   document.getElementById('healthIssueList').innerHTML = issues.length ? issues.map(issue => `
@@ -1139,18 +1249,50 @@ function renderPipelineHealth(result){
       <span class="health-badge ${escapeHtml(issue.level || 'ok')}">${escapeHtml(issue.badge || 'Check')}</span>
     </div>
   `).join('') : '<div class="health-item ok"><div><b>ไม่พบความผิดปกติหลัก</b><p>ไฟล์พร้อมใช้งานตามเงื่อนไขที่เลือก</p></div><span class="health-badge ok">Healthy</span></div>';
-  document.getElementById('healthRecommendationList').innerHTML = (result.recommendations || []).map((item, index) => `
+  document.getElementById('healthHandoff')?.classList.toggle('active', lastHealthRecommendations.length > 0);
+  document.getElementById('healthRecommendationList').innerHTML = lastHealthRecommendations.map((item, index) => `
     <div class="copy-box">
       <b>${index + 1}. ${escapeHtml(item.title)}</b>
       <div class="soft-note">${escapeHtml(item.detail)}</div>
       ${item.cleanup ? `
         <div class="copy-line"><span>target_game_code</span><code>${escapeHtml(item.cleanup.target_game_code)}</code></div>
         <div class="copy-line"><span>target_month</span><code>${escapeHtml(item.cleanup.target_month)}</code></div>
-        ${item.cleanup.search_hash ? `<div class="copy-line"><span>hash สำหรับค้นหา</span><code>${escapeHtml(item.cleanup.search_hash)}</code></div>` : ''}
-        ${item.cleanup.run_id ? `<div class="copy-line"><span>run_id</span><code>${escapeHtml(item.cleanup.run_id)}</code></div>` : '<div class="copy-line"><span>run_id</span><code>กด Find Run ID ใน Data Control</code></div>'}
+        ${item.cleanup.search_hash ? `<div class="copy-line"><span>hash สำหรับค้นหา</span><code>${escapeHtml(item.cleanup.search_hash)}</code><button class="copy-chip" type="button" onclick="copyText('${escapeAttr(item.cleanup.search_hash)}', this)">Copy</button></div>` : ''}
+        ${item.cleanup.run_id ? `<div class="copy-line"><span>run_id</span><code>${escapeHtml(item.cleanup.run_id)}</code></div>` : ''}
       ` : ''}
     </div>
   `).join('');
+}
+
+function copyText(value, button){
+  const text = String(value || '');
+  if(!text) return;
+  navigator.clipboard?.writeText(text).then(() => {
+    if(button){
+      const old = button.textContent;
+      button.textContent = 'Copied';
+      setTimeout(() => button.textContent = old, 1200);
+    }
+  }).catch(() => {
+    window.prompt('Copy this value', text);
+  });
+}
+
+function sendHealthToDataControl(){
+  const first = lastHealthRecommendations.find(item => item.cleanup?.search_hash)?.cleanup;
+  document.getElementById('toolGame').value = document.getElementById('healthGame').value || first?.target_game_code || 'ALL';
+  document.getElementById('toolMonth').value = document.getElementById('healthMonth').value || first?.target_month || '2026-06';
+  document.getElementById('toolRunQuery').value = first?.search_hash || '';
+  switchAdminTool('pipeline');
+  inspectRun();
+}
+
+function fillRunForSingleAction(game, month, runId){
+  document.getElementById('toolGame').value = game || 'ALL';
+  document.getElementById('toolMonth').value = month || '2026-06';
+  document.getElementById('toolRunQuery').value = runId || '';
+  document.querySelectorAll('.run-select').forEach(input => input.checked = input.value === runId);
+  updateBatchCount();
 }
 
 function buildMockPipelineHealth(params){
@@ -1188,12 +1330,15 @@ function buildMockPipelineHealth(params){
 function buildMockRunLookup(params){
   const query = String(params.query || '').trim();
   const health = buildMockPipelineHealth(params);
-  const rows = [
+  let rows = [
     {game_code:'CBM_SEA',period_key:'2026-06',status:'ready',data_hash_after:'oa960n',rows_written:50352,run_id:'RUN-2026-07-26T09:18:11.123Z'},
     {game_code:'CBPC_TH',period_key:'2026-06',status:'ready',data_hash_after:'a1oxij',rows_written:19348,run_id:'RUN-2026-07-26T09:20:31.456Z'},
     {game_code:'CBPC_SEA',period_key:'2026-06',status:'ready',data_hash_after:'je7lw',rows_written:14427,run_id:'RUN-2026-07-26T09:22:44.789Z'},
     {game_code:'CBM_TH',period_key:'2026-06',status:'ready',data_hash_after:'mhbptw',rows_written:4848,run_id:'RUN-2026-07-28T09:37:52.900Z'}
   ].filter(row => (!params.game || params.game === 'ALL' || row.game_code === params.game) && (!query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())));
+  if(!query && (!params.game || params.game === 'ALL')){
+    rows = rows.filter(row => row.game_code !== 'CBM_TH');
+  }
   return {
     ok:true,
     title: rows.length ? 'พบ run ที่เกี่ยวข้อง' : 'ไม่พบ run ที่ตรงเงื่อนไข',
