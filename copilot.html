@@ -1727,7 +1727,7 @@ function renderHealthOverviewTable(rows){
 function renderPipelineHealth(result){
   const summary = result.summary || {};
   lastHealthRecommendations = result.recommendations || [];
-  lastHealthRepairTasks = lastHealthRecommendations
+  const rawRepairTasks = lastHealthRecommendations
     .map(item => item.cleanup || {})
     .map(cleanup => ({
       game: String(cleanup.target_game_code || '').trim(),
@@ -1736,6 +1736,11 @@ function renderPipelineHealth(result){
       runId: String(cleanup.run_id || '').trim()
     }))
     .filter(task => task.game && task.game !== 'ALL' && (task.hash || task.runId));
+  lastHealthRepairTasks = [...rawRepairTasks.reduce((map, task) => {
+    const key = `${task.game}|${task.month || 'ALL'}`;
+    if(!map.has(key)) map.set(key, task);
+    return map;
+  }, new Map()).values()];
   lastHealthRepairGames = [...new Set(lastHealthRepairTasks.map(task => task.game))];
   const sourceLabel = result.source === 'n8n_health'
     ? 'เช็กผ่าน n8n Health workflow'
