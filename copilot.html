@@ -186,6 +186,15 @@ tbody tr:hover{background:#fbfaf8}
 .health-mini p{margin:3px 0 0;font-size:11.2px;color:var(--sub);line-height:1.45}
 .health-game-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .health-game-chip{border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;border-radius:999px;padding:5px 8px;font-size:10.5px;font-weight:900}
+.health-overview{border:1px solid #f1f0ee;background:#fff;border-radius:14px;overflow:hidden;margin-top:10px}
+.health-overview table{width:100%;border-collapse:collapse}
+.health-overview th,.health-overview td{padding:10px 12px;border-bottom:1px solid #f1f0ee;text-align:left;font-size:11.5px;vertical-align:top}
+.health-overview th{background:#fbfaf8;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.health-overview tr:last-child td{border-bottom:none}
+.health-status-pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900;background:#eef2ff;color:#3730a3;white-space:nowrap}
+.health-status-pill.ok{background:#dcfce7;color:#166534}
+.health-status-pill.warn{background:#fffbeb;color:#92400e}
+.health-status-pill.danger{background:#ffe4e6;color:#9f1239}
 .health-muted{font-size:11.5px;color:var(--sub);line-height:1.5}
 .health-item{border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:12px;padding:12px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
 .health-item.warn{border-left-color:var(--amber);background:#fffaf0}
@@ -515,8 +524,8 @@ tbody tr:hover{background:#fbfaf8}
                   <button class="sample-btn" type="button" onclick="showDataControlSample()">SHOW SAMPLE</button>
                 </div>
                 </div>
-                <div id="pipelineActionResult" class="action-result warn">ยังไม่มีคำสั่งล่าสุด
-เส้นทางปกติคือรอ Auto Pipeline วันอาทิตย์ แต่ถ้า Data Health แจ้งว่าต้องซ่อม ให้กลับมาที่หน้านี้แล้วทำตามลำดับ: FIND → Preview → Clear → Build</div>
+                <div id="pipelineActionResult" class="action-result warn">ยังไม่ได้ส่งคำสั่งซ่อม
+หลังจากเลือก run แล้ว ให้เริ่มจาก Preview ก่อนเสมอ ผลของ Preview / Clear / Build จะแสดงตรงนี้</div>
                 <div id="runInspectorResult" class="run-card">
                   เลือกเกม/เดือน แล้วกด FIND เพื่อดู run ที่เกี่ยวข้องและคำแนะนำขั้นตอนถัดไป
                 </div>
@@ -547,12 +556,12 @@ tbody tr:hover{background:#fbfaf8}
                 <div class="section-intro">
                   <div class="section-eyebrow">Admin Tool</div>
                   <div class="section-title">DATA HEALTH CHECKUP</div>
-                  <div class="section-desc">ใช้หน้านี้เพื่อเช็กว่า Raw Data, Master Data และ Central DB ของเดือนที่เลือกตรงกันหรือยัง ถ้ามีจุดที่ต้องซ่อม ระบบจะสรุปให้สั้น ๆ แล้วส่งต่อไป Data Control ได้ทันที.</div>
+                  <div class="section-desc">ใช้หน้านี้เพื่อตรวจว่าไฟล์ข้อมูลต้นทางกับข้อมูลที่ Dashboard ใช้อยู่ตรงกันหรือยัง ถ้ามีเกมไหนยังใช้ข้อมูลเก่า ระบบจะบอกให้ส่งต่อไปซ่อมที่ Data Control.</div>
                 </div>
                 <div class="health-guide">
                   <div>
                     <b>วิธีใช้แบบสั้น</b>
-                    <p>เลือก Game กับ Month แล้วกด CHECKUP. ถ้าผลออกมาพร้อมใช้งาน ให้จบที่หน้านี้ได้เลย. ถ้าพบรายการที่ควรซ่อม ให้กด SEND TO DATA CONTROL เพื่อไปหา Run ID และจัดการต่อ.</p>
+                    <p>เลือก Game กับ Month แล้วกด CHECKUP. ถ้าขึ้นว่าพร้อมใช้งาน ไม่ต้องทำอะไรต่อ. ถ้าระบบบอกว่าบางเกมยังใช้ข้อมูลเก่า ให้กด SEND TO DATA CONTROL เพื่อไปเลือก run และซ่อมต่อ.</p>
                   </div>
                   <span class="guide-pill">Check first</span>
                 </div>
@@ -585,16 +594,16 @@ tbody tr:hover{background:#fbfaf8}
                 </div>
                 </div>
                 <div class="status-grid" id="healthScoreCards">
-                  <div class="status-card health"><span>Health</span><strong>-</strong></div>
-                  <div class="status-card ready"><span>Ready Runs</span><strong>-</strong></div>
-                  <div class="status-card review"><span>Needs Review</span><strong>-</strong></div>
-                  <div class="status-card cleanup"><span>Cleanup Needed</span><strong>-</strong></div>
+                  <div class="status-card health"><span>สถานะรวม</span><strong>-</strong></div>
+                  <div class="status-card ready"><span>Raw พร้อม</span><strong>-</strong></div>
+                  <div class="status-card review"><span>ต้องตรวจ</span><strong>-</strong></div>
+                  <div class="status-card cleanup"><span>ต้องซ่อม</span><strong>-</strong></div>
                 </div>
                 <div class="health-list" id="healthIssueList">
                   <div class="health-summary ok"><h3>ยังไม่ได้ตรวจข้อมูล</h3><p>กด CHECKUP เพื่อดูสถานะของเกมและเดือนที่เลือก</p></div>
                 </div>
                 <div class="handoff-bar" id="healthHandoff">
-                  <div><b>มีรายการที่ควรซ่อมต่อ</b><p>กดปุ่มนี้เพื่อเปิด Data Control พร้อม Game, Month และ Hash ที่ต้องใช้ค้นหา Run ID</p></div>
+                  <div><b>มีรายการที่ควรซ่อมต่อ</b><p>กดปุ่มนี้เพื่อเปิด Data Control พร้อม Game และ Month ที่ต้องใช้ค้นหา run สำหรับซ่อม</p></div>
                   <button class="context-submit" type="button" onclick="sendHealthToDataControl()">SEND TO DATA CONTROL</button>
                 </div>
               </div>
@@ -634,6 +643,7 @@ let previewMode = false;
 let selectedUserEmail = '';
 let lastCleanupSuggestion = null;
 let lastHealthRecommendations = [];
+let lastHealthRepairGames = [];
 let lastRunMatches = [];
 
 function decodeJwtPayload(token){
@@ -853,7 +863,6 @@ function switchAdminTool(tool){
 
 function refreshActiveAdminTool(){
   if(document.getElementById('adminViewUsers')?.classList.contains('active')) loadUsers();
-  if(document.getElementById('adminViewHealth')?.classList.contains('active')) loadPipelineHealth();
   if(document.getElementById('adminViewPipeline')?.classList.contains('active')) renderAdminActionLogs();
 }
 
@@ -1386,6 +1395,17 @@ function renderRunInspector(result){
   const target = result.cleanup_suggestion || {};
   lastCleanupSuggestion = target && target.run_id ? target : null;
   lastRunMatches = matches;
+  if(!matches.length){
+    document.getElementById('runInspectorResult').innerHTML = `
+      <div class="health-item warn">
+        <div><b>ยังไม่พบ run ที่ใช้ซ่อมได้</b><p>ลองเลือก Game ให้ตรงกับเกมที่ Data Health แจ้งไว้ แล้วกด FIND อีกครั้ง. ถ้ายังไม่เจอ อาจต้องรอให้ Auto Pipeline เขียน log เข้ามา หรือเช็ก Central DB แท็บ PipelineLogs.</p></div>
+        <span class="health-badge warn">0 match</span>
+      </div>
+    `;
+    document.getElementById('batchActions').classList.remove('active');
+    updateBatchCount();
+    return;
+  }
   const cards = matches.length ? matches.map(run => `
     <div class="run-item">
       <input class="run-select" type="checkbox" value="${escapeAttr(run.run_id || '')}" onchange="updateBatchCount()" checked>
@@ -1399,7 +1419,7 @@ function renderRunInspector(result){
         <button class="mini-btn" type="button" onclick="fillRunForSingleAction('${escapeAttr(run.game_code)}','${escapeAttr(run.period_key)}','${escapeAttr(run.run_id || '')}')">Use</button>
       </div>
     </div>
-  `).join('') : '<div class="health-item ok"><div><b>ไม่พบ run ที่ตรงเงื่อนไข</b><p>ลองเลือก Game = ALL และเดือนที่ต้องการ หรือใส่ hash จาก Data Health</p></div><span class="health-badge ok">No match</span></div>';
+  `).join('') : '';
   const suggestion = target.run_id ? `
     <div class="copy-box">
       <b>ข้อมูลสำหรับขั้นตอนถัดไป</b>
@@ -1422,9 +1442,128 @@ function renderRunInspector(result){
   updateBatchCount();
 }
 
+function getIssueGame(issue){
+  const direct = String(issue.game_code || '').trim();
+  if(direct) return direct;
+  const title = String(issue.title || '').trim();
+  return title.split(/\s+/)[0] || '';
+}
+
+function buildHealthOverviewRows(result, issues, recommendations){
+  const selectedGame = result.game || document.getElementById('healthGame')?.value || 'ALL';
+  const selectedMonth = result.month || document.getElementById('healthMonth')?.value || '2026-06';
+  const expectedGames = selectedGame === 'ALL' ? ['CBM_TH','CBM_SEA','CBPC_TH','CBPC_SEA'] : [selectedGame];
+  const byGame = {};
+  expectedGames.forEach(game => {
+    byGame[game] = {
+      game,
+      raw: 'ยังไม่พบข้อมูล',
+      rawLevel: 'warn',
+      master: 'ยังไม่ยืนยัน',
+      masterLevel: 'warn',
+      action: 'กด CHECKUP เพื่อดูรายละเอียด',
+      actionLevel: 'warn'
+    };
+  });
+
+  issues.forEach(issue => {
+    const game = getIssueGame(issue);
+    if(!game) return;
+    if(!byGame[game]){
+      byGame[game] = {
+        game,
+        raw: 'มีข้อมูล',
+        rawLevel: 'ok',
+        master: 'ต้องตรวจ',
+        masterLevel: 'warn',
+        action: 'ตรวจต่อ',
+        actionLevel: 'warn'
+      };
+    }
+    const badge = String(issue.badge || '');
+    if(badge === 'Hash mismatch'){
+      byGame[game].raw = 'มีรอบใหม่แล้ว';
+      byGame[game].rawLevel = 'ok';
+      byGame[game].master = 'ยังเป็นข้อมูลเก่า';
+      byGame[game].masterLevel = 'danger';
+      byGame[game].action = 'ไป Data Control';
+      byGame[game].actionLevel = 'danger';
+    }else if(badge === 'Raw check'){
+      byGame[game].raw = 'ยังไม่พร้อม';
+      byGame[game].rawLevel = 'danger';
+      byGame[game].master = 'ยังไม่ควร Build';
+      byGame[game].masterLevel = 'warn';
+      byGame[game].action = 'ตรวจ Raw file ก่อน';
+      byGame[game].actionLevel = 'warn';
+    }else if(badge === 'Missing ready run'){
+      byGame[game].raw = 'รอตรวจจาก log';
+      byGame[game].rawLevel = 'warn';
+      byGame[game].master = 'ยังไม่มีข้อมูลพร้อมใช้';
+      byGame[game].masterLevel = 'danger';
+      byGame[game].action = 'หา run หรือ Build ใหม่';
+      byGame[game].actionLevel = 'warn';
+    }else if(badge === 'Missing index'){
+      byGame[game].master = 'ยังไม่อยู่ใน DataIndex';
+      byGame[game].masterLevel = 'warn';
+      byGame[game].action = 'ตรวจ Central DB';
+      byGame[game].actionLevel = 'warn';
+    }
+  });
+
+  recommendations.forEach(item => {
+    const game = String(item.cleanup?.target_game_code || '').trim();
+    if(game && byGame[game] && byGame[game].action === 'กด CHECKUP เพื่อดูรายละเอียด'){
+      byGame[game].action = 'ตรวจต่อใน Data Control';
+      byGame[game].actionLevel = 'warn';
+    }
+  });
+
+  if(!issues.length){
+    expectedGames.forEach(game => {
+      byGame[game] = {
+        game,
+        raw: 'พร้อม',
+        rawLevel: 'ok',
+        master: 'พร้อมใช้',
+        masterLevel: 'ok',
+        action: 'ไม่ต้องทำอะไร',
+        actionLevel: 'ok'
+      };
+    });
+  }
+
+  return Object.values(byGame).filter(row => row.game && row.game !== 'ALL').map(row => ({
+    ...row,
+    month: selectedMonth
+  }));
+}
+
+function renderHealthOverviewTable(rows){
+  if(!rows.length) return '';
+  return `
+    <div class="health-overview">
+      <table>
+        <thead><tr><th>Game</th><th>Month</th><th>Raw Data</th><th>Master / Central DB</th><th>ควรทำอะไร</th></tr></thead>
+        <tbody>
+          ${rows.map(row => `
+            <tr>
+              <td><b>${escapeHtml(row.game)}</b></td>
+              <td>${escapeHtml(row.month)}</td>
+              <td><span class="health-status-pill ${escapeHtml(row.rawLevel)}">${escapeHtml(row.raw)}</span></td>
+              <td><span class="health-status-pill ${escapeHtml(row.masterLevel)}">${escapeHtml(row.master)}</span></td>
+              <td><span class="health-status-pill ${escapeHtml(row.actionLevel)}">${escapeHtml(row.action)}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function renderPipelineHealth(result){
   const summary = result.summary || {};
   lastHealthRecommendations = result.recommendations || [];
+  lastHealthRepairGames = [...new Set(lastHealthRecommendations.map(item => String(item.cleanup?.target_game_code || '').trim()).filter(game => game && game !== 'ALL'))];
   const sourceLabel = result.source === 'n8n_health'
     ? 'เช็กผ่าน n8n Health workflow'
     : result.source === 'n8n_health_error'
@@ -1432,16 +1571,19 @@ function renderPipelineHealth(result){
       : 'เช็กจาก Central DB ผ่าน Apps Script';
   const autoNote = result.auto_pipeline_note || 'Auto Pipeline ทำงานวันอาทิตย์ตามเวลา ส่วนหน้านี้ใช้ตรวจและซ่อมเฉพาะเคส';
   const issues = result.issues || [];
+  const issueGames = [...new Set(issues.map(getIssueGame).filter(game => game && game !== 'ALL'))];
+  lastHealthRepairGames = [...new Set([...lastHealthRepairGames, ...issueGames])];
   const hasIssues = issues.length > 0 || Number(summary.needs_review || 0) > 0 || Number(summary.cleanup_needed || 0) > 0;
+  const overviewRows = buildHealthOverviewRows(result, issues, lastHealthRecommendations);
   document.getElementById('healthScoreCards').innerHTML = `
     <div class="status-card health"><span>สถานะรวม</span><strong>${escapeHtml(summary.health_score || '-')}</strong></div>
     <div class="status-card ready"><span>Raw พร้อม</span><strong>${escapeHtml(summary.raw_ready ?? summary.ready_runs ?? '-')}</strong></div>
     <div class="status-card review"><span>ต้องตรวจ</span><strong>${escapeHtml(summary.needs_review ?? '-')}</strong></div>
     <div class="status-card cleanup"><span>ต้องซ่อม</span><strong>${escapeHtml(summary.cleanup_needed ?? '-')}</strong></div>
   `;
-  const mainTitle = hasIssues ? 'ข้อมูลบางเกมยังไม่พร้อมใช้งานเต็มรูปแบบ' : 'ข้อมูลพร้อมใช้งาน';
+  const mainTitle = hasIssues ? 'บางเกมยังใช้ข้อมูลเก่าอยู่' : 'ข้อมูลพร้อมใช้งาน';
   const mainDetail = hasIssues
-    ? 'ระบบพบว่า Raw Data มีรอบใหม่แล้ว แต่ Master/Central DB ของบางเกมยังเป็นข้อมูลเก่าอยู่ ให้ส่งต่อไป Data Control เพื่อซ่อมเฉพาะเกมที่พบปัญหา'
+    ? 'ความหมายง่าย ๆ คือไฟล์ต้นทางมีข้อมูลใหม่แล้ว แต่ข้อมูลที่ Dashboard ใช้ยังตามไม่ทันบางเกม ให้ส่งต่อไป Data Control เพื่อเลือก run แล้วซ่อมเฉพาะเกมนั้น'
     : 'ยังไม่พบปัญหาหลักจากข้อมูลที่เลือก สามารถใช้ Dashboard และ AI CHAT ต่อได้ตามปกติ';
   const issueGroups = issues.reduce((acc, issue) => {
     const badge = String(issue.badge || 'Check');
@@ -1450,12 +1592,12 @@ function renderPipelineHealth(result){
     return acc;
   }, {});
   const issuePreview = Object.entries(issueGroups).slice(0, 4).map(([badge, group]) => {
-    const games = [...new Set(group.map(issue => String(issue.game_code || issue.title || '').split(' ')[0]).filter(Boolean))];
+    const games = [...new Set(group.map(getIssueGame).filter(Boolean))];
     const title = badge === 'Hash mismatch'
-      ? (games.length === 1 ? `${games[0]} ยังเป็นข้อมูลเก่า` : `เกมที่ต้องซ่อม: ${games.join(', ')}`)
+      ? (games.length === 1 ? `${games[0]} ต้องซ่อมข้อมูล` : `เกมที่ต้องซ่อม ${games.length} เกม`)
       : `${badge}: ${games.join(', ') || group.length + ' รายการ'}`;
     const detail = badge === 'Hash mismatch'
-      ? `ความหมาย: Raw Data ของ ${games.length} เกมนี้มีข้อมูลรอบใหม่แล้ว แต่ Master/Central DB ยังไม่ตรงกัน ให้กด SEND TO DATA CONTROL แล้วทำ Preview → Clear → Build`
+      ? `Raw Data มีรอบใหม่แล้ว แต่ Master/Central DB ยังเป็นข้อมูลเก่าอยู่ ให้กด SEND TO DATA CONTROL แล้วทำตามขั้นตอนในหน้า Data Control`
       : group[0]?.detail || 'มีรายการที่ควรตรวจเพิ่ม';
     const level = group.some(issue => issue.level === 'danger') ? 'danger' : group.some(issue => issue.level === 'warn') ? 'warn' : 'ok';
     const gameChips = games.length ? `<div class="health-game-list">${games.map(game => `<span class="health-game-chip">${escapeHtml(game)}</span>`).join('')}</div>` : '';
@@ -1474,13 +1616,14 @@ function renderPipelineHealth(result){
     <div class="health-summary ${hasIssues ? 'warn' : 'ok'}">
       <h3>${escapeHtml(mainTitle)}</h3>
       <p>${escapeHtml(mainDetail)}</p>
+      ${renderHealthOverviewTable(overviewRows)}
       ${issuePreview ? `<div class="health-mini-list">${issuePreview}</div>${extraCount}` : ''}
       <div class="health-next">
         <div><b>${escapeHtml(nextText)}</b><br><span>${escapeHtml(hasIssues ? 'ระบบจะส่งรายชื่อเกมและ Hash ที่ต้องใช้ไปหน้า Data Control เพื่อหา Run ID และซ่อมตามลำดับ' : sourceLabel + ' · ' + autoNote)}</span></div>
       </div>
     </div>
   `;
-  document.getElementById('healthHandoff')?.classList.toggle('active', lastHealthRecommendations.length > 0);
+  document.getElementById('healthHandoff')?.classList.toggle('active', hasIssues && (lastHealthRecommendations.length > 0 || lastHealthRepairGames.length > 0));
 }
 
 function copyText(value, button){
@@ -1498,11 +1641,23 @@ function copyText(value, button){
 }
 
 function sendHealthToDataControl(){
-  const first = lastHealthRecommendations.find(item => item.cleanup?.search_hash)?.cleanup;
-  document.getElementById('toolGame').value = document.getElementById('healthGame').value || first?.target_game_code || 'ALL';
-  document.getElementById('toolMonth').value = document.getElementById('healthMonth').value || first?.target_month || '2026-06';
-  document.getElementById('toolRunQuery').value = first?.search_hash || '';
+  const healthGame = document.getElementById('healthGame').value || 'ALL';
+  const healthMonth = document.getElementById('healthMonth').value || '2026-06';
+  const singleRepairGame = lastHealthRepairGames.length === 1 ? lastHealthRepairGames[0] : '';
+  document.getElementById('toolGame').value = healthGame === 'ALL' ? (singleRepairGame || 'ALL') : healthGame;
+  document.getElementById('toolMonth').value = healthMonth;
+  document.getElementById('toolRunQuery').value = '';
+  const resultBox = document.getElementById('pipelineActionResult');
+  resultBox.classList.add('warn');
+  resultBox.textContent = 'ส่งรายการจาก Data Health มาแล้ว\nขั้นตอนต่อไป: กด FIND เพื่อดู run ที่เกี่ยวข้อง แล้วเลือก run ก่อน Preview';
   switchAdminTool('pipeline');
+  document.getElementById('runInspectorResult').innerHTML = `
+    <div class="health-item warn">
+      <div><b>พร้อมค้นหา run สำหรับซ่อม</b><p>ระบบใส่ Game และ Month จาก Data Health ให้แล้ว กด FIND เพื่อดูรายการ run ที่เกี่ยวข้อง</p></div>
+      <span class="health-badge warn">Next</span>
+    </div>
+  `;
+  document.getElementById('batchActions').classList.remove('active');
   inspectRun();
 }
 
