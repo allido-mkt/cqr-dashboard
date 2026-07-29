@@ -1,0 +1,2155 @@
+{
+  "name": "CQR_Master_Update_Webhook_V1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cqr-master-update-v1",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cqr-master-update-webhook-v1",
+      "name": "Webhook - Master Update",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json.body || $json.query || $json || {};\nconst headers = $json.headers || {};\nconst payload = { ...input };\npayload.webhook_received_at = new Date().toISOString();\npayload.webhook_source = 'Normalize Webhook Payload';\npayload.request_header_secret_present = Boolean(headers['x-cqr-admin-secret'] || headers['X-CQR-Admin-Secret']);\nreturn [{ json: payload }];"
+      },
+      "id": "cqr-master-update-normalize-v1",
+      "name": "Normalize Webhook Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "cqr-master-update-respond-v1",
+      "name": "Respond to Apps Script",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2928,
+        -640
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Webhook entry for Admin Panel\nUse this workflow for the website Build button.\n\nProduction URL path: `cqr-master-update-v1`\n\nApps Script property:\n`CQR_N8N_MASTER_UPDATE_WEBHOOK_URL`\n\nInput keys expected: `target_game_code` or `target_games_csv`, `target_month`, `run_mode=force`.",
+        "height": 240,
+        "width": 420
+      },
+      "id": "cqr-master-update-webhook-note-v1",
+      "name": "Sticky Note - Webhook Entry",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        -240
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "c304f1a0-f5a0-4229-aa3f-7d2ceed52433",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                0
+              ],
+              "triggerAtHour": 16,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "fc05c079-f904-4994-826b-8593f8992aa2",
+      "name": "Sunday 16:00 Master Update Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -368,
+        384
+      ],
+      "disabled": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "central-db-id",
+              "name": "central_db_id",
+              "value": "={{ $json.central_db_id || '1uM85a9Fqt3j4NAM1XcEI2ORIw0Uef7Unr-JmIIbpm2g' }}",
+              "type": "string"
+            },
+            {
+              "id": "run-mode",
+              "name": "run_mode",
+              "value": "={{ $json.run_mode || 'incremental' }}",
+              "type": "string"
+            },
+            {
+              "id": "target-month",
+              "name": "target_month",
+              "value": "={{ $json.target_month || new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString().slice(0, 7) }}",
+              "type": "string"
+            },
+            {
+              "id": "target-games",
+              "name": "target_games_csv",
+              "value": "={{ $json.target_games_csv || $json.target_game_code || 'ALL' }}",
+              "type": "string"
+            },
+            {
+              "id": "tab-policy",
+              "name": "missing_tab_policy",
+              "value": "={{ $json.missing_tab_policy || 'partial' }}",
+              "type": "string"
+            },
+            {
+              "id": "prompt-version",
+              "name": "prompt_version",
+              "value": "={{ $json.prompt_version || 'master-data-v1' }}",
+              "type": "string"
+            },
+            {
+              "id": "processed-hashes-json",
+              "name": "processed_hashes_json",
+              "value": "={{ $json.processed_hashes_json || '{}' }}",
+              "type": "string"
+            },
+            {
+              "id": "batch-id",
+              "name": "batch_id",
+              "value": "={{ $json.batch_id || ('BATCH-' + new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z') }}",
+              "type": "string"
+            },
+            {
+              "id": "require-raw-check",
+              "name": "require_raw_check",
+              "value": "={{ $json.require_raw_check || 'true' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "85615038-6c33-4bff-9d47-4ee604596cf1",
+      "name": "Set Runtime Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -112,
+        288
+      ],
+      "notes": "ปรับ target_month / target_games_csv ได้ก่อนรัน manual"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "SourceFiles",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "4062cbb7-8ee0-4997-9709-853c570b8046",
+      "name": "Read Central DB - SourceFiles",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        160,
+        288
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "notes": "อ่าน SourceFiles จาก CQR_Central_DB_TEST"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Set Runtime Config').first().json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "DataIndex",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        288,
+        448
+      ],
+      "id": "read-central-db-dataindex-production-dedupe",
+      "name": "Read Central DB - DataIndex",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Set Runtime Config').first().json;\nconst targetMonth = config.target_month;\nconst targetGamesCsv = config.target_games_csv || 'ALL';\nconst targetGames = targetGamesCsv === 'ALL' ? null : targetGamesCsv.split(',').map(v => v.trim()).filter(Boolean);\nconst batchId = config.batch_id || 'BATCH-' + new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';\nconst requireRawCheck = String(config.require_raw_check || 'true').toLowerCase() !== 'false';\n\nconst masterFileByGame = {\n  CBM_TH: '1ofe69uOTknTY2RcoLjAkPXUQ0sUQjZPgJ-oIRCD5hKM',\n  CBM_SEA: '1B_eXcoxJyKnV_wH4zyPHqDg2lmS_gfGJ-9cxaF5h5bY',\n  CBPC_TH: '18uiKPUsWeByiT2jOv_aaCdq_xlpcMkw1B6glN8NRyF4',\n  CBPC_SEA: '1p5qN81Vg5rN08XldlQDV_fQTuqRaS1xpBk-aWuQb-9I'\n};\n\nconst requiredTabs = [\n  { sheet_type: 'registered', tab_name: `Registered_${targetMonth}` },\n  { sheet_type: 'dau', tab_name: `DAU_${targetMonth}` },\n  { sheet_type: 'returners', tab_name: `Returners_${targetMonth}` },\n  { sheet_type: 'late_starters', tab_name: `Late_Starters_${targetMonth}` },\n  { sheet_type: 'login', tab_name: `Login_${targetMonth}` }\n];\n\nfunction rowsFrom(nodeName) {\n  try { return $(nodeName).all().map(item => item.json).filter(row => !row.error); }\n  catch (error) { return []; }\n}\nfunction latestBy(rows, field) {\n  return [...rows].sort((a, b) => String(b[field] || b.checked_at || b.run_finished_at || '').localeCompare(String(a[field] || a.checked_at || a.run_finished_at || '')))[0] || null;\n}\nfunction period(row) { return String(row.period_key || row.month || row.target_month || '').trim(); }\n\nconst sourceRows = rowsFrom('Read Central DB - SourceFiles');\nconst dataIndexRows = rowsFrom('Read Central DB - DataIndex');\nconst rawCheckRows = rowsFrom('Read Central DB - RawIngestionLogs');\nconst activeRows = sourceRows.filter(row => String(row.status || '').toLowerCase() === 'active');\nconst filteredRows = targetGames ? activeRows.filter(row => targetGames.includes(row.game_code)) : activeRows;\n\nfunction latestHashFor(gameCode) {\n  const rows = dataIndexRows.filter(row =>\n    row.game_code === gameCode &&\n    period(row) === targetMonth &&\n    String(row.data_hash || '').trim()\n  );\n  rows.sort((a, b) => String(b.last_updated_at || b.updated_at || '').localeCompare(String(a.last_updated_at || a.updated_at || '')));\n  return rows[0]?.data_hash || '';\n}\nfunction latestRawCheckFor(gameCode) {\n  return latestBy(rawCheckRows.filter(row => row.game_code === gameCode && period(row) === targetMonth), 'checked_at');\n}\n\nconst units = [];\nfor (const row of filteredRows) {\n  const rawCheck = latestRawCheckFor(row.game_code);\n  const rawStatus = String(rawCheck?.status || '').toLowerCase();\n  if (requireRawCheck && rawStatus !== 'raw_ready') {\n    units.push({ json: {\n      run_id: 'RUN-' + row.game_code + '-' + targetMonth + '-' + new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z',\n      batch_id: batchId,\n      run_mode: config.run_mode,\n      target_month: targetMonth,\n      game_code: row.game_code,\n      source_file_id: row.source_file_id,\n      source_file_name: row.source_file_name,\n      source_folder_id: row.source_folder_id,\n      master_file_id: masterFileByGame[row.game_code] || row.master_file_id || '',\n      schema_version: row.schema_version,\n      last_modified_at: row.last_modified_at,\n      last_data_hash: latestHashFor(row.game_code),\n      raw_check_id: rawCheck?.raw_check_id || '',\n      raw_check_status: rawCheck?.status || 'missing_raw_check',\n      raw_data_hash: rawCheck?.raw_data_hash || '',\n      raw_check_blocked: true,\n      raw_check_message: rawCheck?.message || 'Raw check is required before build.',\n      dedupe_source: 'Central DB DataIndex + RawIngestionLogs',\n      required_tabs: requiredTabs,\n      missing_tab_policy: config.missing_tab_policy,\n      prompt_version: config.prompt_version,\n      central_db_id: config.central_db_id\n    }});\n    continue;\n  }\n  units.push({ json: {\n    run_id: 'RUN-' + row.game_code + '-' + targetMonth + '-' + new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z',\n    batch_id: batchId,\n    run_mode: config.run_mode,\n    target_month: targetMonth,\n    game_code: row.game_code,\n    source_file_id: row.source_file_id,\n    source_file_name: row.source_file_name,\n    source_folder_id: row.source_folder_id,\n    master_file_id: masterFileByGame[row.game_code] || row.master_file_id || '',\n    schema_version: row.schema_version,\n    last_modified_at: row.last_modified_at,\n    last_data_hash: latestHashFor(row.game_code),\n    raw_check_id: rawCheck?.raw_check_id || '',\n    raw_check_status: rawCheck?.status || 'not_checked',\n    raw_data_hash: rawCheck?.raw_data_hash || '',\n    raw_check_blocked: false,\n    raw_check_message: rawCheck?.message || '',\n    dedupe_source: 'Central DB DataIndex + RawIngestionLogs',\n    required_tabs: requiredTabs,\n    missing_tab_policy: config.missing_tab_policy,\n    prompt_version: config.prompt_version,\n    central_db_id: config.central_db_id\n  }});\n}\nreturn units;"
+      },
+      "id": "f993fb50-0cf9-4c4d-b696-0e731551f2bd",
+      "name": "Build Work Units",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        288
+      ],
+      "notes": "สร้าง unit ระดับ game_code + target_month"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c48d3a61-0246-47a6-a9b6-e99e7d295ecb",
+      "name": "Split In Batches - One Game",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        672,
+        288
+      ],
+      "notes": "รันทีละเกมก่อนเพื่อลด rate limit ของ Google Sheets"
+    },
+    {
+      "parameters": {
+        "jsCode": "const unit = $json;\nconst tabPlan = unit.required_tabs.map(tab => ({\n  ...tab,\n  tab_key: `${unit.game_code}|${unit.target_month}|${tab.tab_name}`,\n  source_file_id: unit.source_file_id,\n  game_code: unit.game_code,\n  period_key: unit.target_month,\n  status: 'planned'\n}));\n\nreturn [{\n  json: {\n    ...unit,\n    tab_plan: tabPlan,\n    quality_signals: [],\n    pipeline_status: 'planned'\n  }\n}];"
+      },
+      "id": "b3175059-9c51-4c87-aafe-81bc182440af",
+      "name": "Prepare Tab Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        288
+      ],
+      "notes": "วางแผน tabs ที่ต้องอ่าน ถ้า tab ไม่มีในขั้นจริงให้ mark partial"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.source_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Registered_${$json.target_month}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "a0857a08-430e-4038-a2ad-0c88d3cab3c8",
+      "name": "Read Raw - Registered",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        -16
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "อ่าน Registered_YYYY-MM; ถ้าไม่มี tab ให้ continueOnFail แล้วให้ Code node mark partial"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Prepare Tab Plan').first().json.source_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `DAU_${$('Prepare Tab Plan').first().json.target_month}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "6b47a830-ca35-466b-9d61-6fedcdd892fe",
+      "name": "Read Raw - DAU",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1440,
+        -16
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput",
+      "notes": "\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Prepare Tab Plan').first().json.source_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Returners_${$('Prepare Tab Plan').first().json.target_month}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "8f22afcd-522b-44ee-be71-ac08f8236aa1",
+      "name": "Read Raw - Returners",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1680,
+        -16
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput",
+      "notes": "\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Prepare Tab Plan').first().json.source_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Late_Starters_${$('Prepare Tab Plan').first().json.target_month}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "e9a57f2b-ac36-4110-a68f-fa98cd1551c6",
+      "name": "Read Raw - Late Starters",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1920,
+        -16
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput",
+      "notes": "\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Prepare Tab Plan').first().json.source_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Login_${$('Prepare Tab Plan').first().json.target_month}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "4074d703-35dc-45e1-ad89-0488bd004212",
+      "name": "Read Raw - Login",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2160,
+        -16
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput",
+      "notes": "Login tab อาจหายได้ ให้ partial ไม่ fail ทั้ง flow\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า"
+    },
+    {
+      "parameters": {
+        "jsCode": "const unit = $('Prepare Tab Plan').first().json;\nconst now = new Date().toISOString();\nconst runId = unit.run_id || 'RUN-' + unit.game_code + '-' + unit.target_month + '-' + now.replace(/[-:.]/g, '').slice(0, 15) + 'Z';\nconst batchId = unit.batch_id || 'BATCH-' + now.replace(/[-:.]/g, '').slice(0, 15) + 'Z';\nconst rawCheckId = unit.raw_check_id || '';\nconst rawCheckStatus = unit.raw_check_status || 'not_checked';\nconst month = unit.target_month;\nconst gameCode = unit.game_code;\nconst masterFileId = unit.master_file_id || '';\nconst centralDbId = unit.central_db_id || $('Set Runtime Config').first().json.central_db_id;\n\nfunction rowsFrom(name) {\n  try {\n    return $(name).all().map(item => item.json).filter(row => !row.error);\n  } catch (error) {\n    return [];\n  }\n}\nfunction errorsFrom(name) {\n  try {\n    return $(name).all().map(item => item.json).filter(row => row.error).map(row => row.error);\n  } catch (error) {\n    return [error.message];\n  }\n}\nfunction parseDate(value) {\n  if (!value) return null;\n  if (value instanceof Date) return value;\n  const s = String(value).trim();\n  if (!s) return null;\n  let m = s.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/);\n  if (m) return new Date(Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1])));\n  const d = new Date(s);\n  return Number.isNaN(d.getTime()) ? null : d;\n}\nfunction dateKey(value) {\n  const d = parseDate(value);\n  return d ? d.toISOString().slice(0, 10) : '';\n}\nfunction weekStart(value) {\n  const d = parseDate(value);\n  if (!d) return '';\n  const day = d.getUTCDay() || 7;\n  d.setUTCDate(d.getUTCDate() - day + 1);\n  return d.toISOString().slice(0, 10);\n}\nfunction weekEnd(start) {\n  if (!start) return '';\n  const d = new Date(start + 'T00:00:00Z');\n  d.setUTCDate(d.getUTCDate() + 6);\n  return d.toISOString().slice(0, 10);\n}\nfunction channelOf(row) {\n  const raw = String(row.ads_ref || row.channel || '').trim();\n  if (!raw) return 'Organic / Unknown';\n  const low = raw.toLowerCase();\n  if (low.includes('facebook') || low.includes('fb')) return 'Facebook Ads';\n  if (low.includes('google')) return 'Google Ads';\n  if (low.includes('inapp') || low.includes('in_app')) return 'In-App Register';\n  if (low.includes('organic')) return 'Organic / Unknown';\n  return raw;\n}\nfunction numberValue(value) {\n  const n = Number(String(value ?? '').replace(/,/g, ''));\n  return Number.isFinite(n) ? n : 0;\n}\nfunction boolFlag(value) {\n  const text = String(value ?? '').trim().toLowerCase();\n  if (['1', 'true', 'yes', 'y'].includes(text)) return 1;\n  if (['0', 'false', 'no', 'n', ''].includes(text)) return 0;\n  return Number(value) ? 1 : 0;\n}\nfunction rate(num, den) {\n  return den > 0 ? +(num / den).toFixed(6) : '';\n}\nfunction simpleHash(value) {\n  const text = JSON.stringify(value);\n  let hash = 0;\n  for (let i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;\n  return Math.abs(hash).toString(36);\n}\nfunction summarizeTab(nodeName, sheetType, tabName) {\n  const rows = rowsFrom(nodeName);\n  const errors = errorsFrom(nodeName);\n  const status = errors.length ? 'partial' : (rows.length ? 'ready' : 'no_data');\n  return { rows, errors, status, sheetType, tabName };\n}\nfunction hasAnyHeader(rows, headers) {\n  if (!rows.length) return false;\n  return headers.some(header => Object.prototype.hasOwnProperty.call(rows[0], header));\n}\nfunction missingHeaders(rows, required) {\n  if (!rows.length) return required;\n  return required.filter(header => !Object.prototype.hasOwnProperty.call(rows[0], header));\n}\nfunction getRegisterDate(row) {\n  return row.register_date || row.register_at || '';\n}\nfunction getLoginDate(row) {\n  return row.login_date || row.login_day || '';\n}\nfunction getLoginDays(row) {\n  return numberValue(row.login_days_in_month ?? row.distinct_login_days);\n}\nfunction usernameKey(row) {\n  return String(row.username || '').trim().toLowerCase();\n}\n\nconst tabs = {\n  registered: summarizeTab('Read Raw - Registered', 'registered', 'Registered_' + month),\n  dau: summarizeTab('Read Raw - DAU', 'dau', 'DAU_' + month),\n  returners: summarizeTab('Read Raw - Returners', 'returners', 'Returners_' + month),\n  late_starters: summarizeTab('Read Raw - Late Starters', 'late_starters', 'Late_Starters_' + month),\n  login: summarizeTab('Read Raw - Login', 'login', 'Login_' + month)\n};\n\nconst schemaIssues = [];\nconst registeredMissing = missingHeaders(tabs.registered.rows, ['username', 'ads_ref', 'first_login_date']);\nif (tabs.registered.rows.length && !hasAnyHeader(tabs.registered.rows, ['register_date', 'register_at'])) registeredMissing.push('register_date/register_at');\nconst dauMissing = missingHeaders(tabs.dau.rows, ['login_date', 'dau']);\nconst loginMissing = missingHeaders(tabs.login.rows, ['username', 'login_d1', 'login_d3', 'login_d7', 'login_d14', 'player_type']);\nif (tabs.registered.rows.length && registeredMissing.length) schemaIssues.push({ sheetType: 'registered', severity: 'error', message: 'Registered schema missing: ' + registeredMissing.join(', ') });\nif (tabs.dau.rows.length && dauMissing.length && !hasAnyHeader(tabs.dau.rows, ['login_day'])) schemaIssues.push({ sheetType: 'dau', severity: 'error', message: 'DAU schema missing: ' + dauMissing.join(', ') });\nif (tabs.login.rows.length && loginMissing.length) schemaIssues.push({ sheetType: 'login', severity: 'error', message: 'Login schema missing: ' + loginMissing.join(', ') });\nif (!tabs.registered.rows.length) schemaIssues.push({ sheetType: 'registered', severity: 'error', message: 'Registered tab has no rows.' });\nif (!tabs.login.rows.length) schemaIssues.push({ sheetType: 'login', severity: 'warning', message: 'Login tab has no rows; retention and player_type will default to blank/0.' });\n\nconst loginByUsername = new Map();\nfor (const row of tabs.login.rows) {\n  const key = usernameKey(row);\n  if (key && !loginByUsername.has(key)) loginByUsername.set(key, row);\n}\n\nconst joinedCohortRows = tabs.registered.rows.map((registeredRow, index) => {\n  const loginRow = loginByUsername.get(usernameKey(registeredRow)) || {};\n  return { registeredRow, loginRow, rowIndex: index + 1, hasLogin: Object.keys(loginRow).length > 0 };\n});\nconst missingLoginCount = joinedCohortRows.filter(row => !row.hasLogin).length;\nif (missingLoginCount) schemaIssues.push({ sheetType: 'login_join', severity: 'warning', message: missingLoginCount + ' registered users do not have matching Login rows; retention defaults to 0.' });\n\nconst dataHash = simpleHash({\n  gameCode,\n  month,\n  schema: 'production_registered_login_join_v1',\n  counts: Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.rows.length])),\n  registeredSample: tabs.registered.rows.slice(0, 5),\n  loginSample: tabs.login.rows.slice(0, 5),\n  joinedSample: joinedCohortRows.slice(0, 5).map(item => ({ username: item.registeredRow.username, hasLogin: item.hasLogin, player_type: item.loginRow.player_type || '' }))\n});\nconst dedupeKey = gameCode + '|' + month;\nconst previousDataHash = unit.last_data_hash || '';\nconst sameHash = previousDataHash && previousDataHash === dataHash;\nconst differentHashSamePeriod = previousDataHash && previousDataHash !== dataHash && unit.run_mode !== 'force';\nconst shouldSkipWrite = unit.run_mode !== 'force' && sameHash;\nconst rawCheckBlocked = Boolean(unit.raw_check_blocked);\nconst needsReview = Boolean(differentHashSamePeriod || rawCheckBlocked);\nconst importId = 'IMP-' + gameCode + '-' + month + '-' + dataHash;\n\nconst rawImportRows = Object.values(tabs).map(tab => ({\n  import_id: importId + '-' + tab.sheetType,\n  run_id: runId,\n  source_file_id: unit.source_file_id,\n  source_file_name: unit.source_file_name,\n  source_tab_name: tab.tabName,\n  game_code: gameCode,\n  period_key: month,\n  month,\n  sheet_type: tab.sheetType,\n  imported_at: now,\n  import_status: tab.status,\n  row_count: tab.rows.length,\n  data_hash: dataHash,\n  notes: tab.errors.join(' | ')\n}));\n\nconst userCohortRows = joinedCohortRows.map(item => {\n  const r = item.registeredRow;\n  const l = item.loginRow;\n  const registerAt = getRegisterDate(r);\n  return {\n    cohort_id: 'UC-' + gameCode + '-' + month + '-' + (r.username || item.rowIndex),\n    run_id: runId,\n    game_code: gameCode,\n    period_key: month,\n    month,\n    username: r.username || '',\n    country_code: r.country_code || l.country_code || '',\n    ads_ref: r.ads_ref || l.ads_ref || '',\n    channel: channelOf(r.ads_ref ? r : l),\n    register_at: registerAt,\n    register_date: dateKey(registerAt),\n    first_login_date: r.first_login_date || l.first_login_date || '',\n    last_login_date: r.last_login_date || l.last_login_date || '',\n    distinct_login_days: getLoginDays(l) || getLoginDays(r),\n    retained_d1: boolFlag(l.login_d1 ?? r.retained_d1),\n    retained_d3: boolFlag(l.login_d3 ?? r.retained_d3),\n    retained_d7: boolFlag(l.login_d7 ?? r.retained_d7),\n    retained_d14: boolFlag(l.login_d14 ?? r.retained_d14),\n    retained_d30: boolFlag(l.login_d30 ?? r.retained_d30),\n    eligible_d1: item.hasLogin ? 1 : 0,\n    eligible_d3: item.hasLogin ? 1 : 0,\n    eligible_d7: item.hasLogin ? 1 : 0,\n    eligible_d14: item.hasLogin ? 1 : 0,\n    eligible_d30: l.login_d30 !== undefined || r.retained_d30 !== undefined ? (item.hasLogin ? 1 : 0) : 0,\n    player_type: l.player_type || r.player_type || '',\n    source_file_id: unit.source_file_id,\n    source_tab_name: tabs.registered.tabName,\n    imported_at: now,\n    data_hash: dataHash\n  };\n});\n\nconst dauDailyRows = tabs.dau.rows.map(row => {\n  const d = dateKey(getLoginDate(row));\n  return {\n    dau_id: 'DAU-' + gameCode + '-' + d,\n    run_id: runId,\n    game_code: gameCode,\n    period_key: month,\n    month,\n    login_day: getLoginDate(row),\n    login_date: d,\n    date: d,\n    dau: numberValue(row.dau),\n    source_file_id: unit.source_file_id,\n    source_tab_name: tabs.dau.tabName,\n    imported_at: now,\n    updated_at: now,\n    data_hash: dataHash\n  };\n});\n\nconst returnerRows = tabs.returners.rows.map(row => {\n  const registerAt = getRegisterDate(row);\n  return {\n    returner_id: 'RET-' + gameCode + '-' + month + '-' + (row.username || row.row_number),\n    run_id: runId,\n    game_code: gameCode,\n    period_key: month,\n    month,\n    username: row.username || '',\n    country_code: row.country_code || '',\n    ads_ref: row.ads_ref || '',\n    channel: channelOf(row),\n    register_at: registerAt,\n    register_date: dateKey(registerAt),\n    first_login_date: row.first_login_date || '',\n    last_login_date: row.last_login_date || '',\n    login_days_in_month: getLoginDays(row),\n    source_file_id: unit.source_file_id,\n    source_tab_name: tabs.returners.tabName,\n    imported_at: now,\n    data_hash: dataHash\n  };\n});\n\nconst lateFirstLoginRows = tabs.late_starters.rows.map(row => {\n  const registerAt = getRegisterDate(row);\n  return {\n    late_id: 'LATE-' + gameCode + '-' + month + '-' + (row.username || row.row_number),\n    run_id: runId,\n    game_code: gameCode,\n    period_key: month,\n    month,\n    username: row.username || '',\n    country_code: row.country_code || '',\n    ads_ref: row.ads_ref || '',\n    channel: channelOf(row),\n    register_at: registerAt,\n    register_date: dateKey(registerAt),\n    first_login_date: row.first_login_date || '',\n    days_to_first_login: row.days_to_first_login ?? '',\n    login_days_in_month: getLoginDays(row),\n    source_file_id: unit.source_file_id,\n    source_tab_name: tabs.late_starters.tabName,\n    imported_at: now,\n    data_hash: dataHash\n  };\n});\n\nfunction aggregateCohort(rows, keyFn) {\n  const buckets = new Map();\n  for (const row of rows) {\n    const keyData = keyFn(row);\n    if (!keyData.key) continue;\n    if (!buckets.has(keyData.key)) buckets.set(keyData.key, {\n      ...keyData,\n      reg: 0,\n      retained_d1: 0,\n      retained_d3: 0,\n      retained_d7: 0,\n      retained_d14: 0,\n      retained_d30: 0,\n      eligible_d1: 0,\n      eligible_d3: 0,\n      eligible_d7: 0,\n      eligible_d14: 0,\n      eligible_d30: 0\n    });\n    const b = buckets.get(keyData.key);\n    b.reg += 1;\n    b.retained_d1 += numberValue(row.retained_d1);\n    b.retained_d3 += numberValue(row.retained_d3);\n    b.retained_d7 += numberValue(row.retained_d7);\n    b.retained_d14 += numberValue(row.retained_d14);\n    b.retained_d30 += numberValue(row.retained_d30);\n    b.eligible_d1 += numberValue(row.eligible_d1);\n    b.eligible_d3 += numberValue(row.eligible_d3);\n    b.eligible_d7 += numberValue(row.eligible_d7);\n    b.eligible_d14 += numberValue(row.eligible_d14);\n    b.eligible_d30 += numberValue(row.eligible_d30);\n  }\n  return [...buckets.values()].map(b => ({\n    run_id: runId,\n    game_code: gameCode,\n    period_key: month,\n    month,\n    channel: b.channel,\n    reg: b.reg,\n    retained_d1: b.retained_d1,\n    retained_d3: b.retained_d3,\n    retained_d7: b.retained_d7,\n    retained_d14: b.retained_d14,\n    retained_d30: b.retained_d30,\n    eligible_d1: b.eligible_d1,\n    eligible_d3: b.eligible_d3,\n    eligible_d7: b.eligible_d7,\n    eligible_d14: b.eligible_d14,\n    eligible_d30: b.eligible_d30,\n    d1_rate: rate(b.retained_d1, b.eligible_d1),\n    d3_rate: rate(b.retained_d3, b.eligible_d3),\n    d7_rate: rate(b.retained_d7, b.eligible_d7),\n    d14_rate: rate(b.retained_d14, b.eligible_d14),\n    d30_rate: rate(b.retained_d30, b.eligible_d30),\n    imported_at: now,\n    data_hash: dataHash,\n    ...b.extra\n  }));\n}\nconst channelMonthlyRows = aggregateCohort(userCohortRows, row => ({ key: channelOf(row), channel: channelOf(row), extra: { monthly_id: 'CM-' + gameCode + '-' + month + '-' + channelOf(row) } }));\nconst channelDailyRows = aggregateCohort(userCohortRows, row => {\n  const d = dateKey(row.register_date || row.register_at);\n  const ch = channelOf(row);\n  return { key: d + '|' + ch, channel: ch, extra: { daily_id: 'CD-' + gameCode + '-' + d + '-' + ch, register_date: d, date: d } };\n});\nconst channelWeeklyRows = aggregateCohort(userCohortRows, row => {\n  const ws = weekStart(row.register_date || row.register_at);\n  const ch = channelOf(row);\n  return { key: ws + '|' + ch, channel: ch, extra: { weekly_id: 'CW-' + gameCode + '-' + ws + '-' + ch, week_start_date: ws, week_end_date: weekEnd(ws) } };\n});\n\nconst qualitySignalRows = [];\nfor (const tab of Object.values(tabs)) {\n  if (tab.status !== 'ready') qualitySignalRows.push({\n    signal_id: 'QS-' + gameCode + '-' + month + '-' + tab.sheetType + '-' + Date.now(),\n    run_id: runId,\n    game_code: gameCode,\n    period_key: month,\n    signal_type: 'raw_tab_status',\n    severity: tab.status === 'partial' ? 'warning' : 'info',\n    message: tab.tabName + ' status=' + tab.status + ', rows=' + tab.rows.length + (tab.errors.length ? ', errors=' + tab.errors.join(' | ') : ''),\n    detected_at: now,\n    status: 'open',\n    data_hash: dataHash\n  });\n}\nfor (const issue of schemaIssues) {\n  qualitySignalRows.push({\n    signal_id: 'QS-' + gameCode + '-' + month + '-' + issue.sheetType + '-' + Date.now(),\n    run_id: runId,\n    game_code: gameCode,\n    period_key: month,\n    signal_type: 'schema_validation',\n    severity: issue.severity,\n    message: issue.message,\n    detected_at: now,\n    status: 'open',\n    data_hash: dataHash\n  });\n}\nif (!masterFileId) qualitySignalRows.push({ signal_id: 'QS-' + gameCode + '-' + month + '-missing-master', run_id: runId, game_code: gameCode, period_key: month, signal_type: 'config', severity: 'error', message: 'Master file id is missing for this game_code.', detected_at: now, status: 'open', data_hash: dataHash });\nif (needsReview) qualitySignalRows.push({ signal_id: 'QS-' + gameCode + '-' + month + '-hash-needs-review-' + Date.now(), run_id: runId, game_code: gameCode, period_key: month, signal_type: 'dedupe_hash_guard', severity: 'warning', message: 'Same game/month has different data_hash. previous=' + previousDataHash + ', current=' + dataHash + '. Stop write until cleanup/force run is approved.', detected_at: now, status: 'open', data_hash: dataHash });\n\nconst hasCriticalSchemaError = schemaIssues.some(issue => issue.severity === 'error');\nconst dataIndexRows = [\n  { index_id: 'IDX-' + gameCode + '-' + month + '-UserCohort', game_code: gameCode, period_key: month, month, week_start_date: '', week_end_date: '', channel: 'ALL', master_file_id: masterFileId, target_sheet: 'UserCohort', range_ref: '', data_hash: dataHash, record_count: userCohortRows.length, last_updated_at: now },\n  { index_id: 'IDX-' + gameCode + '-' + month + '-DAUDaily', game_code: gameCode, period_key: month, month, week_start_date: '', week_end_date: '', channel: 'ALL', master_file_id: masterFileId, target_sheet: 'DAUDaily', range_ref: '', data_hash: dataHash, record_count: dauDailyRows.length, last_updated_at: now },\n  { index_id: 'IDX-' + gameCode + '-' + month + '-ChannelMonthly', game_code: gameCode, period_key: month, month, week_start_date: '', week_end_date: '', channel: 'ALL', master_file_id: masterFileId, target_sheet: 'ChannelMonthly', range_ref: '', data_hash: dataHash, record_count: channelMonthlyRows.length, last_updated_at: now }\n];\n\nconst processedRows = Object.values(tabs).reduce((sum, tab) => sum + tab.rows.length, 0);\nconst baseFlowStatus = hasCriticalSchemaError ? 'failed' : (Object.values(tabs).some(tab => tab.status === 'partial') ? 'partial' : 'ready');\nconst flowStatus = rawCheckBlocked ? 'raw_not_ready' : (needsReview ? 'needs_review' : baseFlowStatus);\nconst shouldBlockWrite = shouldSkipWrite || needsReview || hasCriticalSchemaError;\nconst preparedRowCounts = {\n  RawImports: rawImportRows.length,\n  UserCohort: userCohortRows.length,\n  ChannelDaily: channelDailyRows.length,\n  ChannelWeekly: channelWeeklyRows.length,\n  ChannelMonthly: channelMonthlyRows.length,\n  DAUDaily: dauDailyRows.length,\n  Returners: returnerRows.length,\n  LateFirstLogin: lateFirstLoginRows.length,\n  QualitySignals: qualitySignalRows.length,\n  TransformLog: 1,\n  DataIndex: dataIndexRows.length,\n  PipelineLogs: 1\n};\nconst rowsWritten = shouldBlockWrite ? 0 : Object.entries(preparedRowCounts)\n  .filter(([key]) => !['QualitySignals', 'PipelineLogs'].includes(key))\n  .reduce((sum, [, count]) => sum + count, 0);\nconst runStartedAt = runId.replace('RUN-', '');\nconst statusMessage = rawCheckBlocked\n  ? 'Raw check is not ready: ' + (unit.raw_check_message || rawCheckStatus)\n  : shouldSkipWrite\n  ? 'Skipped write: same data_hash already processed for ' + gameCode + ' ' + month + '.'\n  : needsReview\n    ? 'Needs review: same game/month has different data_hash. previous=' + previousDataHash + ', current=' + dataHash + '. No write executed.'\n    : hasCriticalSchemaError\n      ? 'Failed schema validation: ' + schemaIssues.filter(issue => issue.severity === 'error').map(issue => issue.message).join(' | ')\n      : 'Prepared Master payload with production schema join: registered=' + userCohortRows.length + ', dau=' + dauDailyRows.length + ', returners=' + returnerRows.length + ', late=' + lateFirstLoginRows.length + ', login_raw=' + tabs.login.rows.length;\nconst transformLogRows = [{\n  run_id: runId,\n  batch_id: batchId,\n  run_started_at: runStartedAt,\n  run_finished_at: now,\n  workflow_name: 'CQR_N8N_Master_Data_Update',\n  game_code: gameCode,\n  period_key: month,\n  source_file_id: unit.source_file_id,\n  source_tab_name: 'ALL',\n  target_sheet: 'ALL',\n  rows_read: processedRows,\n  rows_written: rowsWritten,\n  processed_rows: processedRows,\n  status: shouldSkipWrite ? 'skipped' : flowStatus,\n  message: statusMessage,\n  data_hash: dataHash,\n  data_hash_before: previousDataHash,\n  raw_check_id: rawCheckId,\n  raw_check_status: rawCheckStatus,\n  master_file_id: masterFileId\n}];\nconst pipelineLogRows = [{\n  run_id: runId,\n  batch_id: batchId,\n  workflow_name: 'CQR_N8N_Master_Data_Update',\n  run_started_at: runStartedAt,\n  run_finished_at: now,\n  game_code: gameCode,\n  period_key: month,\n  source_file_id: unit.source_file_id,\n  master_file_id: masterFileId,\n  status: shouldSkipWrite ? 'skipped' : flowStatus,\n  rows_read: processedRows,\n  rows_written: rowsWritten,\n  data_hash_before: previousDataHash,\n  data_hash_after: dataHash,\n  message: statusMessage,\n  raw_check_id: rawCheckId,\n  raw_check_status: rawCheckStatus\n}];\nconst fullPayloads = {\n  RawImports: rawImportRows,\n  UserCohort: userCohortRows,\n  ChannelDaily: channelDailyRows,\n  ChannelWeekly: channelWeeklyRows,\n  ChannelMonthly: channelMonthlyRows,\n  DAUDaily: dauDailyRows,\n  Returners: returnerRows,\n  LateFirstLogin: lateFirstLoginRows,\n  QualitySignals: qualitySignalRows,\n  TransformLog: transformLogRows,\n  DataIndex: dataIndexRows,\n  PipelineLogs: pipelineLogRows\n};\nconst emptyPayloads = Object.fromEntries(Object.keys(fullPayloads).map(key => [key, []]));\nconst writePayloads = shouldBlockWrite ? { ...emptyPayloads, QualitySignals: qualitySignalRows, TransformLog: transformLogRows, PipelineLogs: pipelineLogRows } : fullPayloads;\n\nreturn [{ json: {\n  ...unit,\n  central_db_id: centralDbId,\n  batch_id: batchId,\n  raw_check_id: rawCheckId,\n  raw_check_status: rawCheckStatus,\n  master_file_id: masterFileId,\n  master_data_hash: dataHash,\n  previous_data_hash: previousDataHash,\n  dedupe_key: dedupeKey,\n  skipped_duplicate_hash: shouldSkipWrite,\n  needs_review: needsReview,\n  schema_issues: schemaIssues,\n  raw_counts: Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.rows.length])),\n  prepared_row_counts: preparedRowCounts,\n  write_payloads: writePayloads,\n  pipeline_status: shouldSkipWrite ? 'skipped' : flowStatus,\n  next_step: shouldSkipWrite\n    ? 'No write needed; source data hash is unchanged.'\n    : needsReview\n      ? 'Review same-period hash change. Run cleanup/replace policy before force run.'\n      : hasCriticalSchemaError\n        ? 'Fix raw schema or mapping before write.'\n        : 'Write nodes completed with production schema join and dedupe hash tracking.'\n}}];"
+      },
+      "id": "e0afd42b-bf2d-415e-8efd-a6bba10a7dbe",
+      "name": "Prepare Master Write Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2416,
+        288
+      ],
+      "notes": "Production mapping v2: รวม Raw 5 tabs เป็น payload สำหรับ Master File และ Central DB"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PipelineLogs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "0d904dce-024a-4c3d-a284-a0eca102cce6",
+      "name": "Append Central DB - PipelineLogs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2960,
+        1648
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน PipelineLogs"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json.write_payloads || {};\nconst writeCounts = Object.fromEntries(Object.entries(p).map(([key, rows]) => [key, Array.isArray(rows) ? rows.length : 0]));\nreturn [{ json: {\n  status: $json.pipeline_status,\n  message: $json.skipped_duplicate_hash\n    ? 'Skipped: data_hash is unchanged, so no rows were written.'\n    : 'CQR Master payload written to Master File and Central DB.',\n  game_code: $json.game_code,\n  target_month: $json.target_month,\n  master_file_id: $json.master_file_id,\n  data_hash: $json.master_data_hash,\n  previous_data_hash: $json.previous_data_hash,\n  skipped_duplicate_hash: $json.skipped_duplicate_hash,\n  prepared_row_counts: $json.prepared_row_counts || {},\n  row_counts: writeCounts\n}}];"
+      },
+      "id": "4104e1e3-fde6-4f5b-935b-11d3d477a496",
+      "name": "Run Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        -640
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## CQR Master Data Update V2\\n\\nProduction mapping พร้อมแล้ว:\\n1. อ่าน Raw 5 tabs\\n2. รวมเป็น Master payload\\n3. แยก rows สำหรับแต่ละ Master tab\\n4. Write nodes ถูก disabled ไว้ก่อนเพื่อกันข้อมูลซ้ำ\\n\\nTest ด้วย CBM_TH + 2026-06 ก่อน แล้วค่อยเปิด write nodes",
+        "height": 260,
+        "width": 420
+      },
+      "id": "542efe0b-1f42-43c4-b627-10f134a22936",
+      "name": "Sticky Note - Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Cache Policy\\n\\nควร cache ที่:\\n- SourceFiles.last_data_hash\\n- DataIndex.data_hash\\n- AISummaryCache.cache_key\\n- PipelineLogs.run_id\\n\\nห้ามเรียก AI ใน flow นี้",
+        "height": 240,
+        "width": 360
+      },
+      "id": "1ac0a13d-6606-45db-8649-4afc6ba72515",
+      "name": "Sticky Note - Cache",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        912,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Missing Data Policy\\n\\nถ้า tab หาย:\\n- Login missing = partial\\n- D14/D30 buffer ไม่ครบ = pending\\n- optional tab no rows = no_data\\n- permission/read fail = failed เฉพาะ unit",
+        "height": 260,
+        "width": 380
+      },
+      "id": "094f7fc9-94f3-4acc-a386-77426b4a0010",
+      "name": "Sticky Note - Missing Data",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.RawImports || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+      },
+      "id": "302b70dd-6bf9-4ddf-a8a4-684648856598",
+      "name": "Build Rows - RawImports",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        -464
+      ],
+      "notes": "แตก payload RawImports เป็น rows สำหรับ append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "RawImports",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f85b1a53-50bb-4b84-83b4-e30c5fdc7a89",
+      "name": "Append Master - RawImports",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2944,
+        -464
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน RawImports"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.UserCohort || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+      },
+      "id": "29d7cb40-fc84-4490-9031-4dc57cfed3a0",
+      "name": "Build Rows - UserCohort",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        -272
+      ],
+      "notes": "แตก payload UserCohort เป็น rows สำหรับ append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "UserCohort",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "7363aeff-0ed7-474e-a522-c6b0ba85e026",
+      "name": "Append Master - UserCohort",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2944,
+        -272
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน UserCohort"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.ChannelDaily || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+      },
+      "id": "8a103687-6717-4412-935e-0c7ef7afcb34",
+      "name": "Build Rows - ChannelDaily",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        -80
+      ],
+      "notes": "แตก payload ChannelDaily เป็น rows สำหรับ append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ChannelDaily",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "game_code",
+              "displayName": "game_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "period_key",
+              "displayName": "period_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "campaign",
+              "displayName": "campaign",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "register_users",
+              "displayName": "register_users",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "first_login_users",
+              "displayName": "first_login_users",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "dau",
+              "displayName": "dau",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "returners",
+              "displayName": "returners",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "late_first_login",
+              "displayName": "late_first_login",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "retained_d1",
+              "displayName": "retained_d1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "eligible_d1",
+              "displayName": "eligible_d1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "retained_d3",
+              "displayName": "retained_d3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "eligible_d3",
+              "displayName": "eligible_d3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "retained_d7",
+              "displayName": "retained_d7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "eligible_d7",
+              "displayName": "eligible_d7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "retained_d14",
+              "displayName": "retained_d14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "eligible_d14",
+              "displayName": "eligible_d14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_file_id",
+              "displayName": "source_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data_hash",
+              "displayName": "data_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "28c25ed4-3efe-4519-982f-f6ccb8927355",
+      "name": "Append Master - ChannelDaily",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2944,
+        -80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน ChannelDaily"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.ChannelWeekly || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+      },
+      "id": "a7b8190d-eee4-4c17-a9da-b45bb6001a06",
+      "name": "Build Rows - ChannelWeekly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        112
+      ],
+      "notes": "แตก payload ChannelWeekly เป็น rows สำหรับ append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ChannelWeekly",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "period_key",
+              "displayName": "period_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "week_start_date",
+              "displayName": "week_start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "week_end_date",
+              "displayName": "week_end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "game_code",
+              "displayName": "game_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "register_users",
+              "displayName": "register_users",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "first_login_users",
+              "displayName": "first_login_users",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "d1_rate",
+              "displayName": "d1_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "d3_rate",
+              "displayName": "d3_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "d7_rate",
+              "displayName": "d7_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "d14_rate",
+              "displayName": "d14_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "paid_quality_tier",
+              "displayName": "paid_quality_tier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "762c18b0-01a5-4285-9b67-61fdfdf83d10",
+      "name": "Append Master - ChannelWeekly",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2944,
+        112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน ChannelWeekly"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.ChannelMonthly || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+      },
+      "id": "9ab0413e-191e-453a-9063-806ae592ba13",
+      "name": "Build Rows - ChannelMonthly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        304
+      ],
+      "notes": "แตก payload ChannelMonthly เป็น rows สำหรับ append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ChannelMonthly",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "3eb0ffdb-304a-42bc-9a3d-9947c0f308fc",
+      "name": "Append Master - ChannelMonthly",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2944,
+        304
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน ChannelMonthly"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.DAUDaily || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+      },
+      "id": "a1c8311e-275f-416f-abba-8508cfbeb3c2",
+      "name": "Build Rows - DAUDaily",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        512
+      ],
+      "notes": "แตก payload DAUDaily เป็น rows สำหรับ append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "DAUDaily",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "game_code",
+              "displayName": "game_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "dau",
+              "displayName": "dau",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_file_id",
+              "displayName": "source_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data_hash",
+              "displayName": "data_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "723d86c9-9583-45f4-af98-655f9ccbd9dc",
+      "name": "Append Master - DAUDaily",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2960,
+        512
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน DAUDaily"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.Returners || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+      },
+      "id": "7cbe1dcf-5144-455d-b159-7799bfcfe25c",
+      "name": "Build Rows - Returners",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        688
+      ],
+      "notes": "แตก payload Returners เป็น rows สำหรับ append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Returners",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "game_code",
+              "displayName": "game_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "returning_users",
+              "displayName": "returning_users",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_file_id",
+              "displayName": "source_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data_hash",
+              "displayName": "data_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "30bc32ee-f014-489f-9389-b76b4a8e5fd1",
+      "name": "Append Master - Returners",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2960,
+        688
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน Returners"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.LateFirstLogin || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+      },
+      "id": "63d52475-2340-462e-b876-6c22f0317184",
+      "name": "Build Rows - LateFirstLogin",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        848
+      ],
+      "notes": "แตก payload LateFirstLogin เป็น rows สำหรับ append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "LateFirstLogin",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "game_code",
+              "displayName": "game_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "late_first_login_users",
+              "displayName": "late_first_login_users",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_file_id",
+              "displayName": "source_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data_hash",
+              "displayName": "data_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "4ea320f3-12f6-439a-8c34-e369dc5fedea",
+      "name": "Append Master - LateFirstLogin",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2960,
+        848
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน LateFirstLogin"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.QualitySignals || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+      },
+      "id": "a0ce9fdc-6d99-404f-ac1a-6cb3fa3d39a1",
+      "name": "Build Rows - QualitySignals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        1040
+      ],
+      "notes": "แตก payload QualitySignals เป็น rows สำหรับ append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "QualitySignals",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "262db529-54d0-4fe7-ab31-ef299e1b1475",
+      "name": "Append Master - QualitySignals",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2960,
+        1040
+      ],
+      "disabled": true,
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน QualitySignals"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.TransformLog || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+      },
+      "id": "ad387651-d909-402f-83cc-776b72b1481c",
+      "name": "Build Rows - TransformLog",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        1232
+      ],
+      "notes": "แตก payload TransformLog เป็น rows สำหรับ append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "TransformLog",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a3de9e14-5988-4081-bbfa-90f67fa01c54",
+      "name": "Append Master - TransformLog",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2960,
+        1232
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน TransformLog"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.DataIndex || [];\nreturn payload.map(row => ({ json: { central_db_id: $json.central_db_id, ...row } }));"
+      },
+      "id": "3848bcf5-ad41-4560-9dee-77496f48b8be",
+      "name": "Build Rows - Central DataIndex",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        1456
+      ],
+      "notes": "แตก DataIndex rows สำหรับ Central DB"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "DataIndex",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "685ed2a5-4415-422c-9cfd-ece9899bb188",
+      "name": "Append Central DB - DataIndex",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2960,
+        1456
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.write_payloads.PipelineLogs || [];\nreturn payload.map(row => ({ json: { central_db_id: $json.central_db_id, ...row } }));"
+      },
+      "id": "de03a1aa-71e2-4c94-bbbe-09b3ff86b9dd",
+      "name": "Build Rows - Central PipelineLogs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        1648
+      ],
+      "notes": "แตก PipelineLogs rows สำหรับ Central DB"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Set Runtime Config').first().json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "RawIngestionLogs",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        416,
+        448
+      ],
+      "id": "read-central-raw-ingestion-logs",
+      "name": "Read Central DB - RawIngestionLogs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Sunday Auto Master Update\n\nรันทุกวันอาทิตย์ 16:00 หลัง Raw Check\n\n- `incremental`: เขียนเมื่อข้อมูลใหม่และยังไม่ชนของเดิม\n- ถ้า hash ใหม่ชนกับเกม/เดือนเดิม จะหยุดเป็น `needs_review` เพื่อรอ Cleanup/Auto Rebuild\n- รับ input `target_month`, `target_game_code`/`target_games_csv`, `run_mode` ได้",
+        "height": 260,
+        "width": 460
+      },
+      "id": "sticky-sunday-master-v4",
+      "name": "Sticky Note - Sunday Auto",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        920,
+        -220
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Runtime Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 07:00 Schedule": {
+      "main": [
+        [
+          {
+            "node": "Set Runtime Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Runtime Config": {
+      "main": [
+        [
+          {
+            "node": "Read Central DB - SourceFiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Central DB - SourceFiles": {
+      "main": [
+        [
+          {
+            "node": "Read Central DB - DataIndex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Work Units": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches - One Game",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches - One Game": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Prepare Tab Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Tab Plan": {
+      "main": [
+        [
+          {
+            "node": "Read Raw - Registered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Raw - Registered": {
+      "main": [
+        [
+          {
+            "node": "Read Raw - DAU",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Raw - DAU": {
+      "main": [
+        [
+          {
+            "node": "Read Raw - Returners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Raw - Returners": {
+      "main": [
+        [
+          {
+            "node": "Read Raw - Late Starters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Raw - Late Starters": {
+      "main": [
+        [
+          {
+            "node": "Read Raw - Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Raw - Login": {
+      "main": [
+        [
+          {
+            "node": "Prepare Master Write Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Master Write Payload": {
+      "main": [
+        [
+          {
+            "node": "Run Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - RawImports",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - UserCohort",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - ChannelDaily",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - ChannelWeekly",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - ChannelMonthly",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - DAUDaily",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - Returners",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - LateFirstLogin",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - QualitySignals",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - TransformLog",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - Central DataIndex",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Rows - Central PipelineLogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - RawImports": {
+      "main": [
+        [
+          {
+            "node": "Append Master - RawImports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - UserCohort": {
+      "main": [
+        [
+          {
+            "node": "Append Master - UserCohort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - ChannelDaily": {
+      "main": [
+        [
+          {
+            "node": "Append Master - ChannelDaily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - ChannelWeekly": {
+      "main": [
+        [
+          {
+            "node": "Append Master - ChannelWeekly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - ChannelMonthly": {
+      "main": [
+        [
+          {
+            "node": "Append Master - ChannelMonthly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - DAUDaily": {
+      "main": [
+        [
+          {
+            "node": "Append Master - DAUDaily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - Returners": {
+      "main": [
+        [
+          {
+            "node": "Append Master - Returners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - LateFirstLogin": {
+      "main": [
+        [
+          {
+            "node": "Append Master - LateFirstLogin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - QualitySignals": {
+      "main": [
+        [
+          {
+            "node": "Append Master - QualitySignals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - TransformLog": {
+      "main": [
+        [
+          {
+            "node": "Append Master - TransformLog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - Central DataIndex": {
+      "main": [
+        [
+          {
+            "node": "Append Central DB - DataIndex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rows - Central PipelineLogs": {
+      "main": [
+        [
+          {
+            "node": "Append Central DB - PipelineLogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Central DB - DataIndex": {
+      "main": [
+        [
+          {
+            "node": "Read Central DB - RawIngestionLogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Central DB - RawIngestionLogs": {
+      "main": [
+        [
+          {
+            "node": "Build Work Units",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Master Update": {
+      "main": [
+        [
+          {
+            "node": "Normalize Webhook Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Webhook Payload": {
+      "main": [
+        [
+          {
+            "node": "Set Runtime Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Summary": {
+      "main": [
+        [
+          {
+            "node": "Respond to Apps Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "processed_hashes": {
+      "CBM_TH|2026-06": "ew6tt",
+      "CBM_SEA|2026-06": "oa960n",
+      "CBPC_TH|2026-06": "a1oxij",
+      "CBPC_SEA|2026-06": "je7lw"
+    }
+  },
+  "tags": [
+    {
+      "updatedAt": "2026-07-25T11:56:22.505Z",
+      "createdAt": "2026-07-25T11:56:22.505Z",
+      "id": "bBLlotTcD0y8jvtE",
+      "name": "CQR"
+    },
+    {
+      "updatedAt": "2026-07-25T11:56:22.510Z",
+      "createdAt": "2026-07-25T11:56:22.510Z",
+      "id": "uDb8JXIUKFEIBE2Y",
+      "name": "TEST"
+    },
+    {
+      "updatedAt": "2026-07-25T11:56:22.510Z",
+      "createdAt": "2026-07-25T11:56:22.510Z",
+      "id": "HXgBBUpOOdqvCgdJ",
+      "name": "Master Data"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2026-07-26T14:30:15.245Z",
+  "versionId": "cqr-master-data-update-v3-raw-check-gated",
+  "active": false
+}

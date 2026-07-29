@@ -1,0 +1,2067 @@
+{
+  "name": "CQR_Admin_Cleanup_Webhook_V1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cqr-admin-cleanup-v1",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cqr-admin-cleanup-webhook-v1",
+      "name": "Webhook - Admin Cleanup",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json.body || $json.query || $json || {};\nconst headers = $json.headers || {};\nconst payload = { ...input };\npayload.webhook_received_at = new Date().toISOString();\npayload.webhook_source = 'Normalize Webhook Payload';\npayload.request_header_secret_present = Boolean(headers['x-cqr-admin-secret'] || headers['X-CQR-Admin-Secret']);\nreturn [{ json: payload }];"
+      },
+      "id": "cqr-admin-cleanup-normalize-v1",
+      "name": "Normalize Webhook Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "cqr-admin-cleanup-respond-v1",
+      "name": "Respond to Apps Script",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2180,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Webhook entry for Admin Panel\nUse this workflow for the website buttons Preview and Clear.\n\nProduction URL path: `cqr-admin-cleanup-v1`\n\nApps Script property:\n`CQR_N8N_CLEANUP_WEBHOOK_URL`\n\nInput keys expected: `target_game_code`, `target_month`, `run_id` or `cleanup_hash`, `confirm_delete`.",
+        "height": 240,
+        "width": 420
+      },
+      "id": "cqr-admin-cleanup-webhook-note-v1",
+      "name": "Sticky Note - Webhook Entry",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -980,
+        -180
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        120
+      ],
+      "id": "aa517962-f626-4ff0-8b7a-5f0b1aec1d01",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "central-db-id",
+              "name": "central_db_id",
+              "value": "={{ $json.central_db_id || '1uM85a9Fqt3j4NAM1XcEI2ORIw0Uef7Unr-JmIIbpm2g' }}",
+              "type": "string"
+            },
+            {
+              "id": "target-game-code",
+              "name": "target_game_code",
+              "value": "={{ $json.target_game_code || $json.game_code || 'CBM_TH' }}",
+              "type": "string"
+            },
+            {
+              "id": "target-month",
+              "name": "target_month",
+              "value": "={{ $json.target_month || new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString().slice(0, 7) }}",
+              "type": "string"
+            },
+            {
+              "id": "run-id",
+              "name": "run_id",
+              "value": "={{ $json.run_id || $json.old_run_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cleanup-hash",
+              "name": "cleanup_hash",
+              "value": "={{ $json.cleanup_hash || $json.old_hash || $json.data_hash_before || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "confirm-delete",
+              "name": "confirm_delete",
+              "value": "={{ $json.confirm_delete || 'NO' }}",
+              "type": "string"
+            },
+            {
+              "id": "delete-ais-cache",
+              "name": "delete_ai_summary_cache",
+              "value": "={{ $json.delete_ai_summary_cache || false }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -480,
+        120
+      ],
+      "id": "43a0c019-9d85-4fa9-b043-27ce7cfd0fc9",
+      "name": "Set Cleanup Config"
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Set Cleanup Config').first().json;\nconst masterFileByGame = {\n  CBM_TH: '1ofe69uOTknTY2RcoLjAkPXUQ0sUQjZPgJ-oIRCD5hKM',\n  CBM_SEA: '1B_eXcoxJyKnV_wH4zyPHqDg2lmS_gfGJ-9cxaF5h5bY',\n  CBPC_TH: '18uiKPUsWeByiT2jOv_aaCdq_xlpcMkw1B6glN8NRyF4',\n  CBPC_SEA: '1p5qN81Vg5rN08XldlQDV_fQTuqRaS1xpBk-aWuQb-9I'\n};\nfunction splitIds(value) {\n  return String(value || '')\n    .split(/[\\s,]+/)\n    .map(v => v.trim())\n    .filter(Boolean);\n}\nconst runIds = splitIds(config.run_id);\nconst cleanupHashes = splitIds(config.cleanup_hash);\nconst master_file_id = masterFileByGame[config.target_game_code] || '';\nconst warnings = [];\nif (!master_file_id) warnings.push(`Unknown target_game_code: ${config.target_game_code}`);\nif (!config.target_month) warnings.push('target_month is required');\nif (!runIds.length && !cleanupHashes.length) warnings.push('run_id or cleanup_hash is required');\nreturn [{ json: {\n  ...config,\n  run_ids: runIds,\n  cleanup_hashes: cleanupHashes,\n  master_file_id,\n  warnings,\n  cleanup_mode: config.confirm_delete === 'YES' ? 'delete_requested' : 'preview_only'\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        120
+      ],
+      "id": "3180e939-e34e-4f2f-8b77-e90330bf39ee",
+      "name": "Resolve Master File"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "RawImports",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        -240
+      ],
+      "id": "ea1b012f-bc56-46e8-93f7-617d45fa8ab4",
+      "name": "Read Master - RawImports",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "UserCohort",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        -80
+      ],
+      "id": "7232bcf5-37ce-4ea1-a55e-0d986abf0435",
+      "name": "Read Master - UserCohort",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ChannelDaily",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        80
+      ],
+      "id": "4ea7002b-999d-464d-a14b-ab4997a45d0a",
+      "name": "Read Master - ChannelDaily",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ChannelWeekly",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        240
+      ],
+      "id": "22f4f38a-7a64-480d-b7a5-d3171d3b6978",
+      "name": "Read Master - ChannelWeekly",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ChannelMonthly",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        400
+      ],
+      "id": "5493980b-2a55-4635-9d4d-9a516e8d5e7e",
+      "name": "Read Master - ChannelMonthly",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "DAUDaily",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        230,
+        -240
+      ],
+      "id": "e76a23f7-9a1c-4e17-b0ca-4837bb5f5816",
+      "name": "Read Master - DAUDaily",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Returners",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        230,
+        -80
+      ],
+      "id": "2b2ba652-e773-46fb-a5c5-d0d28d069929",
+      "name": "Read Master - Returners",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "LateFirstLogin",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        230,
+        80
+      ],
+      "id": "fb255aaa-8541-42a6-89ef-37152dfcfafe",
+      "name": "Read Master - LateFirstLogin",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "QualitySignals",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        230,
+        240
+      ],
+      "id": "eceb2d46-5be9-41a2-ba6e-3824ee4e3051",
+      "name": "Read Master - QualitySignals",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "TransformLog",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        230,
+        400
+      ],
+      "id": "4b0ca4c6-5abc-439b-afda-346705f8a67e",
+      "name": "Read Master - TransformLog",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PipelineLogs",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1150,
+        -80
+      ],
+      "id": "ce9a22b3-0bf0-4eb3-93d3-9ba14cb13d5a",
+      "name": "Read Central DB - PipelineLogs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "DataIndex",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1150,
+        100
+      ],
+      "id": "238ef3aa-745c-41bf-93c9-3929e38dccc6",
+      "name": "Read Central DB - DataIndex",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "AISummaryCache",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1150,
+        280
+      ],
+      "id": "61d4c94b-2aff-4498-8c51-04afc382dbbf",
+      "name": "Read Central DB - AISummaryCache",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Resolve Master File').first().json;\nconst masterTabs = ['RawImports','UserCohort','ChannelDaily','ChannelWeekly','ChannelMonthly','DAUDaily','Returners','LateFirstLogin','QualitySignals','TransformLog'];\nfunction rowsFrom(nodeName) {\n  try { return $(nodeName).all().map((item, idx) => ({...item.json, _n8n_index: idx + 1})).filter(row => !row.error); }\n  catch (error) { return []; }\n}\nfunction rowNumber(row) { return Number(row.row_number || row.__rowNumber || row._rowNumber || row._n8n_index || 0); }\nfunction period(row) { return String(row.period_key || row.month || ''); }\nfunction normalizeList(values) {\n  return [...new Set((values || []).map(v => String(v || '').trim()).filter(Boolean))];\n}\nconst targetRunIds = normalizeList(config.run_ids && config.run_ids.length ? config.run_ids : String(config.run_id || '').split(/[\\s,]+/));\nconst explicitCleanupHashes = normalizeList(config.cleanup_hashes && config.cleanup_hashes.length ? config.cleanup_hashes : String(config.cleanup_hash || '').split(/[\\s,]+/));\nfunction sameGameMonth(row) {\n  return String(row.game_code || '') === String(config.target_game_code || '') &&\n    period(row) === String(config.target_month || '');\n}\nfunction matchesRun(row) {\n  return targetRunIds.length > 0 && targetRunIds.includes(String(row.run_id || ''));\n}\nfunction cleanupHashFromRun(row) {\n  const status = String(row.status || '').toLowerCase();\n  if (status === 'needs_review') return String(row.data_hash_before || '').trim();\n  return String(row.data_hash || row.data_hash_after || row.data_hash_before || '').trim();\n}\nconst pipelineRows = rowsFrom('Read Central DB - PipelineLogs');\nconst transformRows = rowsFrom('Read Master - TransformLog');\nconst runMatchedRows = [...pipelineRows, ...transformRows].filter(row => sameGameMonth(row) && matchesRun(row));\nlet dataHashCandidates = normalizeList([\n  ...explicitCleanupHashes,\n  ...runMatchedRows.map(cleanupHashFromRun)\n]);\nfunction matchesHash(row) {\n  return dataHashCandidates.length > 0 && dataHashCandidates.includes(String(row.data_hash || row.data_hash_before || row.data_hash_after || '').trim());\n}\nfunction isTargetRow(row) {\n  return sameGameMonth(row) && (matchesRun(row) || matchesHash(row));\n}\nfunction summarizeMatches(rows) {\n  const matches = rows.filter(isTargetRow);\n  const rowNumbers = matches.map(rowNumber).filter(Boolean).sort((a,b)=>b-a);\n  return { count: matches.length, row_numbers_desc: rowNumbers, sample_row_numbers_desc: rowNumbers.slice(0, 20) };\n}\nconst masterPreview = {};\nfor (const tab of masterTabs) masterPreview[tab] = summarizeMatches(rowsFrom(`Read Master - ${tab}`));\nconst centralPreview = {};\ncentralPreview.PipelineLogs = summarizeMatches(pipelineRows);\nconst dataIndexRows = rowsFrom('Read Central DB - DataIndex');\nconst dataIndexMatches = dataIndexRows.filter(row =>\n  sameGameMonth(row) && dataHashCandidates.includes(String(row.data_hash || '').trim())\n);\ncentralPreview.DataIndex = {\n  count: dataIndexMatches.length,\n  row_numbers_desc: dataIndexMatches.map(rowNumber).filter(Boolean).sort((a,b)=>b-a),\n  sample_row_numbers_desc: dataIndexMatches.map(rowNumber).filter(Boolean).sort((a,b)=>b-a).slice(0,20)\n};\nconst cacheRows = rowsFrom('Read Central DB - AISummaryCache');\nconst cacheMatches = cacheRows.filter(row => {\n  const sameRun = matchesRun(row);\n  const sameHash = dataHashCandidates.includes(String(row.data_hash || '').trim());\n  return sameGameMonth(row) && (sameRun || (config.delete_ai_summary_cache === true && sameHash));\n});\ncentralPreview.AISummaryCache = {\n  count: cacheMatches.length,\n  row_numbers_desc: cacheMatches.map(rowNumber).filter(Boolean).sort((a,b)=>b-a),\n  sample_row_numbers_desc: cacheMatches.map(rowNumber).filter(Boolean).sort((a,b)=>b-a).slice(0,20),\n  delete_requires_explicit_flag: true\n};\nconst totalMasterRows = Object.values(masterPreview).reduce((s,t)=>s+t.count,0);\nconst totalCentralRows = Object.values(centralPreview).reduce((s,t)=>s+t.count,0);\nconst warnings = [...(config.warnings || [])];\nif (config.confirm_delete === 'YES') warnings.push('DELETE REQUESTED. This delete-enabled workflow will delete only the previewed rows after this preview step.');\nif (!dataHashCandidates.length) warnings.push('No cleanup hash candidates found. DataIndex cleanup preview may be empty.');\nreturn [{ json: {\n  workflow_status: config.confirm_delete === 'YES' ? 'delete_confirmed_ready' : 'preview_only_no_delete',\n  target_game_code: config.target_game_code,\n  target_month: config.target_month,\n  run_id: config.run_id,\n  run_ids: targetRunIds,\n  cleanup_hash: config.cleanup_hash,\n  confirm_delete: config.confirm_delete,\n  central_db_id: config.central_db_id,\n  master_file_id: config.master_file_id,\n  data_hash_candidates: dataHashCandidates,\n  master_rows_to_delete_by_tab: masterPreview,\n  central_rows_to_delete_by_tab: centralPreview,\n  total_master_rows_to_delete: totalMasterRows,\n  total_central_rows_to_delete: totalCentralRows,\n  delete_order: 'bottom_to_top',\n  destructive_delete_executed: false,\n  warnings\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        120
+      ],
+      "id": "552a88a6-fa68-45d3-a3ff-e37c4ef212b3",
+      "name": "Build Cleanup Preview"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst requests = [];\nfor (const [tab, info] of Object.entries(p.master_rows_to_delete_by_tab || {})) {\n  for (const rowNumber of info.row_numbers_desc || []) requests.push({ file: 'master', tab, rowNumber });\n}\nfor (const [tab, info] of Object.entries(p.central_rows_to_delete_by_tab || {})) {\n  for (const rowNumber of info.row_numbers_desc || []) requests.push({ file: 'central_db', tab, rowNumber });\n}\nreturn [{ json: {\n  ...p,\n  delete_request_count: requests.length,\n  delete_requests_preview: requests.slice(0, 100),\n  next_step: p.confirm_delete === 'YES'\n    ? 'Confirmed. The workflow will delete grouped row ranges per sheet from bottom to top.'\n    : 'Preview only. Review row counts first. Set confirm_delete=YES only when ready to delete.'\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        120
+      ],
+      "id": "d06c0fdb-f76e-43b6-9b62-8a440a5fb12c",
+      "name": "Build Delete Request Plan"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  status: $json.workflow_status,\n  target_game_code: $json.target_game_code,\n  target_month: $json.target_month,\n  run_id: $json.run_id,\n  cleanup_hash: $json.cleanup_hash,\n  confirm_delete: $json.confirm_delete,\n  destructive_delete_executed: false,\n  total_master_rows_to_delete: $json.total_master_rows_to_delete,\n  total_central_rows_to_delete: $json.total_central_rows_to_delete,\n  delete_request_count: $json.delete_request_count,\n  data_hash_candidates: $json.data_hash_candidates,\n  warnings: $json.warnings,\n  message: 'Preview only. No rows were deleted. If counts look correct, set confirm_delete=YES and run again.'\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        320
+      ],
+      "id": "f752880d-182b-42bf-9bef-e43d71a090d7",
+      "name": "Preview Summary"
+    },
+    {
+      "parameters": {
+        "content": "Admin Cleanup baseline is preview-only. It prepares row counts and bottom-to-top delete plans, but does not execute destructive deletes until a delete implementation is explicitly enabled.",
+        "height": 220,
+        "width": 420
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -500,
+        -200
+      ],
+      "id": "0cef989d-3720-4aef-a117-cbced7a7fc62",
+      "name": "Sticky Note - Safety"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'master|RawImports';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "d3985069-2e52-4c32-bd94-0b6974ca6004",
+      "name": "Prepare Delete - Master - RawImports",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "RawImports",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        -600
+      ],
+      "id": "2f8b226e-b4bf-4be7-91ef-cf708e8c3c94",
+      "name": "Delete - Master - RawImports",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for master RawImports. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'master|UserCohort';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "a0472024-1ea7-4d1d-8424-31064ad6a092",
+      "name": "Prepare Delete - Master - UserCohort",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        -490
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "UserCohort",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        -490
+      ],
+      "id": "f3d4fc8b-fba8-4c84-9be9-a4199d81ca1e",
+      "name": "Delete - Master - UserCohort",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for master UserCohort. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'master|ChannelDaily';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "038b1c7b-66e0-44c0-a5a3-d83e9f77c4d3",
+      "name": "Prepare Delete - Master - ChannelDaily",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ChannelDaily",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        -380
+      ],
+      "id": "4d37b9d7-3841-4f33-b43f-d862cf76f839",
+      "name": "Delete - Master - ChannelDaily",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for master ChannelDaily. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'master|ChannelWeekly';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "ea5eb774-4616-4caa-b7d7-ec7537a86d5e",
+      "name": "Prepare Delete - Master - ChannelWeekly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        -270
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ChannelWeekly",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        -270
+      ],
+      "id": "4d11cdab-640b-4bca-bd23-1a2187ce54f2",
+      "name": "Delete - Master - ChannelWeekly",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for master ChannelWeekly. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'master|ChannelMonthly';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "f9894d2e-1baf-4058-8f59-36cfbc88da97",
+      "name": "Prepare Delete - Master - ChannelMonthly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ChannelMonthly",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        -160
+      ],
+      "id": "60b57fd3-05d9-4e11-b076-65ac82ed9e53",
+      "name": "Delete - Master - ChannelMonthly",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for master ChannelMonthly. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'master|DAUDaily';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "e788ec3a-2447-4f97-9d62-25dc5cd68885",
+      "name": "Prepare Delete - Master - DAUDaily",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        -50
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "DAUDaily",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        -50
+      ],
+      "id": "474f395f-51b9-4ba1-abb7-4c84e34f539c",
+      "name": "Delete - Master - DAUDaily",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for master DAUDaily. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'master|Returners';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "d258ccab-9606-47e3-bded-46a79a6630d5",
+      "name": "Prepare Delete - Master - Returners",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Returners",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        60
+      ],
+      "id": "7d76d7a2-b55e-46b8-a4b1-5a2756739e4c",
+      "name": "Delete - Master - Returners",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for master Returners. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'master|LateFirstLogin';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "6ca2a00a-308d-42dd-8cb6-ad9dc9c88571",
+      "name": "Prepare Delete - Master - LateFirstLogin",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        170
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "LateFirstLogin",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        170
+      ],
+      "id": "dadf6b1f-e32e-4bd6-925a-03aca52f04cb",
+      "name": "Delete - Master - LateFirstLogin",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for master LateFirstLogin. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'master|QualitySignals';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "08d20ad2-3de3-42e2-9b7d-6401459a5115",
+      "name": "Prepare Delete - Master - QualitySignals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "QualitySignals",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        280
+      ],
+      "id": "e45e1c64-b0c5-4278-a5f2-1a50363de239",
+      "name": "Delete - Master - QualitySignals",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for master QualitySignals. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'master|TransformLog';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "fbf29b3a-b78b-4f82-962b-cb8b366cf094",
+      "name": "Prepare Delete - Master - TransformLog",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        390
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.master_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "TransformLog",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        390
+      ],
+      "id": "e5ebc40e-ead5-41ea-b6eb-19f3363f5bc8",
+      "name": "Delete - Master - TransformLog",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for master TransformLog. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'central_db|PipelineLogs';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "a6d3d4c5-1b8d-4f59-828e-c4af3ccb8089",
+      "name": "Prepare Delete - Central DB - PipelineLogs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PipelineLogs",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        500
+      ],
+      "id": "6dd85e58-75a5-4d43-80dc-346cfa8f5b9b",
+      "name": "Delete - Central DB - PipelineLogs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for central_db PipelineLogs. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'central_db|DataIndex';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "63027d6b-7eb5-40d0-9040-c900b5a8ee26",
+      "name": "Prepare Delete - Central DB - DataIndex",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        610
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "DataIndex",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        610
+      ],
+      "id": "44015b5f-ad6a-4716-9ff3-c2dedaf4ad52",
+      "name": "Delete - Central DB - DataIndex",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for central_db DataIndex. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst key = 'central_db|AISummaryCache';\nconst ranges = (p.rangesByKey && p.rangesByKey[key]) || [];\nif (!ranges.length) return [];\nreturn ranges.map(range => ({ json: range }));"
+      },
+      "id": "d4296334-3220-46d7-ac24-5f12ba843429",
+      "name": "Prepare Delete - Central DB - AISummaryCache",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Resolve Master File').first().json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "AISummaryCache",
+          "mode": "name"
+        },
+        "startIndex": "={{ $json.start_row_number }}",
+        "numberToDelete": "={{ $json.number_of_rows_to_delete }}"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        720
+      ],
+      "id": "8c3a1801-58e6-49c3-b3b3-f9a747f4ebf9",
+      "name": "Delete - Central DB - AISummaryCache",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Static sheet delete for central_db AISummaryCache. This avoids n8n evaluating dynamic sheet names only once."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('Build Delete Ranges By Sheet').first().json;\nreturn [{ json: {\n  status: 'cleanup_deleted',\n  target_game_code: p.target_game_code,\n  target_month: p.target_month,\n  cleaned_run_id: p.run_id,\n  cleanup_hash: p.cleanup_hash,\n  confirm_delete: p.confirm_delete,\n  destructive_delete_executed: true,\n  delete_range_count: p.delete_range_count,\n  rows_deleted: p.rows_to_delete,\n  total_master_rows_to_delete: p.total_master_rows_to_delete,\n  total_central_rows_to_delete: p.total_central_rows_to_delete,\n  data_hash_candidates: p.data_hash_candidates,\n  cleanup_log_note: 'Log append is intentionally skipped in V4 to avoid Google Sheets quota failure. Save this output as the cleanup record if needed.',\n  message: 'Cleanup completed. Re-run Flow A for this game/month after confirming the old rows are gone.'\n}}];"
+      },
+      "id": "4fb8114f-5ab1-4403-8162-2a63aba081a8",
+      "name": "Delete Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('Build Delete Ranges By Sheet').first().json;\nconst ranges = Object.values(p.rangesByKey || {}).flat();\nconst byAreaTab = {};\nfor (const r of ranges) {\n  const key = r.area + ':' + r.sheet_name;\n  if (!byAreaTab[key]) byAreaTab[key] = { ranges: 0, rows: 0 };\n  byAreaTab[key].ranges += 1;\n  byAreaTab[key].rows += Number(r.number_of_rows_to_delete || 0);\n}\nconst finishedAt = new Date().toISOString();\nreturn [{ json: {\n  central_db_id: p.central_db_id,\n  run_id: 'CLEANUP-' + finishedAt,\n  workflow_name: 'CQR_Admin_Cleanup_By_Run_ID_DELETE_ENABLED_V3',\n  run_started_at: p.run_id,\n  run_finished_at: finishedAt,\n  game_code: p.target_game_code,\n  period_key: p.target_month,\n  source_file_id: '',\n  master_file_id: p.master_file_id,\n  status: 'cleanup_deleted',\n  rows_read: p.delete_request_count,\n  rows_written: p.rows_to_delete,\n  data_hash_before: (p.data_hash_candidates || []).join(','),\n  data_hash_after: '',\n  error_message: JSON.stringify({ cleaned_run_id: p.run_id, range_count: p.delete_range_count, rows_deleted: p.rows_to_delete, by_area_tab: byAreaTab }).slice(0, 45000),\n  triggered_by: 'admin_cleanup_workflow'\n}}];"
+      },
+      "id": "fc6465e5-124a-4ddc-b9d6-da2234af972b",
+      "name": "Build Cleanup Log Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        -160
+      ],
+      "disabled": true,
+      "notes": "Disabled in V4 together with Append Cleanup Log. Delete Summary is the final output."
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PipelineLogs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3440,
+        -160
+      ],
+      "id": "2821aebd-e46c-4ecc-96dd-292b7beb6257",
+      "name": "Append Cleanup Log - PipelineLogs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "disabled": true,
+      "notes": "Disabled in V4: cleanup should not fail because Google Sheets log append hits quota. Use Delete Summary output as the cleanup record, or enable/run this later after quota cools down."
+    },
+    {
+      "parameters": {
+        "content": "DELETE ENABLED V5 SAFETY\\n\\nV5 can target old rows by run_id OR cleanup_hash.\\n\\nUse steps:\\n1) confirm_delete = NO -> Preview only.\\n2) Review master_rows_to_delete_by_tab and central_rows_to_delete_by_tab.\\n3) confirm_delete = YES -> delete only matched rows.\\n4) Rows are grouped bottom-to-top per sheet.\\n5) Prefer cleanup_hash when Central/DataIndex shows old hash but old run_id is unclear.",
+        "height": 260,
+        "width": 500
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1640,
+        -520
+      ],
+      "id": "bfd6616d-cab2-418d-a3e4-21fc55a75c02",
+      "name": "Sticky Note - Delete Enabled Safety"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "confirm-delete-is-yes",
+              "leftValue": "={{ $json.confirm_delete }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1f7aaa5c-4d7b-4213-8098-72f1f54c33fb",
+      "name": "IF Confirm Delete YES",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1660,
+        -60
+      ],
+      "notes": "Safety gate: only TRUE branch prepares delete ranges."
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nif (p.confirm_delete !== 'YES') return [];\nfunction groupDescendingRows(rowNumbers) {\n  const rows = [...new Set((rowNumbers || []).map(Number).filter(n => Number.isFinite(n) && n > 1))].sort((a, b) => b - a);\n  const ranges = [];\n  let high = null;\n  let low = null;\n  for (const row of rows) {\n    if (high === null) { high = row; low = row; continue; }\n    if (row === low - 1) { low = row; continue; }\n    ranges.push({ start_row_number: low, number_of_rows_to_delete: high - low + 1, highest_row_number: high });\n    high = row;\n    low = row;\n  }\n  if (high !== null) ranges.push({ start_row_number: low, number_of_rows_to_delete: high - low + 1, highest_row_number: high });\n  return ranges.sort((a, b) => b.highest_row_number - a.highest_row_number);\n}\nconst rangesByKey = {};\nfunction addRanges(area, documentId, tab, rowNumbers) {\n  const key = area + '|' + tab;\n  rangesByKey[key] = groupDescendingRows(rowNumbers).map(r => ({\n    area,\n    document_id: documentId,\n    sheet_name: tab,\n    start_row_number: r.start_row_number,\n    number_of_rows_to_delete: r.number_of_rows_to_delete,\n    highest_row_number: r.highest_row_number,\n    target_game_code: p.target_game_code,\n    target_month: p.target_month,\n    cleanup_target_run_id: p.run_id,\n    cleanup_data_hash_candidates: p.data_hash_candidates || []\n  }));\n}\nfor (const [tab, info] of Object.entries(p.master_rows_to_delete_by_tab || {})) addRanges('master', p.master_file_id, tab, info.row_numbers_desc || []);\nfor (const [tab, info] of Object.entries(p.central_rows_to_delete_by_tab || {})) addRanges('central_db', p.central_db_id, tab, info.row_numbers_desc || []);\nconst delete_range_count = Object.values(rangesByKey).reduce((sum, rows) => sum + rows.length, 0);\nconst rows_to_delete = Object.values(rangesByKey).flat().reduce((sum, row) => sum + Number(row.number_of_rows_to_delete || 0), 0);\nreturn [{ json: { ...p, rangesByKey, delete_range_count, rows_to_delete, no_delete_ranges: delete_range_count === 0 } }];"
+      },
+      "id": "22fbe085-a418-4e83-8d20-9b2b436ecb53",
+      "name": "Build Delete Ranges By Sheet",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-ranges",
+              "leftValue": "={{ $json.no_delete_ranges }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6abcea55-ea0b-4b94-9572-5322ac6e990f",
+      "name": "IF Has Delete Ranges",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2140,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  status: 'no_rows_to_delete',\n  target_game_code: $json.target_game_code,\n  target_month: $json.target_month,\n  cleaned_run_id: $json.run_id,\n  cleanup_hash: $json.cleanup_hash,\n  confirm_delete: $json.confirm_delete,\n  destructive_delete_executed: false,\n  rows_deleted: 0,\n  delete_range_count: 0,\n  data_hash_candidates: $json.data_hash_candidates || [],\n  message: 'No matching rows were found. Nothing was deleted. This usually means the old run was already cleaned, or the config does not match existing rows.'\n}}];"
+      },
+      "id": "1d7e4aae-ae39-418d-8cb0-0b20efce78a0",
+      "name": "No Rows To Delete Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Cleanup V6 Input Ready\n\nใช้ได้ทั้ง manual และให้ workflow อื่นเรียกต่อ\n\nค่าที่รับได้: `target_game_code`, `target_month`, `run_id`, `cleanup_hash` หรือ `old_hash`, `confirm_delete`\n\nค่า default ยังเป็น Preview (`NO`) เพื่อกันลบจริงโดยไม่ตั้งใจ",
+        "height": 260,
+        "width": 460
+      },
+      "id": "sticky-cleanup-v6-input",
+      "name": "Sticky Note - Input Ready",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        520,
+        -260
+      ]
+    }
+  ],
+  "connections": {
+    "Resolve Master File": {
+      "main": [
+        [
+          {
+            "node": "Read Master - RawImports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master - RawImports": {
+      "main": [
+        [
+          {
+            "node": "Read Master - UserCohort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master - UserCohort": {
+      "main": [
+        [
+          {
+            "node": "Read Master - ChannelDaily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master - ChannelDaily": {
+      "main": [
+        [
+          {
+            "node": "Read Master - ChannelWeekly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master - ChannelWeekly": {
+      "main": [
+        [
+          {
+            "node": "Read Master - ChannelMonthly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master - ChannelMonthly": {
+      "main": [
+        [
+          {
+            "node": "Read Master - DAUDaily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master - DAUDaily": {
+      "main": [
+        [
+          {
+            "node": "Read Master - Returners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master - Returners": {
+      "main": [
+        [
+          {
+            "node": "Read Master - LateFirstLogin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master - LateFirstLogin": {
+      "main": [
+        [
+          {
+            "node": "Read Master - QualitySignals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master - QualitySignals": {
+      "main": [
+        [
+          {
+            "node": "Read Master - TransformLog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master - TransformLog": {
+      "main": [
+        [
+          {
+            "node": "Read Central DB - PipelineLogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Central DB - PipelineLogs": {
+      "main": [
+        [
+          {
+            "node": "Read Central DB - DataIndex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Central DB - DataIndex": {
+      "main": [
+        [
+          {
+            "node": "Read Central DB - AISummaryCache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Central DB - AISummaryCache": {
+      "main": [
+        [
+          {
+            "node": "Build Cleanup Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cleanup Preview": {
+      "main": [
+        [
+          {
+            "node": "Build Delete Request Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Delete Request Plan": {
+      "main": [
+        [
+          {
+            "node": "IF Confirm Delete YES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Cleanup Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Cleanup Config": {
+      "main": [
+        [
+          {
+            "node": "Resolve Master File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Confirm Delete YES": {
+      "main": [
+        [
+          {
+            "node": "Build Delete Ranges By Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preview Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Delete Ranges By Sheet": {
+      "main": [
+        [
+          {
+            "node": "IF Has Delete Ranges",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Has Delete Ranges": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delete - Master - RawImports",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Master - UserCohort",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Master - ChannelDaily",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Master - ChannelWeekly",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Master - ChannelMonthly",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Master - DAUDaily",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Master - Returners",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Master - LateFirstLogin",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Master - QualitySignals",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Master - TransformLog",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Central DB - PipelineLogs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Central DB - DataIndex",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Delete - Central DB - AISummaryCache",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Rows To Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Master - RawImports": {
+      "main": [
+        [
+          {
+            "node": "Delete - Master - RawImports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Master - RawImports": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Master - UserCohort": {
+      "main": [
+        [
+          {
+            "node": "Delete - Master - UserCohort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Master - UserCohort": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Master - ChannelDaily": {
+      "main": [
+        [
+          {
+            "node": "Delete - Master - ChannelDaily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Master - ChannelDaily": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Master - ChannelWeekly": {
+      "main": [
+        [
+          {
+            "node": "Delete - Master - ChannelWeekly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Master - ChannelWeekly": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Master - ChannelMonthly": {
+      "main": [
+        [
+          {
+            "node": "Delete - Master - ChannelMonthly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Master - ChannelMonthly": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Master - DAUDaily": {
+      "main": [
+        [
+          {
+            "node": "Delete - Master - DAUDaily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Master - DAUDaily": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Master - Returners": {
+      "main": [
+        [
+          {
+            "node": "Delete - Master - Returners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Master - Returners": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Master - LateFirstLogin": {
+      "main": [
+        [
+          {
+            "node": "Delete - Master - LateFirstLogin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Master - LateFirstLogin": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Master - QualitySignals": {
+      "main": [
+        [
+          {
+            "node": "Delete - Master - QualitySignals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Master - QualitySignals": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Master - TransformLog": {
+      "main": [
+        [
+          {
+            "node": "Delete - Master - TransformLog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Master - TransformLog": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Central DB - PipelineLogs": {
+      "main": [
+        [
+          {
+            "node": "Delete - Central DB - PipelineLogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Central DB - PipelineLogs": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Central DB - DataIndex": {
+      "main": [
+        [
+          {
+            "node": "Delete - Central DB - DataIndex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Central DB - DataIndex": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delete - Central DB - AISummaryCache": {
+      "main": [
+        [
+          {
+            "node": "Delete - Central DB - AISummaryCache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete - Central DB - AISummaryCache": {
+      "main": [
+        [
+          {
+            "node": "Delete Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Admin Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Normalize Webhook Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Webhook Payload": {
+      "main": [
+        [
+          {
+            "node": "Set Cleanup Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preview Summary": {
+      "main": [
+        [
+          {
+            "node": "Respond to Apps Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Summary": {
+      "main": [
+        [
+          {
+            "node": "Respond to Apps Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Rows To Delete Summary": {
+      "main": [
+        [
+          {
+            "node": "Respond to Apps Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-07-26T19:42:04.450Z",
+  "versionId": "ab93f69f-2d89-4a94-b88f-0aac731e9c2d",
+  "active": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
