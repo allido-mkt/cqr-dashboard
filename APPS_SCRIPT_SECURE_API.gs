@@ -610,7 +610,9 @@ function handleAdminPipelineRunLookup_(e, callback) {
       target_game_code: firstReady.game_code || wantedGame || game,
       target_month: firstReady.period_key || wantedMonth || month,
       run_id: firstReady.run_id || '',
-      hash: firstReady.data_hash_after || firstReady.data_hash_before || ''
+      hash: firstReady.data_hash_after || firstReady.data_hash_before || '',
+      status: firstReady.status || '',
+      rows_written: rowValue_(firstReady.row, ['rows_written', 'rows written']) || ''
     } : null,
     debug: {
       requested_game: game,
@@ -776,6 +778,7 @@ function normalizePeriodKey_(value) {
     return Utilities.formatDate(value, 'Asia/Bangkok', 'yyyy-MM');
   }
   const text = String(value || '').trim();
+  if (!text || text.toUpperCase() === 'ALL') return '';
   const match = text.match(/(20\d{2})[-\/_\s]?(\d{1,2})/);
   if (match) return match[1] + '-' + ('0' + match[2]).slice(-2);
   return text;

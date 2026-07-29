@@ -514,6 +514,7 @@ tbody tr:hover{background:#fbfaf8}
                   <div>
                     <label>Month</label>
                     <select id="toolMonth">
+                      <option value="ALL">ALL</option>
                       <option value="2026-06">มิถุนายน 2026</option>
                       <option value="2026-05">พฤษภาคม 2026</option>
                       <option value="2026-04">เมษายน 2026</option>
@@ -587,6 +588,7 @@ tbody tr:hover{background:#fbfaf8}
                   <div>
                     <label>Month</label>
                     <select id="healthMonth">
+                      <option value="ALL">ALL</option>
                       <option value="2026-06">มิถุนายน 2026</option>
                       <option value="2026-05">พฤษภาคม 2026</option>
                       <option value="2026-04">เมษายน 2026</option>
@@ -1179,13 +1181,14 @@ async function inspectRun(){
   }
   const game = document.getElementById('toolGame').value;
   const month = document.getElementById('toolMonth').value.trim() || '2026-06';
+  const monthForLookup = month === 'ALL' ? '' : month;
   const query = document.getElementById('toolRunQuery').value.trim();
   resultBox.textContent = 'กำลังค้นหา run_id / hash ที่เกี่ยวข้อง...';
   try{
     const result = await callAppsScript('admin.pipeline.run.lookup', {
       session_token: session.sessionToken,
       game,
-      month,
+      month: monthForLookup,
       query
     });
     if(!result.ok) throw new Error(result.message || 'Cannot inspect run');
@@ -1200,13 +1203,14 @@ async function loadPipelineHealth(){
   if(!session || !session.sessionToken) return;
   const game = document.getElementById('healthGame')?.value || document.getElementById('toolGame')?.value || 'ALL';
   const month = document.getElementById('healthMonth')?.value.trim() || document.getElementById('toolMonth')?.value.trim() || '2026-06';
+  const monthForHealth = month === 'ALL' ? '' : month;
   document.getElementById('healthHandoff')?.classList.remove('active');
   document.getElementById('healthIssueList').innerHTML = '<div class="health-summary warn"><h3>กำลังตรวจข้อมูล</h3><p>ระบบกำลังเช็ก Raw, Master และ Central DB ของเกม/เดือนที่เลือก</p></div>';
   try{
     const result = await callAppsScript('admin.pipeline.health', {
       session_token: session.sessionToken,
       game,
-      month
+      month: monthForHealth
     });
     if(!result.ok) throw new Error(result.message || 'Cannot load health');
     renderPipelineHealth(result);
@@ -1227,6 +1231,7 @@ async function runPipelineCommand(command){
   const month = document.getElementById('toolMonth').value.trim() || '2026-06';
   const query = document.getElementById('toolRunQuery').value.trim();
   const selectedRuns = getSelectedRunItems();
+  const commandRunItems = selectedRuns.map(normalizeRunItemForCommand);
   const suggestedRunId = lastCleanupSuggestion && lastCleanupSuggestion.target_game_code === game && lastCleanupSuggestion.target_month === month
     ? lastCleanupSuggestion.run_id
     : '';
@@ -1246,6 +1251,11 @@ async function runPipelineCommand(command){
   if((command === 'cleanup.preview' || command === 'cleanup.run') && !cleanupRunId){
     resultBox.classList.add('warn');
     resultBox.textContent = 'กรุณากด FIND หรือเลือก run ที่ต้องการก่อนใช้ Preview/Clear';
+    return;
+  }
+  if(month === 'ALL' && !selectedRuns.length){
+    resultBox.classList.add('warn');
+    resultBox.textContent = 'ถ้าเลือก Month = ALL กรุณากด FIND แล้วเลือก run จากผลลัพธ์ก่อนส่งคำสั่ง เพื่อให้ระบบรู้ว่าต้องซ่อมเดือนไหน';
     return;
   }
   if((command === 'cleanup.preview' || command === 'cleanup.run') && game === 'ALL' && queryLooksLikeRunId && !selectedRuns.length){
@@ -1275,8 +1285,8 @@ Run ID: ${selectedRuns.length > 1 ? selectedRuns.map(run => run.run_id).join(', 
       game: effectiveGame,
       month,
       run_id: cleanupRunId,
-      run_ids: selectedRuns.length ? JSON.stringify(selectedRuns.map(run => run.run_id)) : '',
-      run_items: selectedRuns.length ? JSON.stringify(selectedRuns) : '',
+      run_ids: commandRunItems.length ? JSON.stringify(commandRunItems.map(run => run.run_id)) : '',
+      run_items: commandRunItems.length ? JSON.stringify(commandRunItems) : '',
       hash: query
     });
     if(!result.ok){
@@ -1292,6 +1302,17 @@ Run ID: ${selectedRuns.length > 1 ? selectedRuns.map(run => run.run_id).join(', 
   }finally{
     setPipelineActionBusy(false);
   }
+}
+
+function normalizeRunItemForCommand(run){
+  return {
+    game_code: run.game_code || '',
+    period_key: run.period_key || '',
+    run_id: run.run_id || '',
+    data_hash_after: run.data_hash_after || '',
+    data_hash_before: run.data_hash_before || '',
+    rows_written: run.rows_written || ''
+  };
 }
 
 function renderPipelineCommandError(label, command, error){
@@ -1325,9 +1346,13 @@ function getSelectedRunItems(){
   const checked = [...document.querySelectorAll('.run-select:checked')].map(input => {
     const row = lastRunMatches.find(run => run.run_id === input.value);
     return row || null;
-  }).filter(Boolean);
+  }).filter(Boolean).filter(isCleanupCandidate);
   if(checked.length) return checked;
-  if(lastCleanupSuggestion?.run_id){
+  if(lastCleanupSuggestion?.run_id && isCleanupCandidate({
+    run_id:lastCleanupSuggestion.run_id,
+    status:lastCleanupSuggestion.status || 'ready',
+    rows_written:lastCleanupSuggestion.rows_written || 1
+  })){
     return [{
       game_code:lastCleanupSuggestion.target_game_code,
       period_key:lastCleanupSuggestion.target_month,
@@ -1340,7 +1365,7 @@ function getSelectedRunItems(){
 }
 
 function selectAllRunItems(){
-  document.querySelectorAll('.run-select').forEach(input => input.checked = true);
+  document.querySelectorAll('.run-select:not(:disabled)').forEach(input => input.checked = true);
   updateBatchCount();
 }
 
@@ -1449,20 +1474,24 @@ function renderRunInspector(result){
     updateBatchCount();
     return;
   }
-  const cards = matches.length ? matches.map(run => `
+  const cards = matches.length ? matches.map(run => {
+    const canCleanup = isCleanupCandidate(run);
+    const statusHint = canCleanup ? '' : '<p class="soft-note">รายการนี้เป็น log ประวัติหรือ run ที่ยังไม่ควร Clear จึงไม่ถูกเลือกอัตโนมัติ</p>';
+    return `
     <div class="run-item">
-      <input class="run-select" type="checkbox" value="${escapeAttr(run.run_id || '')}" onchange="updateBatchCount()" checked>
+      <input class="run-select" type="checkbox" value="${escapeAttr(run.run_id || '')}" onchange="updateBatchCount()" ${canCleanup ? 'checked' : ''} ${canCleanup ? '' : 'disabled'}>
       <div>
         <b>${escapeHtml(run.game_code)} · ${escapeHtml(run.period_key)}</b>
         <p>Status: ${escapeHtml(run.status)} · Rows: ${escapeHtml(run.rows_written || 0)} · Hash: ${escapeHtml(run.data_hash_after || run.data_hash_before || '-')}</p>
         <p><b>Run ID:</b> ${escapeHtml(run.run_id || '-')}</p>
+        ${statusHint}
       </div>
       <div class="run-actions">
         <button class="mini-btn" type="button" onclick="copyText('${escapeAttr(run.run_id || '')}', this)">Copy Run ID</button>
         <button class="mini-btn" type="button" onclick="fillRunForSingleAction('${escapeAttr(run.game_code)}','${escapeAttr(run.period_key)}','${escapeAttr(run.run_id || '')}')">Use</button>
       </div>
     </div>
-  `).join('') : '';
+  `}).join('') : '';
   const suggestion = target.run_id ? `
     <div class="copy-box">
       <b>ข้อมูลสำหรับขั้นตอนถัดไป</b>
@@ -1483,6 +1512,13 @@ function renderRunInspector(result){
   `;
   document.getElementById('batchActions').classList.toggle('active', matches.length > 0);
   updateBatchCount();
+}
+
+function isCleanupCandidate(run){
+  const status = String(run?.status || '').toLowerCase();
+  const runId = String(run?.run_id || '');
+  const rowsWritten = Number(run?.rows_written || 0);
+  return status === 'ready' && !!runId && !/^CLEANUP/i.test(runId) && rowsWritten > 0;
 }
 
 function getIssueGame(issue){
@@ -1688,6 +1724,7 @@ function sendHealthToDataControl(){
   const healthMonth = document.getElementById('healthMonth').value || '2026-06';
   const repairGames = [...new Set(lastHealthRepairGames.filter(game => game && game !== 'ALL'))];
   const targetGame = healthGame === 'ALL' ? (repairGames[0] || 'ALL') : healthGame;
+  const handoffOptions = [...new Set(['ALL', ...repairGames])];
   document.getElementById('toolGame').value = targetGame;
   document.getElementById('toolMonth').value = healthMonth;
   document.getElementById('toolRunQuery').value = '';
@@ -1698,7 +1735,7 @@ function sendHealthToDataControl(){
     ${repairGames.length > 1
       ? `พบ ${repairGames.length} เกมที่ควรซ่อม ระบบเลือก ${escapeHtml(targetGame)} ให้ก่อน กดเกมอื่นด้านล่างเพื่อสลับรายการ`
       : `ระบบเลือก ${escapeHtml(targetGame)} และ ${escapeHtml(healthMonth)} ให้แล้ว`}
-    ${repairGames.length > 1 ? `<div class="handoff-games">${repairGames.map(game => `<button class="handoff-game-btn ${game === targetGame ? 'active' : ''}" type="button" onclick="useHealthRepairGame('${escapeAttr(game)}','${escapeAttr(healthMonth)}')">${escapeHtml(game)}</button>`).join('')}</div>` : ''}
+    ${handoffOptions.length > 1 ? `<div class="handoff-games">${handoffOptions.map(game => `<button class="handoff-game-btn ${game === targetGame ? 'active' : ''}" type="button" onclick="useHealthRepairGame('${escapeAttr(game)}','${escapeAttr(healthMonth)}')">${escapeHtml(game)}</button>`).join('')}</div>` : ''}
   `;
   switchAdminTool('pipeline');
   document.getElementById('runInspectorResult').innerHTML = `
