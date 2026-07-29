@@ -191,6 +191,8 @@ tbody tr:hover{background:#fbfaf8}
 .health-overview th,.health-overview td{padding:10px 12px;border-bottom:1px solid #f1f0ee;text-align:left;font-size:11.5px;vertical-align:top}
 .health-overview th{background:#fbfaf8;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
 .health-overview tr:last-child td{border-bottom:none}
+.scope-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px;background:#fffbf3;border-bottom:1px solid #f1f0ee;color:#1b1f2a;font-size:12px}
+.scope-summary span{color:var(--muted);font-weight:800}
 .health-status-pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900;background:#eef2ff;color:#3730a3;white-space:nowrap}
 .health-status-pill.ok{background:#dcfce7;color:#166534}
 .health-status-pill.warn{background:#fffbeb;color:#92400e}
@@ -647,6 +649,8 @@ const AUTH_CONFIG = {
   ]
 };
 const MONTH_TH = {'2026-06':'มิถุนายน','2026-05':'พฤษภาคม','2026-04':'เมษายน','2026-03':'มีนาคม','2026-02':'กุมภาพันธ์'};
+const CQR_GAMES = ['CBM_TH','CBM_SEA','CBPC_TH','CBPC_SEA'];
+const CQR_MONTHS = Object.keys(MONTH_TH);
 const LOCAL_PREVIEW_ALLOWED = location.protocol === 'file:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
 let previewMode = false;
 let selectedUserEmail = '';
@@ -1518,13 +1522,42 @@ function formatDateTime(value){
   });
 }
 
+function getScopeGames(game){
+  const value = String(game || 'ALL').trim();
+  return value === 'ALL' || !value ? CQR_GAMES : [value];
+}
+
+function getScopeMonths(month){
+  const value = String(month || 'ALL').trim();
+  return value === 'ALL' || !value ? CQR_MONTHS : [value];
+}
+
+function normalizePeriodKey(value, fallback){
+  const text = String(value || '').trim();
+  const direct = text.match(/20\d{2}-\d{2}/);
+  if(direct) return direct[0];
+  if(String(fallback || '').trim() === 'ALL') return '';
+  return fallback || '';
+}
+
+function getIssueMonth(issue, fallback){
+  return normalizePeriodKey(
+    issue?.period_key || issue?.month || issue?.target_month || issue?.cleanup?.target_month || issue?.title || issue?.detail,
+    fallback
+  );
+}
+
+function getGameMonthKey(game, month){
+  return `${String(game || '-').trim()}|${String(month || '-').trim()}`;
+}
+
 function compactRunLookupMatches(rawMatches){
   const matches = Array.isArray(rawMatches) ? rawMatches : [];
   const actionable = matches.filter(isCleanupCandidate);
   if(actionable.length){
     const byGameMonth = new Map();
     actionable.forEach(run => {
-      const key = `${run.game_code || '-'}|${run.period_key || '-'}`;
+      const key = getGameMonthKey(run.game_code, run.period_key);
       if(!byGameMonth.has(key)) byGameMonth.set(key, run);
     });
     return [...byGameMonth.values()];
@@ -1537,9 +1570,91 @@ function compactRunLookupMatches(rawMatches){
   return [...byRun.values()].slice(0, 12);
 }
 
+function buildRunLookupScopeRows(rawMatches, matches){
+  const selectedGame = document.getElementById('toolGame')?.value || 'ALL';
+  const selectedMonth = document.getElementById('toolMonth')?.value || 'ALL';
+  const games = getScopeGames(selectedGame);
+  const months = getScopeMonths(selectedMonth);
+  const actionableBySlot = new Map();
+  matches.forEach(run => {
+    actionableBySlot.set(getGameMonthKey(run.game_code, run.period_key), run);
+  });
+  const rawBySlot = new Map();
+  rawMatches.forEach(run => {
+    const key = getGameMonthKey(run.game_code, run.period_key);
+    if(!rawBySlot.has(key)) rawBySlot.set(key, []);
+    rawBySlot.get(key).push(run);
+  });
+  return games.flatMap(game => months.map(month => {
+    const key = getGameMonthKey(game, month);
+    const actionable = actionableBySlot.get(key);
+    const raw = rawBySlot.get(key) || [];
+    if(actionable){
+      return {
+        game,
+        month,
+        log: `${actionable.status || 'ready'} · ${actionable.data_hash_after || actionable.data_hash_before || '-'}`,
+        logLevel: 'ok',
+        action: 'มี run ให้เลือกซ่อม',
+        actionLevel: 'ok'
+      };
+    }
+    if(raw.length){
+      const latest = raw[0] || {};
+      return {
+        game,
+        month,
+        log: `${latest.status || 'มี log'} · ${latest.data_hash_after || latest.data_hash_before || '-'}`,
+        logLevel: 'warn',
+        action: 'มี log แต่ยังไม่ใช่ run สำหรับซ่อม',
+        actionLevel: 'warn'
+      };
+    }
+    return {
+      game,
+      month,
+      log: 'ยังไม่พบ log',
+      logLevel: 'danger',
+      action: 'รอ Auto Pipeline หรือ Build รอบนี้ก่อน',
+      actionLevel: 'warn'
+    };
+  }));
+}
+
+function renderRunLookupScopeTable(rows, usableCount){
+  if(!rows.length) return '';
+  const missingCount = rows.filter(row => row.logLevel === 'danger').length;
+  return `
+    <div class="health-overview run-scope-table">
+      <div class="scope-summary">
+        <b>ขอบเขตที่กำลังค้นหา: ${escapeHtml(rows.length)} ช่อง</b>
+        <span>พบ run ที่ใช้ซ่อมได้ ${escapeHtml(usableCount)} ช่อง · ยังไม่พบ log ${escapeHtml(missingCount)} ช่อง</span>
+      </div>
+      <table>
+        <thead><tr><th>Game</th><th>Month</th><th>Pipeline Log ล่าสุด</th><th>ควรทำอะไร</th></tr></thead>
+        <tbody>
+          ${rows.map(row => `
+            <tr>
+              <td><b>${escapeHtml(row.game)}</b></td>
+              <td>${escapeHtml(row.month)}</td>
+              <td><span class="health-status-pill ${escapeHtml(row.logLevel)}">${escapeHtml(row.log)}</span></td>
+              <td><span class="health-status-pill ${escapeHtml(row.actionLevel)}">${escapeHtml(row.action)}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function renderRunInspector(result){
   const rawMatches = result.matches || [];
   const matches = compactRunLookupMatches(rawMatches);
+  const selectedGame = document.getElementById('toolGame')?.value || 'ALL';
+  const selectedMonth = document.getElementById('toolMonth')?.value || 'ALL';
+  const scopeRows = buildRunLookupScopeRows(rawMatches, matches);
+  const showScope = selectedGame === 'ALL' || selectedMonth === 'ALL';
+  const scopeCount = scopeRows.length || matches.length;
   const target = result.cleanup_suggestion || {};
   lastCleanupSuggestion = target && target.run_id ? target : null;
   lastRunMatches = matches;
@@ -1556,9 +1671,10 @@ function renderRunInspector(result){
     ` : '';
     document.getElementById('runInspectorResult').innerHTML = `
       <div class="health-item warn">
-        <div><b>ยังไม่พบ run ที่ใช้ซ่อมได้</b><p>${escapeHtml(result.summary || 'ลองเลือก Game ให้ตรงกับเกมที่ Data Health แจ้งไว้ แล้วกด FIND อีกครั้ง')}</p>${diagnostics}</div>
+        <div><b>ยังไม่พบ run ที่ใช้ซ่อมได้</b><p>${escapeHtml(showScope ? `ค้นหาแล้ว ${scopeCount} ช่องตาม Game/Month ที่เลือก แต่ยังไม่มี run ที่ใช้ซ่อมได้` : (result.summary || 'ลองเลือก Game ให้ตรงกับเกมที่ Data Health แจ้งไว้ แล้วกด FIND อีกครั้ง'))}</p>${diagnostics}</div>
         <span class="health-badge warn">0 match</span>
       </div>
+      ${showScope ? renderRunLookupScopeTable(scopeRows, 0) : ''}
     `;
     document.getElementById('batchActions').classList.remove('active');
     updateBatchCount();
@@ -1598,9 +1714,10 @@ function renderRunInspector(result){
   ` : '';
   document.getElementById('runInspectorResult').innerHTML = `
     <div class="health-item ${result.risk_level || 'ok'}">
-      <div><b>${escapeHtml(result.title || 'FIND')}</b><p>${escapeHtml(hiddenCount ? 'แสดงเฉพาะ run ที่ใช้ซ่อมได้ล่าสุดต่อเกม/เดือน รายการประวัติ cleanup ถูกซ่อนไว้เพื่อไม่ให้เลือกผิด' : (result.summary || 'ตรวจพบข้อมูลตามเงื่อนไข'))}</p></div>
-      <span class="health-badge ${result.risk_level || 'ok'}">${escapeHtml(hiddenCount ? `${matches.length}/${rawMatches.length} ใช้ได้` : (result.badge || 'Result'))}</span>
+      <div><b>${escapeHtml(showScope ? 'พบ run ที่ใช้ซ่อมได้' : (result.title || 'FIND'))}</b><p>${escapeHtml(showScope ? `ขอบเขตนี้มี ${scopeCount} ช่องตาม Game/Month ที่เลือก ระบบเลือกเฉพาะ run ล่าสุดที่ใช้ซ่อมได้ ${matches.length} ช่อง` : (hiddenCount ? 'แสดงเฉพาะ run ที่ใช้ซ่อมได้ล่าสุดต่อเกม/เดือน รายการประวัติ cleanup ถูกซ่อนไว้เพื่อไม่ให้เลือกผิด' : (result.summary || 'ตรวจพบข้อมูลตามเงื่อนไข')))}</p></div>
+      <span class="health-badge ${result.risk_level || 'ok'}">${escapeHtml(showScope ? `${matches.length}/${scopeCount} ซ่อมได้` : (hiddenCount ? `${matches.length}/${rawMatches.length} ใช้ได้` : (result.badge || 'Result')))}</span>
     </div>
+    ${showScope ? renderRunLookupScopeTable(scopeRows, matches.length) : ''}
     <div class="run-list">${cards}</div>
     ${matches.length === 1 ? suggestion : ''}
   `;
@@ -1621,7 +1738,7 @@ function getIssueGame(issue){
   const direct = String(issue.game_code || '').trim();
   if(direct) return direct;
   const title = String(issue.title || '').trim();
-  return title.split(/\s+/)[0] || '';
+  return CQR_GAMES.find(game => title.includes(game)) || '';
 }
 
 function getIssueBadge(issue){
@@ -1635,13 +1752,16 @@ function isRepairHealthIssue(issue){
 }
 
 function buildHealthOverviewRows(result, issues, recommendations){
-  const selectedGame = result.game || document.getElementById('healthGame')?.value || 'ALL';
-  const selectedMonth = result.month || document.getElementById('healthMonth')?.value || '2026-06';
-  const expectedGames = selectedGame === 'ALL' ? ['CBM_TH','CBM_SEA','CBPC_TH','CBPC_SEA'] : [selectedGame];
-  const byGame = {};
-  expectedGames.forEach(game => {
-    byGame[game] = {
+  const selectedGame = document.getElementById('healthGame')?.value || result.game || 'ALL';
+  const selectedMonth = document.getElementById('healthMonth')?.value || result.month || '2026-06';
+  const issueFallbackMonth = result.month && result.month !== 'ALL' ? result.month : selectedMonth;
+  const expectedGames = getScopeGames(selectedGame);
+  const expectedMonths = getScopeMonths(selectedMonth);
+  const bySlot = {};
+  expectedGames.forEach(game => expectedMonths.forEach(month => {
+    bySlot[getGameMonthKey(game, month)] = {
       game,
+      month,
       raw: 'ยังไม่พบข้อมูล',
       rawLevel: 'warn',
       master: 'ยังไม่ยืนยัน',
@@ -1649,14 +1769,21 @@ function buildHealthOverviewRows(result, issues, recommendations){
       action: 'กด CHECKUP เพื่อดูรายละเอียด',
       actionLevel: 'warn'
     };
-  });
+  }));
 
   issues.forEach(issue => {
     const game = getIssueGame(issue);
     if(!game) return;
-    if(!byGame[game]){
-      byGame[game] = {
+    const issueMonth = getIssueMonth(issue, issueFallbackMonth);
+    const months = selectedMonth === 'ALL'
+      ? (issueMonth ? [issueMonth] : expectedMonths)
+      : [selectedMonth];
+    months.forEach(month => {
+      const key = getGameMonthKey(game, month);
+      if(!bySlot[key]){
+        bySlot[key] = {
         game,
+        month,
         raw: 'มีข้อมูล',
         rawLevel: 'ok',
         master: 'ต้องตรวจ',
@@ -1664,49 +1791,53 @@ function buildHealthOverviewRows(result, issues, recommendations){
         action: 'ตรวจต่อ',
         actionLevel: 'warn'
       };
-    }
-    const badge = getIssueBadge(issue);
-    if(isRepairHealthIssue(issue)){
-      byGame[game].raw = 'มีรอบใหม่แล้ว';
-      byGame[game].rawLevel = 'ok';
-      byGame[game].master = 'ยังเป็นข้อมูลเก่า';
-      byGame[game].masterLevel = 'danger';
-      byGame[game].action = 'ไป Data Control';
-      byGame[game].actionLevel = 'danger';
-    }else if(badge === 'Raw check'){
-      byGame[game].raw = 'ยังไม่พร้อม';
-      byGame[game].rawLevel = 'danger';
-      byGame[game].master = 'ยังไม่ควร Build';
-      byGame[game].masterLevel = 'warn';
-      byGame[game].action = 'ตรวจ Raw file ก่อน';
-      byGame[game].actionLevel = 'warn';
-    }else if(badge === 'Missing ready run'){
-      byGame[game].raw = 'รอตรวจจาก log';
-      byGame[game].rawLevel = 'warn';
-      byGame[game].master = 'ยังไม่มีข้อมูลพร้อมใช้';
-      byGame[game].masterLevel = 'danger';
-      byGame[game].action = 'หา run หรือ Build ใหม่';
-      byGame[game].actionLevel = 'warn';
-    }else if(badge === 'Missing index'){
-      byGame[game].master = 'ยังไม่อยู่ใน DataIndex';
-      byGame[game].masterLevel = 'warn';
-      byGame[game].action = 'ตรวจ Central DB';
-      byGame[game].actionLevel = 'warn';
-    }
+      }
+      const badge = getIssueBadge(issue);
+      if(isRepairHealthIssue(issue)){
+        bySlot[key].raw = 'มีรอบใหม่แล้ว';
+        bySlot[key].rawLevel = 'ok';
+        bySlot[key].master = 'ยังเป็นข้อมูลเก่า';
+        bySlot[key].masterLevel = 'danger';
+        bySlot[key].action = 'ไป Data Control';
+        bySlot[key].actionLevel = 'danger';
+      }else if(badge === 'Raw check'){
+        bySlot[key].raw = 'ยังไม่พร้อม';
+        bySlot[key].rawLevel = 'danger';
+        bySlot[key].master = 'ยังไม่ควร Build';
+        bySlot[key].masterLevel = 'warn';
+        bySlot[key].action = 'ตรวจ Raw file ก่อน';
+        bySlot[key].actionLevel = 'warn';
+      }else if(badge === 'Missing ready run'){
+        bySlot[key].raw = 'รอตรวจจาก log';
+        bySlot[key].rawLevel = 'warn';
+        bySlot[key].master = 'ยังไม่มีข้อมูลพร้อมใช้';
+        bySlot[key].masterLevel = 'danger';
+        bySlot[key].action = 'หา run หรือ Build ใหม่';
+        bySlot[key].actionLevel = 'warn';
+      }else if(badge === 'Missing index'){
+        bySlot[key].master = 'ยังไม่อยู่ใน DataIndex';
+        bySlot[key].masterLevel = 'warn';
+        bySlot[key].action = 'ตรวจ Central DB';
+        bySlot[key].actionLevel = 'warn';
+      }
+    });
   });
 
   recommendations.forEach(item => {
     const game = String(item.cleanup?.target_game_code || '').trim();
-    if(game && byGame[game] && byGame[game].action === 'กด CHECKUP เพื่อดูรายละเอียด'){
-      byGame[game].action = 'ตรวจต่อใน Data Control';
-      byGame[game].actionLevel = 'warn';
+    const month = String(item.cleanup?.target_month || selectedMonth || '').trim();
+    const key = getGameMonthKey(game, month);
+    if(game && bySlot[key] && bySlot[key].action === 'กด CHECKUP เพื่อดูรายละเอียด'){
+      bySlot[key].action = 'ตรวจต่อใน Data Control';
+      bySlot[key].actionLevel = 'warn';
     }
   });
 
   if(!issues.length){
-    expectedGames.forEach(game => {
-      byGame[game] = {
+    expectedGames.forEach(game => expectedMonths.forEach(month => {
+      bySlot[getGameMonthKey(game, month)] = {
         game,
+        month,
         raw: 'พร้อม',
         rawLevel: 'ok',
         master: 'พร้อมใช้',
@@ -1714,13 +1845,10 @@ function buildHealthOverviewRows(result, issues, recommendations){
         action: 'ไม่ต้องทำอะไร',
         actionLevel: 'ok'
       };
-    });
+    }));
   }
 
-  return Object.values(byGame).filter(row => row.game && row.game !== 'ALL').map(row => ({
-    ...row,
-    month: selectedMonth
-  }));
+  return Object.values(bySlot).filter(row => row.game && row.game !== 'ALL');
 }
 
 function renderHealthOverviewTable(rows){
@@ -1747,6 +1875,11 @@ function renderHealthOverviewTable(rows){
 
 function renderPipelineHealth(result){
   const summary = result.summary || {};
+  const selectedGame = document.getElementById('healthGame')?.value || result.game || 'ALL';
+  const selectedMonth = document.getElementById('healthMonth')?.value || result.month || 'ALL';
+  const scopeGames = getScopeGames(selectedGame);
+  const scopeMonths = getScopeMonths(selectedMonth);
+  const scopeCount = scopeGames.length * scopeMonths.length;
   lastHealthRecommendations = result.recommendations || [];
   const rawRepairTasks = lastHealthRecommendations
     .map(item => item.cleanup || {})
@@ -1790,7 +1923,7 @@ function renderPipelineHealth(result){
     <div class="status-card health"><span>สถานะรวม</span><strong>${escapeHtml(summary.health_score || '-')}</strong></div>
     <div class="status-card ready"><span>Raw พร้อม</span><strong>${escapeHtml(summary.raw_ready ?? summary.ready_runs ?? '-')}</strong></div>
     <div class="status-card review"><span>ต้องตรวจ</span><strong>${escapeHtml(summary.needs_review ?? '-')}</strong></div>
-    <div class="status-card cleanup"><span>ส่งไปซ่อมได้</span><strong>${escapeHtml(actionableRepairCount || '-')}</strong></div>
+    <div class="status-card cleanup"><span>ซ่อมได้ตอนนี้</span><strong>${escapeHtml(actionableRepairCount || '-')}</strong></div>
   `;
   const mainTitle = hasActionableRepair
     ? 'บางเกมยังใช้ข้อมูลเก่าอยู่'
@@ -1798,10 +1931,10 @@ function renderPipelineHealth(result){
       ? 'ยังมีข้อมูลที่ควรตรวจเพิ่ม'
       : 'ข้อมูลพร้อมใช้งาน';
   const mainDetail = hasActionableRepair
-    ? 'ไฟล์ต้นทางมีรอบใหม่แล้ว แต่ข้อมูลที่ Dashboard ใช้ยังตามไม่ทัน ให้ส่งต่อไป Data Control เพื่อเลือก run แล้วซ่อมเฉพาะเกมนั้น'
+    ? `รอบนี้ตรวจ ${scopeCount} ช่อง (${scopeGames.length} เกม x ${scopeMonths.length} เดือน) และพบว่าบางช่องมี Raw Data ใหม่ แต่ข้อมูลที่ Dashboard ใช้ยังตามไม่ทัน ให้ส่งต่อไป Data Control เพื่อเลือก run แล้วซ่อมเฉพาะเกม/เดือนนั้น`
     : hasIssues
-      ? 'ระบบยังไม่พบรายการที่ซ่อมได้ทันที อาจเป็นเพราะยังไม่มี log ของเดือนนี้หรือ Auto Pipeline ยังไม่ได้เขียนสถานะล่าสุด'
-    : 'ยังไม่พบปัญหาหลักจากข้อมูลที่เลือก สามารถใช้ Dashboard และ AI CHAT ต่อได้ตามปกติ';
+      ? `รอบนี้ตรวจ ${scopeCount} ช่อง (${scopeGames.length} เกม x ${scopeMonths.length} เดือน) แต่ยังไม่พบรายการที่ซ่อมได้ทันที อาจเป็นเพราะยังไม่มี log ของบางเดือน หรือ Auto Pipeline ยังไม่ได้เขียนสถานะล่าสุด`
+      : `ตรวจครบ ${scopeCount} ช่องตาม Game/Month ที่เลือกแล้ว ยังไม่พบปัญหาหลัก สามารถใช้ Dashboard และ AI CHAT ต่อได้ตามปกติ`;
   const issueGroups = issues.reduce((acc, issue) => {
     const badge = String(issue.badge || 'Check');
     if(!acc[badge]) acc[badge] = [];
@@ -1866,10 +1999,10 @@ function sendHealthToDataControl(){
   const healthGame = document.getElementById('healthGame').value || 'ALL';
   const healthMonth = document.getElementById('healthMonth').value || '2026-06';
   const repairGames = [...new Set(lastHealthRepairGames.filter(game => game && game !== 'ALL'))];
-  const targetGame = healthGame === 'ALL' ? (repairGames[0] || 'ALL') : healthGame;
-  const targetTask = lastHealthRepairTasks.find(task => task.game === targetGame) || {};
-  const targetMonth = targetTask.month || healthMonth;
-  const targetQuery = targetTask.hash || targetTask.runId || '';
+  const targetGame = healthGame === 'ALL' ? 'ALL' : healthGame;
+  const targetTask = targetGame === 'ALL' ? {} : (lastHealthRepairTasks.find(task => task.game === targetGame) || {});
+  const targetMonth = targetGame === 'ALL' ? healthMonth : (targetTask.month || healthMonth);
+  const targetQuery = targetGame === 'ALL' ? '' : (targetTask.hash || targetTask.runId || '');
   const handoffOptions = [...new Set(['ALL', ...repairGames])];
   document.getElementById('toolGame').value = targetGame;
   document.getElementById('toolMonth').value = targetMonth || 'ALL';
@@ -1880,7 +2013,7 @@ function sendHealthToDataControl(){
   resultBox.innerHTML = `
     <b>ส่งรายการจาก Data Health มาแล้ว</b><br>
     ${repairGames.length > 1
-      ? `พบ ${repairGames.length} เกมที่ควรซ่อม ระบบเลือก ${escapeHtml(targetGame)} ให้ก่อน กดเกมอื่นหรือ ALL ด้านล่างเพื่อสลับรายการ`
+      ? `พบ ${repairGames.length} เกมที่ควรซ่อม ระบบเปิดเป็น ALL ให้ก่อนเพื่อดูรายการรวม กดเกมด้านล่างได้ถ้าต้องการดูทีละเกม`
       : `ระบบเลือก ${escapeHtml(targetGame)} และ ${escapeHtml(targetMonth || healthMonth)} ให้แล้ว`}
     ${targetQuery ? `<br><small>ใช้ Hash/Run ID สำหรับค้นหา: <b>${escapeHtml(targetQuery)}</b></small>` : ''}
     ${handoffOptions.length > 1 ? `<div class="handoff-games">${handoffOptions.map(game => `<button class="handoff-game-btn ${game === targetGame ? 'active' : ''}" type="button" onclick="useHealthRepairGame('${escapeAttr(game)}','${escapeAttr(healthMonth)}')">${escapeHtml(game)}</button>`).join('')}</div>` : ''}
