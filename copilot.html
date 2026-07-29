@@ -1518,8 +1518,28 @@ function formatDateTime(value){
   });
 }
 
+function compactRunLookupMatches(rawMatches){
+  const matches = Array.isArray(rawMatches) ? rawMatches : [];
+  const actionable = matches.filter(isCleanupCandidate);
+  if(actionable.length){
+    const byGameMonth = new Map();
+    actionable.forEach(run => {
+      const key = `${run.game_code || '-'}|${run.period_key || '-'}`;
+      if(!byGameMonth.has(key)) byGameMonth.set(key, run);
+    });
+    return [...byGameMonth.values()];
+  }
+  const byRun = new Map();
+  matches.forEach(run => {
+    const key = run.run_id || `${run.game_code || '-'}|${run.period_key || '-'}|${run.status || '-'}|${run.data_hash_before || ''}|${run.data_hash_after || ''}`;
+    if(!byRun.has(key)) byRun.set(key, run);
+  });
+  return [...byRun.values()].slice(0, 12);
+}
+
 function renderRunInspector(result){
-  const matches = result.matches || [];
+  const rawMatches = result.matches || [];
+  const matches = compactRunLookupMatches(rawMatches);
   const target = result.cleanup_suggestion || {};
   lastCleanupSuggestion = target && target.run_id ? target : null;
   lastRunMatches = matches;
@@ -1544,6 +1564,7 @@ function renderRunInspector(result){
     updateBatchCount();
     return;
   }
+  const hiddenCount = Math.max(0, rawMatches.length - matches.length);
   const cards = matches.length ? matches.map((run, index) => {
     const canCleanup = isCleanupCandidate(run);
     const statusHint = canCleanup ? '' : '<p class="soft-note">รายการนี้เป็น log ประวัติ จึงแสดงไว้ให้อ้างอิง แต่ไม่เลือกสำหรับ Clear/Build</p>';
@@ -1577,8 +1598,8 @@ function renderRunInspector(result){
   ` : '';
   document.getElementById('runInspectorResult').innerHTML = `
     <div class="health-item ${result.risk_level || 'ok'}">
-      <div><b>${escapeHtml(result.title || 'FIND')}</b><p>${escapeHtml(result.summary || 'ตรวจพบข้อมูลตามเงื่อนไข')}</p></div>
-      <span class="health-badge ${result.risk_level || 'ok'}">${escapeHtml(result.badge || 'Result')}</span>
+      <div><b>${escapeHtml(result.title || 'FIND')}</b><p>${escapeHtml(hiddenCount ? 'แสดงเฉพาะ run ที่ใช้ซ่อมได้ล่าสุดต่อเกม/เดือน รายการประวัติ cleanup ถูกซ่อนไว้เพื่อไม่ให้เลือกผิด' : (result.summary || 'ตรวจพบข้อมูลตามเงื่อนไข'))}</p></div>
+      <span class="health-badge ${result.risk_level || 'ok'}">${escapeHtml(hiddenCount ? `${matches.length}/${rawMatches.length} ใช้ได้` : (result.badge || 'Result'))}</span>
     </div>
     <div class="run-list">${cards}</div>
     ${matches.length === 1 ? suggestion : ''}
