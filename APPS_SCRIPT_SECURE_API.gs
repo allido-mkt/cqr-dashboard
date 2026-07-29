@@ -321,32 +321,36 @@ function handleAdminPipelineHealth_(e, callback) {
   const rawRows = readCentralSheetRows_('RawIngestionLogs');
   const targetRows = filterPipelineRows_(pipelineRows, game, month);
   const targetRawRows = filterPipelineRows_(rawRows, game, month);
-  const readyRows = targetRows.filter(row => String(row.status || '').toLowerCase() === 'ready');
-  const reviewRows = targetRows.filter(row => String(row.status || '').toLowerCase() === 'needs_review');
+  const readyRows = targetRows.filter(row => pipelineStatus_(row) === 'ready');
+  const reviewRows = targetRows.filter(row => pipelineStatus_(row) === 'needs_review');
   const expectedGames = ['CBM_TH', 'CBM_SEA', 'CBPC_TH', 'CBPC_SEA'];
-  const rawReadyRows = targetRawRows.filter(row => String(row.status || '').toLowerCase() === 'raw_ready');
+  const rawReadyRows = targetRawRows.filter(row => pipelineStatus_(row) === 'raw_ready');
 
   const issues = [];
   const recommendations = [];
   reviewRows.forEach(row => {
-    const previousHash = String(row.data_hash_before || '').trim();
-    const currentHash = String(row.data_hash_after || '').trim();
-    const oldRun = findOldReadyRunForHash_(pipelineRows, row.game_code, row.period_key, previousHash);
+    const gameCode = pipelineGame_(row);
+    const periodKey = pipelinePeriod_(row);
+    const previousHash = pipelineHashBefore_(row);
+    const currentHash = pipelineHashAfter_(row);
+    const oldRun = findOldReadyRunForHash_(pipelineRows, gameCode, periodKey, previousHash);
+    const oldRunId = oldRun ? pipelineRunId_(oldRun) : '';
     issues.push({
       level: 'warn',
       badge: 'Hash mismatch',
-      title: row.game_code + ' มีข้อมูลเก่าค้างอยู่',
-      detail: 'เดือน ' + row.period_key + ' เจอ previous=' + (previousHash || '-') + ' แต่ข้อมูลรอบใหม่เป็น ' + (currentHash || '-') + ' จึงยังไม่เขียนข้อมูลใหม่'
+      game_code: gameCode,
+      title: gameCode + ' มีข้อมูลเก่าค้างอยู่',
+      detail: 'เดือน ' + periodKey + ' เจอ previous=' + (previousHash || '-') + ' แต่ข้อมูลรอบใหม่เป็น ' + (currentHash || '-') + ' จึงยังไม่เขียนข้อมูลใหม่'
     });
     recommendations.push({
-      title: 'Cleanup ' + row.game_code + ' ก่อนรัน Master Data Update ใหม่',
-      detail: oldRun
+      title: 'Cleanup ' + gameCode + ' ก่อนรัน Master Data Update ใหม่',
+      detail: oldRunId
         ? 'ใช้เครื่องมือ Clean Old Run Data แบบ Preview ก่อน ถ้าตัวเลขถูกต้องค่อย confirm_delete=YES แล้วรัน Master Data Update อีกครั้ง'
         : 'ยังไม่เจอ run_id เก่าจาก hash นี้ ให้ใช้ Run Inspector ค้นด้วย hash ' + (previousHash || '-') + ' หรือเปิด PipelineLogs ตรวจแถว ready ของเกม/เดือนเดียวกัน',
       cleanup: {
-        target_game_code: row.game_code,
-        target_month: row.period_key,
-        run_id: oldRun ? oldRun.run_id : '',
+        target_game_code: gameCode,
+        target_month: periodKey,
+        run_id: oldRunId,
         search_hash: previousHash,
         previous_hash: previousHash,
         current_hash: currentHash
@@ -355,8 +359,8 @@ function handleAdminPipelineHealth_(e, callback) {
   });
 
   const dataIndexTargetRows = dataIndexRows.filter(row =>
-    (game === 'ALL' || String(row.game_code || '') === game) &&
-    String(row.period_key || row.month || '') === month
+    (normalizeGameCode_(game) === 'ALL' || pipelineGame_(row) === normalizeGameCode_(game)) &&
+    pipelinePeriod_(row) === normalizePeriodKey_(month)
   );
   if (!targetRows.length) {
     issues.push({
@@ -377,25 +381,26 @@ function handleAdminPipelineHealth_(e, callback) {
     });
   }
 
-  const dataIndexGameSet = new Set(dataIndexTargetRows.map(row => String(row.game_code || '').trim()).filter(Boolean));
-  const readyGameSet = new Set(readyRows.map(row => String(row.game_code || '').trim()).filter(Boolean));
-  const rawReadyGameSet = new Set(rawReadyRows.map(row => String(row.game_code || '').trim()).filter(Boolean));
-  const gamesToCheck = game === 'ALL' ? expectedGames : [game];
+  const dataIndexGameSet = new Set(dataIndexTargetRows.map(pipelineGame_).filter(Boolean));
+  const readyGameSet = new Set(readyRows.map(pipelineGame_).filter(Boolean));
+  const rawReadyGameSet = new Set(rawReadyRows.map(pipelineGame_).filter(Boolean));
+  const gamesToCheck = normalizeGameCode_(game) === 'ALL' ? expectedGames : [normalizeGameCode_(game)];
   const missingRawGames = targetRawRows.length ? gamesToCheck.filter(gameCode => gameCode && !rawReadyGameSet.has(gameCode)) : gamesToCheck;
   const missingReadyGames = targetRows.length ? gamesToCheck.filter(gameCode => gameCode && !readyGameSet.has(gameCode)) : [];
   const missingIndexGames = dataIndexTargetRows.length ? gamesToCheck.filter(gameCode => gameCode && !dataIndexGameSet.has(gameCode)) : [];
 
   missingRawGames.forEach(gameCode => {
     const latestRaw = targetRawRows
-      .filter(row => String(row.game_code || '') === gameCode)
-      .sort((a, b) => String(b.checked_at || '').localeCompare(String(a.checked_at || '')))[0] || null;
-    const status = latestRaw ? String(latestRaw.status || '-') : 'no raw log';
+      .filter(row => pipelineGame_(row) === gameCode)
+      .sort((a, b) => String(pipelineTime_(b) || '').localeCompare(String(pipelineTime_(a) || '')))[0] || null;
+    const status = latestRaw ? pipelineStatus_(latestRaw) || 'no status' : 'no raw log';
     issues.push({
       level: 'warn',
       badge: 'Raw check',
+      game_code: gameCode,
       title: gameCode + ' ยังไม่ผ่าน Raw Check ในเดือนนี้',
       detail: latestRaw
-        ? 'Raw log ล่าสุดเป็นสถานะ ' + status + ' และพบ ' + (latestRaw.tab_count_found || 0) + '/' + (latestRaw.tab_count_expected || 5) + ' tab แนะนำตรวจ Raw file ก่อน Build'
+        ? 'Raw log ล่าสุดเป็นสถานะ ' + status + ' และพบ ' + (rowValue_(latestRaw, ['tab_count_found']) || 0) + '/' + (rowValue_(latestRaw, ['tab_count_expected']) || 5) + ' tab แนะนำตรวจ Raw file ก่อน Build'
         : 'ยังไม่พบ RawIngestionLogs ของ ' + gameCode + ' สำหรับรอบ ' + month + ' แนะนำรัน Raw Data Check หรือรอ Auto Pipeline รอบวันอาทิตย์'
     });
     recommendations.push({
@@ -411,10 +416,11 @@ function handleAdminPipelineHealth_(e, callback) {
   });
 
   missingReadyGames.forEach(gameCode => {
-    if (reviewRows.some(row => String(row.game_code || '') === gameCode)) return;
+    if (reviewRows.some(row => pipelineGame_(row) === gameCode)) return;
     issues.push({
       level: 'warn',
       badge: 'Missing ready run',
+      game_code: gameCode,
       title: gameCode + ' ยังไม่มี ready run ในเดือนนี้',
       detail: 'ยังไม่พบ run สถานะ ready ของ ' + gameCode + ' ในรอบ ' + month + ' แนะนำตรวจ PipelineLogs หรือรัน Master Data Update ใหม่หลังเคลียร์ข้อมูลเก่าเรียบร้อย'
     });
@@ -434,6 +440,7 @@ function handleAdminPipelineHealth_(e, callback) {
     issues.push({
       level: 'warn',
       badge: 'Missing index',
+      game_code: gameCode,
       title: gameCode + ' ยังไม่เจอใน DataIndex',
       detail: 'Central DB ยังไม่มี index ของ ' + gameCode + ' สำหรับรอบ ' + month + ' อาจทำให้ Dashboard หรือ AI CHAT อ่านข้อมูลไม่ครบ'
     });
@@ -540,51 +547,77 @@ function handleAdminPipelineRunLookup_(e, callback) {
   const game = String(e.parameter.game || 'ALL').trim();
   const month = String(e.parameter.month || '').trim();
   const query = String(e.parameter.query || '').trim().toLowerCase();
-  const rows = readCentralSheetRows_('PipelineLogs')
-    .filter(row => game === 'ALL' || String(row.game_code || '') === game)
-    .filter(row => !month || String(row.period_key || row.month || '') === month)
-    .filter(row => {
+  const wantedGame = normalizeGameCode_(game);
+  const wantedMonth = normalizePeriodKey_(month);
+  const pipelineRows = readCentralSheetRows_('PipelineLogs');
+  const enrichedRows = pipelineRows.map(row => ({
+    row,
+    game_code: pipelineGame_(row),
+    period_key: pipelinePeriod_(row),
+    run_id: pipelineRunId_(row),
+    status: pipelineStatus_(row),
+    data_hash_before: pipelineHashBefore_(row),
+    data_hash_after: pipelineHashAfter_(row),
+    sort_time: pipelineTime_(row)
+  }));
+  const gameRows = enrichedRows.filter(item => wantedGame === 'ALL' || item.game_code === wantedGame);
+  const monthRows = gameRows.filter(item => !wantedMonth || item.period_key === wantedMonth);
+  const rows = monthRows
+    .filter(item => {
       if (!query) return true;
+      const row = item.row;
       return [
-        row.run_id,
-        row.data_hash_before,
-        row.data_hash_after,
-        row.status,
-        row.error_message,
-        row.message
+        item.run_id,
+        item.data_hash_before,
+        item.data_hash_after,
+        item.status,
+        rowValue_(row, ['error_message', 'error message']),
+        rowValue_(row, ['message'])
       ].join(' ').toLowerCase().indexOf(query) >= 0;
     })
-    .sort((a, b) => String(b.run_finished_at || b.run_started_at || '').localeCompare(String(a.run_finished_at || a.run_started_at || '')))
+    .sort((a, b) => String(b.sort_time || '').localeCompare(String(a.sort_time || '')))
     .slice(0, 30);
 
-  const firstReady = rows.find(row => String(row.status || '').toLowerCase() === 'ready') || rows[0] || null;
+  const firstReady = rows.find(item => item.status === 'ready') || rows[0] || null;
   return json_({
     ok: true,
     title: rows.length ? 'พบ run ที่เกี่ยวข้อง' : 'ไม่พบ run ที่ตรงเงื่อนไข',
     summary: rows.length
       ? 'ใช้ข้อมูลนี้เพื่อกรอก Cleanup Config หรือยืนยันว่ารอบล่าสุดเขียนสำเร็จแล้ว'
-      : 'ลองค้นด้วย hash เก่า หรือใส่ run_id เต็ม',
-    risk_level: rows.some(row => String(row.status || '').toLowerCase() === 'needs_review') ? 'warn' : 'ok',
+      : buildRunLookupEmptySummary_(pipelineRows.length, gameRows.length, monthRows.length, query),
+    risk_level: rows.some(item => item.status === 'needs_review') ? 'warn' : 'ok',
     badge: rows.length + ' match',
-    matches: rows.map(row => ({
-      run_id: row.run_id || '',
-      game_code: row.game_code || '',
-      period_key: row.period_key || row.month || '',
-      status: row.status || '',
-      data_hash_before: row.data_hash_before || '',
-      data_hash_after: row.data_hash_after || '',
-      rows_read: row.rows_read || '',
-      rows_written: row.rows_written || '',
-      run_started_at: row.run_started_at || '',
-      run_finished_at: row.run_finished_at || '',
-      message: row.error_message || row.message || ''
+    matches: rows.map(item => ({
+      run_id: item.run_id || '',
+      game_code: item.game_code || '',
+      period_key: item.period_key || '',
+      status: item.status || '',
+      data_hash_before: item.data_hash_before || '',
+      data_hash_after: item.data_hash_after || '',
+      rows_read: rowValue_(item.row, ['rows_read', 'rows read']) || '',
+      rows_written: rowValue_(item.row, ['rows_written', 'rows written']) || '',
+      run_started_at: rowValue_(item.row, ['run_started_at', 'run started at']) || '',
+      run_finished_at: rowValue_(item.row, ['run_finished_at', 'run finished at']) || '',
+      message: rowValue_(item.row, ['error_message', 'error message']) || rowValue_(item.row, ['message']) || ''
     })),
     cleanup_suggestion: firstReady ? {
-      target_game_code: firstReady.game_code || game,
-      target_month: firstReady.period_key || month,
+      target_game_code: firstReady.game_code || wantedGame || game,
+      target_month: firstReady.period_key || wantedMonth || month,
       run_id: firstReady.run_id || '',
       hash: firstReady.data_hash_after || firstReady.data_hash_before || ''
-    } : null
+    } : null,
+    debug: {
+      requested_game: game,
+      normalized_game: wantedGame,
+      requested_month: month,
+      normalized_month: wantedMonth,
+      query: query,
+      total_pipeline_logs: pipelineRows.length,
+      matching_game: gameRows.length,
+      matching_game_month: monthRows.length,
+      sample_games: uniqueValues_(enrichedRows.map(item => item.game_code)).slice(0, 8),
+      sample_periods: uniqueValues_(enrichedRows.map(item => item.period_key)).slice(0, 8)
+    }
   }, callback);
 }
 
@@ -686,24 +719,92 @@ function readCentralSheetRows_(sheetName) {
 }
 
 function normalizeHeader_(header) {
-  return String(header || '').trim().toLowerCase().replace(/\s+/g, '_');
+  return String(header || '').trim().toLowerCase().replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, '_');
 }
 
 function filterPipelineRows_(rows, game, month) {
+  const wantedGame = normalizeGameCode_(game);
+  const wantedMonth = normalizePeriodKey_(month);
   return rows.filter(row =>
-    (game === 'ALL' || String(row.game_code || '') === game) &&
-    (!month || String(row.period_key || row.month || '') === month)
+    (wantedGame === 'ALL' || pipelineGame_(row) === wantedGame) &&
+    (!wantedMonth || pipelinePeriod_(row) === wantedMonth)
   );
 }
 
 function findOldReadyRunForHash_(rows, game, month, hash) {
   if (!hash) return null;
+  const wantedGame = normalizeGameCode_(game);
+  const wantedMonth = normalizePeriodKey_(month);
+  const wantedHash = String(hash || '').trim();
   return rows
-    .filter(row => String(row.game_code || '') === String(game || ''))
-    .filter(row => String(row.period_key || row.month || '') === String(month || ''))
-    .filter(row => String(row.status || '').toLowerCase() === 'ready')
-    .filter(row => String(row.data_hash_after || row.data_hash_before || '') === String(hash || ''))
-    .sort((a, b) => String(b.run_finished_at || b.run_started_at || '').localeCompare(String(a.run_finished_at || a.run_started_at || '')))[0] || null;
+    .filter(row => pipelineGame_(row) === wantedGame)
+    .filter(row => pipelinePeriod_(row) === wantedMonth)
+    .filter(row => pipelineStatus_(row) === 'ready')
+    .filter(row => pipelineHashAfter_(row) === wantedHash || pipelineHashBefore_(row) === wantedHash)
+    .sort((a, b) => String(pipelineTime_(b) || '').localeCompare(String(pipelineTime_(a) || '')))[0] || null;
+}
+
+function buildRunLookupEmptySummary_(totalRows, gameRows, monthRows, query) {
+  if (!totalRows) return 'ยังไม่พบข้อมูลใน PipelineLogs ของ Central DB ที่ Apps Script อ่านอยู่';
+  if (!gameRows) return 'PipelineLogs มีข้อมูลแล้ว แต่ยังไม่เจอเกมนี้ แนะนำเช็กชื่อเกมหรือ Central DB ที่ n8n เขียน log';
+  if (!monthRows) return 'เจอเกมนี้ใน PipelineLogs แล้ว แต่ยังไม่เจอเดือนที่เลือก แนะนำเช็ก period_key ของ run';
+  if (query) return 'เจอเกมและเดือนแล้ว แต่ไม่พบ run/hash ตามคำค้น ลองล้างช่องค้นหาแล้วกด FIND อีกครั้ง';
+  return 'เจอเกมและเดือนแล้ว แต่ยังไม่มี run ที่ใช้แสดงผลได้';
+}
+
+function rowValue_(row, keys) {
+  const aliases = keys.map(normalizeHeader_);
+  for (let i = 0; i < aliases.length; i += 1) {
+    if (Object.prototype.hasOwnProperty.call(row, aliases[i])) return row[aliases[i]];
+  }
+  return '';
+}
+
+function normalizeGameCode_(value) {
+  const text = String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+  return text || 'ALL';
+}
+
+function normalizePeriodKey_(value) {
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value)) {
+    return Utilities.formatDate(value, 'Asia/Bangkok', 'yyyy-MM');
+  }
+  const text = String(value || '').trim();
+  const match = text.match(/(20\d{2})[-\/_\s]?(\d{1,2})/);
+  if (match) return match[1] + '-' + ('0' + match[2]).slice(-2);
+  return text;
+}
+
+function pipelineGame_(row) {
+  return normalizeGameCode_(rowValue_(row, ['game_code', 'game', 'target_game_code', 'source_game_code']));
+}
+
+function pipelinePeriod_(row) {
+  return normalizePeriodKey_(rowValue_(row, ['period_key', 'period', 'target_month', 'month']));
+}
+
+function pipelineRunId_(row) {
+  return String(rowValue_(row, ['run_id', 'run id', 'runid', 'cleanup_target_run_id']) || '').trim();
+}
+
+function pipelineStatus_(row) {
+  return String(rowValue_(row, ['status', 'workflow_status']) || '').trim().toLowerCase();
+}
+
+function pipelineHashBefore_(row) {
+  return String(rowValue_(row, ['data_hash_before', 'data hash before', 'previous_hash', 'cleanup_hash']) || '').trim();
+}
+
+function pipelineHashAfter_(row) {
+  return String(rowValue_(row, ['data_hash_after', 'data hash after', 'current_hash', 'raw_data_hash']) || '').trim();
+}
+
+function pipelineTime_(row) {
+  return rowValue_(row, ['run_finished_at', 'run_started_at', 'checked_at', 'finished_at', 'started_at']) || '';
+}
+
+function uniqueValues_(values) {
+  return Array.from(new Set(values.map(value => String(value || '').trim()).filter(Boolean)));
 }
 
 function validateSession_(sessionToken) {

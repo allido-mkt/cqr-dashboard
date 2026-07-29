@@ -202,6 +202,10 @@ tbody tr:hover{background:#fbfaf8}
 .health-item.ok{border-left-color:var(--teal);background:#f0fdfa}
 .health-item b{font-size:13px}
 .health-item p{margin:4px 0 0;color:var(--sub);font-size:11.5px;line-height:1.5}
+.run-debug{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.run-debug div{border:1px solid #fed7aa;background:#fff;border-radius:10px;padding:8px}
+.run-debug span{display:block;color:var(--muted);font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+.run-debug b{display:block;margin-top:3px;font-size:12px;color:var(--ink)}
 .health-badge{height:24px;border-radius:999px;padding:0 8px;display:inline-flex;align-items:center;font-size:10px;font-weight:800;background:#eef2ff;color:#3730a3;white-space:nowrap}
 .health-badge.warn{background:#fffbeb;color:#92400e}
 .health-badge.danger{background:#ffe4e6;color:#9f1239}
@@ -1399,9 +1403,19 @@ function renderRunInspector(result){
   lastCleanupSuggestion = target && target.run_id ? target : null;
   lastRunMatches = matches;
   if(!matches.length){
+    const debug = result.debug || {};
+    const diagnostics = debug.total_pipeline_logs !== undefined ? `
+      <div class="run-debug">
+        <div><span>PipelineLogs ที่อ่านได้</span><b>${escapeHtml(debug.total_pipeline_logs ?? 0)} แถว</b></div>
+        <div><span>ตรงเกมที่เลือก</span><b>${escapeHtml(debug.matching_game ?? 0)} แถว</b></div>
+        <div><span>ตรงเดือนที่เลือก</span><b>${escapeHtml(debug.matching_game_month ?? 0)} แถว</b></div>
+        ${debug.query ? `<div><span>คำค้น</span><b>${escapeHtml(debug.query)}</b></div>` : ''}
+      </div>
+      <p class="soft-note">ถ้า “ตรงเกม” หรือ “ตรงเดือน” เป็น 0 แปลว่า log ที่ Apps Script อ่านอยู่ยังไม่มีรายการนี้ หรือ n8n อาจเขียนคนละ Central DB. ถ้ามีแถวตรงเกม/เดือน แต่ยัง 0 match ให้ล้างช่อง Run ID / Hash แล้วกด FIND อีกครั้ง.</p>
+    ` : '';
     document.getElementById('runInspectorResult').innerHTML = `
       <div class="health-item warn">
-        <div><b>ยังไม่พบ run ที่ใช้ซ่อมได้</b><p>ลองเลือก Game ให้ตรงกับเกมที่ Data Health แจ้งไว้ แล้วกด FIND อีกครั้ง. ถ้ายังไม่เจอ อาจต้องรอให้ Auto Pipeline เขียน log เข้ามา หรือเช็ก Central DB แท็บ PipelineLogs.</p></div>
+        <div><b>ยังไม่พบ run ที่ใช้ซ่อมได้</b><p>${escapeHtml(result.summary || 'ลองเลือก Game ให้ตรงกับเกมที่ Data Health แจ้งไว้ แล้วกด FIND อีกครั้ง')}</p>${diagnostics}</div>
         <span class="health-badge warn">0 match</span>
       </div>
     `;
