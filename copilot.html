@@ -145,10 +145,14 @@ tbody tr:hover{background:#fbfaf8}
 .section-eyebrow{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#d97706;margin-bottom:5px}
 .section-title{font-size:22px;font-weight:900;letter-spacing:.02em;text-transform:uppercase;line-height:1.1}
 .section-desc{font-size:12.5px;color:var(--sub);line-height:1.65;margin-top:6px;max-width:820px}
-.flow-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.flow-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
 .flow-card{border:1px solid #f1f0ee;background:#fff;border-radius:14px;padding:12px;display:grid;gap:4px;min-height:86px}
 .flow-card b{font-size:12.5px;text-transform:uppercase}
 .flow-card span{font-size:11px;line-height:1.45;color:var(--sub)}
+.health-guide{margin-top:14px;border:1px solid #fed7aa;background:#fffaf0;border-radius:16px;padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.health-guide b{font-size:13px;text-transform:uppercase}
+.health-guide p{margin:4px 0 0;color:var(--sub);font-size:12px;line-height:1.55}
+.health-guide .guide-pill{border:1px solid #fdba74;background:#fff;color:#9a3412;border-radius:999px;padding:8px 12px;font-size:11px;font-weight:900;text-transform:uppercase;white-space:nowrap}
 .flow-card.auto{border-color:#99f6e4;background:#f0fdfa}
 .flow-card.manual{border-color:#fed7aa;background:#fffaf0}
 .flow-card.safe{border-color:#bfdbfe;background:#eff6ff}
@@ -166,6 +170,21 @@ tbody tr:hover{background:#fbfaf8}
 .status-card strong{display:block;font-size:18px;font-family:'Inter',sans-serif;line-height:1.1;margin-top:8px}
 .status-card span{font-size:10.5px;color:var(--sub);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
 .health-list,.recommend-list{display:grid;gap:10px;margin-top:14px}
+.health-summary{border:1px solid #fed7aa;background:#fffaf0;border-radius:16px;padding:16px;margin-top:14px;display:grid;gap:10px}
+.health-summary.ok{border-color:#99f6e4;background:#f0fdfa}
+.health-summary.warn{border-color:#fed7aa;background:#fffaf0}
+.health-summary.danger{border-color:#fecdd3;background:#fff1f2}
+.health-summary h3{margin:0;font-size:17px;line-height:1.25}
+.health-summary p{margin:0;color:var(--sub);font-size:12px;line-height:1.55}
+.health-next{border-top:1px solid rgba(217,119,6,.2);padding-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.health-next b{font-size:12.5px}
+.health-next span{font-size:11.5px;color:var(--sub);line-height:1.45}
+.health-mini-list{display:grid;gap:8px}
+.health-mini{border:1px solid #f1f0ee;background:#fff;border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.health-mini div{min-width:0}
+.health-mini b{font-size:12.5px}
+.health-mini p{margin:3px 0 0;font-size:11.2px;color:var(--sub);line-height:1.45}
+.health-muted{font-size:11.5px;color:var(--sub);line-height:1.5}
 .health-item{border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:12px;padding:12px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
 .health-item.warn{border-left-color:var(--amber);background:#fffaf0}
 .health-item.danger{border-left-color:var(--rose);background:#fff1f2}
@@ -245,6 +264,8 @@ tbody tr:hover{background:#fbfaf8}
 @media(max-width:720px){
  .shell{padding:0 14px 32px}.topbar{align-items:flex-start;flex-direction:column}
  .form-grid,.filter-grid,.question-grid,.tool-grid,.status-grid,.run-meta,.admin-tabs,.action-grid,.step-list,.flow-strip{grid-template-columns:1fr}
+ .health-guide{display:grid}
+ .health-guide .guide-pill{width:max-content}
  .chat-card{min-height:560px}.chat-feed{max-height:520px}
 }
 </style>
@@ -524,12 +545,14 @@ tbody tr:hover{background:#fbfaf8}
                 <div class="section-intro">
                   <div class="section-eyebrow">Admin Tool</div>
                   <div class="section-title">DATA HEALTH CHECKUP</div>
-                  <div class="section-desc">เลือก Game และ Month แล้วกด CHECKUP เพื่อตรวจต้นทาง Raw Data, สถานะ Build Master และ Log ใน Central DB. ถ้าระบบพบปัญหา จะมีปุ่มส่งรายการไป Data Control เพื่อหา Run ID และซ่อมต่อได้ทันที.</div>
+                  <div class="section-desc">ใช้หน้านี้เพื่อเช็กว่า Raw Data, Master Data และ Central DB ของเดือนที่เลือกตรงกันหรือยัง ถ้ามีจุดที่ต้องซ่อม ระบบจะสรุปให้สั้น ๆ แล้วส่งต่อไป Data Control ได้ทันที.</div>
                 </div>
-                <div class="flow-strip">
-                  <div class="flow-card auto"><b>Auto Sunday</b><span>Raw Check 15:00, Build 16:00 และ Controller 17:00 ทำงานเองสำหรับรอบปัจจุบัน</span></div>
-                  <div class="flow-card manual"><b>Manual Repair</b><span>ใช้เฉพาะตอน Health เจอปัญหา หรืออยาก backfill เดือนเก่าแบบเลือกเกม/เดือนเอง</span></div>
-                  <div class="flow-card safe"><b>Safe Rule</b><span>Preview ก่อน Clear ทุกครั้ง และเลี่ยงกดทับช่วง Auto กำลังรันวันอาทิตย์</span></div>
+                <div class="health-guide">
+                  <div>
+                    <b>วิธีใช้แบบสั้น</b>
+                    <p>เลือก Game กับ Month แล้วกด CHECKUP. ถ้าผลออกมาพร้อมใช้งาน ให้จบที่หน้านี้ได้เลย. ถ้าพบรายการที่ควรซ่อม ให้กด SEND TO DATA CONTROL เพื่อไปหา Run ID และจัดการต่อ.</p>
+                  </div>
+                  <span class="guide-pill">Check first</span>
                 </div>
                 <div class="tool-panel">
                 <div class="tool-grid health-tool">
@@ -566,13 +589,12 @@ tbody tr:hover{background:#fbfaf8}
                   <div class="status-card cleanup"><span>Cleanup Needed</span><strong>-</strong></div>
                 </div>
                 <div class="health-list" id="healthIssueList">
-                  <div class="health-item ok"><div><b>รอเช็กข้อมูล</b><p>กด CHECKUP เพื่อดูความผิดปกติของไฟล์และคำแนะนำ</p></div><span class="health-badge ok">Ready</span></div>
+                  <div class="health-summary ok"><h3>ยังไม่ได้ตรวจข้อมูล</h3><p>กด CHECKUP เพื่อดูสถานะของเกมและเดือนที่เลือก</p></div>
                 </div>
                 <div class="handoff-bar" id="healthHandoff">
-                  <div><b>ส่งรายการนี้ไป Data Control</b><p>ระบบจะนำ Game, Month และ Hash ที่พบไปเตรียมค้นหา Run ID สำหรับซ่อมต่อ</p></div>
+                  <div><b>มีรายการที่ควรซ่อมต่อ</b><p>กดปุ่มนี้เพื่อเปิด Data Control พร้อม Game, Month และ Hash ที่ต้องใช้ค้นหา Run ID</p></div>
                   <button class="context-submit" type="button" onclick="sendHealthToDataControl()">SEND TO DATA CONTROL</button>
                 </div>
-                <div class="recommend-list" id="healthRecommendationList"></div>
               </div>
             </div>
           </article>
@@ -1161,7 +1183,7 @@ async function loadPipelineHealth(){
   const game = document.getElementById('healthGame')?.value || document.getElementById('toolGame')?.value || 'ALL';
   const month = document.getElementById('healthMonth')?.value.trim() || document.getElementById('toolMonth')?.value.trim() || '2026-06';
   document.getElementById('healthHandoff')?.classList.remove('active');
-  document.getElementById('healthIssueList').innerHTML = '<div class="health-item"><div><b>กำลังเช็กไฟล์</b><p>กำลังอ่าน PipelineLogs และ DataIndex เพื่อหา hash ที่ชนหรือ run ที่ยังต้อง review</p></div><span class="health-badge">Checking</span></div>';
+  document.getElementById('healthIssueList').innerHTML = '<div class="health-summary warn"><h3>กำลังตรวจข้อมูล</h3><p>ระบบกำลังเช็ก Raw, Master และ Central DB ของเกม/เดือนที่เลือก</p></div>';
   try{
     const result = await callAppsScript('admin.pipeline.health', {
       session_token: session.sessionToken,
@@ -1407,33 +1429,54 @@ function renderPipelineHealth(result){
       ? 'พยายามเช็กผ่าน n8n แล้ว แต่ workflow ยังตอบไม่สำเร็จ'
       : 'เช็กจาก Central DB ผ่าน Apps Script';
   const autoNote = result.auto_pipeline_note || 'Auto Pipeline ทำงานวันอาทิตย์ตามเวลา ส่วนหน้านี้ใช้ตรวจและซ่อมเฉพาะเคส';
-  document.getElementById('healthScoreCards').innerHTML = `
-    <div class="status-card health"><span>Health</span><strong>${escapeHtml(summary.health_score || '-')}</strong></div>
-    <div class="status-card ready"><span>Raw Ready</span><strong>${escapeHtml(summary.raw_ready ?? summary.ready_runs ?? '-')}</strong></div>
-    <div class="status-card review"><span>Needs Review</span><strong>${escapeHtml(summary.needs_review ?? '-')}</strong></div>
-    <div class="status-card cleanup"><span>Cleanup Needed</span><strong>${escapeHtml(summary.cleanup_needed ?? '-')}</strong></div>
-  `;
   const issues = result.issues || [];
-  const sourceNote = `<div class="health-item ok"><div><b>แหล่งตรวจสอบ</b><p>${escapeHtml(sourceLabel)} · ${escapeHtml(autoNote)}</p></div><span class="health-badge ok">Source</span></div>`;
-  document.getElementById('healthIssueList').innerHTML = sourceNote + (issues.length ? issues.map(issue => `
-    <div class="health-item ${escapeHtml(issue.level || 'ok')}">
-      <div><b>${escapeHtml(issue.title)}</b><p>${escapeHtml(issue.detail)}</p></div>
-      <span class="health-badge ${escapeHtml(issue.level || 'ok')}">${escapeHtml(issue.badge || 'Check')}</span>
+  const hasIssues = issues.length > 0 || Number(summary.needs_review || 0) > 0 || Number(summary.cleanup_needed || 0) > 0;
+  document.getElementById('healthScoreCards').innerHTML = `
+    <div class="status-card health"><span>สถานะรวม</span><strong>${escapeHtml(summary.health_score || '-')}</strong></div>
+    <div class="status-card ready"><span>Raw พร้อม</span><strong>${escapeHtml(summary.raw_ready ?? summary.ready_runs ?? '-')}</strong></div>
+    <div class="status-card review"><span>ต้องตรวจ</span><strong>${escapeHtml(summary.needs_review ?? '-')}</strong></div>
+    <div class="status-card cleanup"><span>ต้องซ่อม</span><strong>${escapeHtml(summary.cleanup_needed ?? '-')}</strong></div>
+  `;
+  const mainTitle = hasIssues ? 'ข้อมูลรอบนี้ยังมีจุดที่ควรซ่อมก่อนใช้งานเต็มรูปแบบ' : 'ข้อมูลพร้อมใช้งาน';
+  const mainDetail = hasIssues
+    ? 'ระบบพบว่า Raw/Master ของบางเกมยังไม่ตรงกับรอบล่าสุด จึงควรส่งต่อไป Data Control เพื่อหา Run ID แล้ว Preview ก่อน Clear/Build'
+    : 'ยังไม่พบปัญหาหลักจากข้อมูลที่เลือก สามารถใช้ Dashboard และ AI CHAT ต่อได้ตามปกติ';
+  const issueGroups = issues.reduce((acc, issue) => {
+    const badge = String(issue.badge || 'Check');
+    if(!acc[badge]) acc[badge] = [];
+    acc[badge].push(issue);
+    return acc;
+  }, {});
+  const issuePreview = Object.entries(issueGroups).slice(0, 4).map(([badge, group]) => {
+    const games = group.map(issue => String(issue.title || '').split(' ')[0]).filter(Boolean);
+    const title = badge === 'Hash mismatch'
+      ? `Hash mismatch: ${games.join(', ')}`
+      : `${badge}: ${games.join(', ') || group.length + ' รายการ'}`;
+    const detail = badge === 'Hash mismatch'
+      ? 'มีข้อมูลเก่าค้างใน Master/Central DB ต้องไป Preview และ Clear ใน Data Control ก่อน Build ใหม่'
+      : group[0]?.detail || 'มีรายการที่ควรตรวจเพิ่ม';
+    const level = group.some(issue => issue.level === 'danger') ? 'danger' : group.some(issue => issue.level === 'warn') ? 'warn' : 'ok';
+    return `
+    <div class="health-mini">
+      <div><b>${escapeHtml(title)}</b><p>${escapeHtml(detail)}</p></div>
+      <span class="health-badge ${escapeHtml(level)}">${escapeHtml(group.length + ' รายการ')}</span>
     </div>
-  `).join('') : '<div class="health-item ok"><div><b>ไม่พบความผิดปกติหลัก</b><p>ไฟล์พร้อมใช้งานตามเงื่อนไขที่เลือก</p></div><span class="health-badge ok">Healthy</span></div>');
+  `}).join('');
+  const extraCount = Object.keys(issueGroups).length > 4 ? `<p>ยังมีประเภทปัญหาอื่นเพิ่มเติม ระบบจะส่งรายละเอียดไป Data Control ให้จัดการต่อ</p>` : '';
+  const nextText = hasIssues
+    ? 'ขั้นตอนถัดไป: กด SEND TO DATA CONTROL'
+    : 'ขั้นตอนถัดไป: ไม่ต้องทำอะไรเพิ่ม รอ Auto Pipeline รอบถัดไปหรือใช้งาน Dashboard ได้เลย';
+  document.getElementById('healthIssueList').innerHTML = `
+    <div class="health-summary ${hasIssues ? 'warn' : 'ok'}">
+      <h3>${escapeHtml(mainTitle)}</h3>
+      <p>${escapeHtml(mainDetail)}</p>
+      ${issuePreview ? `<div class="health-mini-list">${issuePreview}</div>${extraCount}` : ''}
+      <div class="health-next">
+        <div><b>${escapeHtml(nextText)}</b><br><span>${escapeHtml(hasIssues ? 'Data Control จะช่วยหา Run ID และจัดลำดับ Preview → Clear → Build ให้ต่อ' : sourceLabel + ' · ' + autoNote)}</span></div>
+      </div>
+    </div>
+  `;
   document.getElementById('healthHandoff')?.classList.toggle('active', lastHealthRecommendations.length > 0);
-  document.getElementById('healthRecommendationList').innerHTML = lastHealthRecommendations.map((item, index) => `
-    <div class="copy-box">
-      <b>${index + 1}. ${escapeHtml(item.title)}</b>
-      <div class="soft-note">${escapeHtml(item.detail)}</div>
-      ${item.cleanup ? `
-        <div class="copy-line"><span>target_game_code</span><code>${escapeHtml(item.cleanup.target_game_code)}</code></div>
-        <div class="copy-line"><span>target_month</span><code>${escapeHtml(item.cleanup.target_month)}</code></div>
-        ${item.cleanup.search_hash ? `<div class="copy-line"><span>hash สำหรับค้นหา</span><code>${escapeHtml(item.cleanup.search_hash)}</code><button class="copy-chip" type="button" onclick="copyText('${escapeAttr(item.cleanup.search_hash)}', this)">Copy</button></div>` : ''}
-        ${item.cleanup.run_id ? `<div class="copy-line"><span>run_id</span><code>${escapeHtml(item.cleanup.run_id)}</code></div>` : ''}
-      ` : ''}
-    </div>
-  `).join('');
 }
 
 function copyText(value, button){
