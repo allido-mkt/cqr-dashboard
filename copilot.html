@@ -1754,6 +1754,24 @@ function isRepairHealthIssue(issue){
 function buildHealthOverviewRows(result, issues, recommendations){
   const selectedGame = document.getElementById('healthGame')?.value || result.game || 'ALL';
   const selectedMonth = document.getElementById('healthMonth')?.value || result.month || '2026-06';
+  const backendRows = Array.isArray(result.scope_rows) ? result.scope_rows : (Array.isArray(result.overview_rows) ? result.overview_rows : []);
+  if(backendRows.length){
+    return backendRows.map(row => ({
+      game: String(row.game_code || row.game || '').trim(),
+      month: normalizePeriodKey(row.period_key || row.month || ''),
+      raw: String(row.raw || row.raw_label || 'รอตรวจ').trim(),
+      rawLevel: String(row.raw_level || row.rawLevel || 'warn').trim(),
+      master: String(row.master || row.master_label || 'รอตรวจ').trim(),
+      masterLevel: String(row.master_level || row.masterLevel || 'warn').trim(),
+      action: String(row.action || row.action_label || 'ตรวจต่อ').trim(),
+      actionLevel: String(row.action_level || row.actionLevel || 'warn').trim(),
+      actionStatus: String(row.action_status || '').trim(),
+      rawHash: String(row.raw_hash || '').trim(),
+      masterHash: String(row.master_hash || '').trim(),
+      readyRunId: String(row.ready_run_id || '').trim(),
+      latestRunId: String(row.latest_run_id || '').trim()
+    })).filter(row => row.game && row.game !== 'ALL');
+  }
   const issueFallbackMonth = result.month && result.month !== 'ALL' ? result.month : selectedMonth;
   const expectedGames = getScopeGames(selectedGame);
   const expectedMonths = getScopeMonths(selectedMonth);
@@ -1762,11 +1780,11 @@ function buildHealthOverviewRows(result, issues, recommendations){
     bySlot[getGameMonthKey(game, month)] = {
       game,
       month,
-      raw: 'ยังไม่พบข้อมูล',
+      raw: 'ยังไม่มี Raw Check',
       rawLevel: 'warn',
       master: 'ยังไม่ยืนยัน',
       masterLevel: 'warn',
-      action: 'กด CHECKUP เพื่อดูรายละเอียด',
+      action: 'รัน Raw Check รอบนี้ก่อน',
       actionLevel: 'warn'
     };
   }));
@@ -1890,7 +1908,16 @@ function renderPipelineHealth(result){
       runId: String(cleanup.run_id || '').trim()
     }))
     .filter(task => task.game && task.game !== 'ALL' && (task.hash || task.runId));
-  lastHealthRepairTasks = [...rawRepairTasks.reduce((map, task) => {
+  const overviewRepairTasks = buildHealthOverviewRows(result, issues, lastHealthRecommendations)
+    .filter(row => row.actionStatus === 'repair' || row.action === 'ไป Data Control')
+    .map(row => ({
+      game: row.game,
+      month: row.month,
+      hash: row.masterHash || row.rawHash || '',
+      runId: row.readyRunId || row.latestRunId || ''
+    }))
+    .filter(task => task.game && task.game !== 'ALL' && (task.hash || task.runId));
+  lastHealthRepairTasks = [...[...rawRepairTasks, ...overviewRepairTasks].reduce((map, task) => {
     const key = `${task.game}|${task.month || 'ALL'}`;
     if(!map.has(key)) map.set(key, task);
     return map;
