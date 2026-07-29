@@ -568,7 +568,7 @@ function handleAdminPipelineRunLookup_(e, callback) {
   }));
   const gameRows = enrichedRows.filter(item => wantedGame === 'ALL' || item.game_code === wantedGame);
   const monthRows = gameRows.filter(item => !wantedMonth || item.period_key === wantedMonth);
-  const rows = monthRows
+  const candidateRows = monthRows
     .filter(item => {
       if (!query) return true;
       const row = item.row;
@@ -581,6 +581,9 @@ function handleAdminPipelineRunLookup_(e, callback) {
         rowValue_(row, ['message'])
       ].join(' ').toLowerCase().indexOf(query) >= 0;
     })
+    .filter(item => isPipelineLookupCandidate_(item, !!query));
+
+  const rows = compactPipelineLookupRows_(candidateRows, !!query)
     .sort((a, b) => String(b.sort_time || '').localeCompare(String(a.sort_time || '')))
     .slice(0, 30);
 
@@ -627,6 +630,34 @@ function handleAdminPipelineRunLookup_(e, callback) {
       sample_periods: uniqueValues_(enrichedRows.map(item => item.period_key)).slice(0, 8)
     }
   }, callback);
+}
+
+function isPipelineLookupCandidate_(item, hasQuery) {
+  const status = String(item.status || '').toLowerCase();
+  const runId = String(item.run_id || '');
+  if (/^CLEANUP/i.test(runId)) return false;
+  if (status.indexOf('cleanup') >= 0 || status.indexOf('deleted') >= 0) return false;
+  if (hasQuery) return true;
+  return ['ready', 'needs_review', 'raw_ready'].indexOf(status) >= 0;
+}
+
+function compactPipelineLookupRows_(rows, hasQuery) {
+  if (hasQuery) return rows;
+  const byKey = {};
+  rows.forEach(function (item) {
+    const key = [
+      item.game_code || 'ALL',
+      item.period_key || '',
+      item.status || '',
+      item.data_hash_before || '',
+      item.data_hash_after || ''
+    ].join('|');
+    const current = byKey[key];
+    if (!current || String(item.sort_time || '').localeCompare(String(current.sort_time || '')) > 0) {
+      byKey[key] = item;
+    }
+  });
+  return Object.keys(byKey).map(function (key) { return byKey[key]; });
 }
 
 function handleAdminN8nCommand_(e, callback, command) {
