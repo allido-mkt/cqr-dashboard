@@ -184,6 +184,8 @@ tbody tr:hover{background:#fbfaf8}
 .health-mini div{min-width:0}
 .health-mini b{font-size:12.5px}
 .health-mini p{margin:3px 0 0;font-size:11.2px;color:var(--sub);line-height:1.45}
+.health-game-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.health-game-chip{border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;border-radius:999px;padding:5px 8px;font-size:10.5px;font-weight:900}
 .health-muted{font-size:11.5px;color:var(--sub);line-height:1.5}
 .health-item{border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:12px;padding:12px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
 .health-item.warn{border-left-color:var(--amber);background:#fffaf0}
@@ -1437,9 +1439,9 @@ function renderPipelineHealth(result){
     <div class="status-card review"><span>ต้องตรวจ</span><strong>${escapeHtml(summary.needs_review ?? '-')}</strong></div>
     <div class="status-card cleanup"><span>ต้องซ่อม</span><strong>${escapeHtml(summary.cleanup_needed ?? '-')}</strong></div>
   `;
-  const mainTitle = hasIssues ? 'ข้อมูลรอบนี้ยังมีจุดที่ควรซ่อมก่อนใช้งานเต็มรูปแบบ' : 'ข้อมูลพร้อมใช้งาน';
+  const mainTitle = hasIssues ? 'ข้อมูลบางเกมยังไม่พร้อมใช้งานเต็มรูปแบบ' : 'ข้อมูลพร้อมใช้งาน';
   const mainDetail = hasIssues
-    ? 'ระบบพบว่า Raw/Master ของบางเกมยังไม่ตรงกับรอบล่าสุด จึงควรส่งต่อไป Data Control เพื่อหา Run ID แล้ว Preview ก่อน Clear/Build'
+    ? 'ระบบพบว่า Raw Data มีรอบใหม่แล้ว แต่ Master/Central DB ของบางเกมยังเป็นข้อมูลเก่าอยู่ ให้ส่งต่อไป Data Control เพื่อซ่อมเฉพาะเกมที่พบปัญหา'
     : 'ยังไม่พบปัญหาหลักจากข้อมูลที่เลือก สามารถใช้ Dashboard และ AI CHAT ต่อได้ตามปกติ';
   const issueGroups = issues.reduce((acc, issue) => {
     const badge = String(issue.badge || 'Check');
@@ -1448,18 +1450,20 @@ function renderPipelineHealth(result){
     return acc;
   }, {});
   const issuePreview = Object.entries(issueGroups).slice(0, 4).map(([badge, group]) => {
-    const games = group.map(issue => String(issue.title || '').split(' ')[0]).filter(Boolean);
+    const games = [...new Set(group.map(issue => String(issue.game_code || issue.title || '').split(' ')[0]).filter(Boolean))];
     const title = badge === 'Hash mismatch'
-      ? `Hash mismatch: ${games.join(', ')}`
+      ? (games.length === 1 ? `${games[0]} ยังเป็นข้อมูลเก่า` : `เกมที่ต้องซ่อม: ${games.join(', ')}`)
       : `${badge}: ${games.join(', ') || group.length + ' รายการ'}`;
     const detail = badge === 'Hash mismatch'
-      ? 'มีข้อมูลเก่าค้างใน Master/Central DB ต้องไป Preview และ Clear ใน Data Control ก่อน Build ใหม่'
+      ? `ความหมาย: Raw Data ของ ${games.length} เกมนี้มีข้อมูลรอบใหม่แล้ว แต่ Master/Central DB ยังไม่ตรงกัน ให้กด SEND TO DATA CONTROL แล้วทำ Preview → Clear → Build`
       : group[0]?.detail || 'มีรายการที่ควรตรวจเพิ่ม';
     const level = group.some(issue => issue.level === 'danger') ? 'danger' : group.some(issue => issue.level === 'warn') ? 'warn' : 'ok';
+    const gameChips = games.length ? `<div class="health-game-list">${games.map(game => `<span class="health-game-chip">${escapeHtml(game)}</span>`).join('')}</div>` : '';
+    const countLabel = badge === 'Hash mismatch' ? `${games.length} เกม` : `${group.length} รายการ`;
     return `
     <div class="health-mini">
-      <div><b>${escapeHtml(title)}</b><p>${escapeHtml(detail)}</p></div>
-      <span class="health-badge ${escapeHtml(level)}">${escapeHtml(group.length + ' รายการ')}</span>
+      <div><b>${escapeHtml(title)}</b><p>${escapeHtml(detail)}</p>${gameChips}</div>
+      <span class="health-badge ${escapeHtml(level)}">${escapeHtml(countLabel)}</span>
     </div>
   `}).join('');
   const extraCount = Object.keys(issueGroups).length > 4 ? `<p>ยังมีประเภทปัญหาอื่นเพิ่มเติม ระบบจะส่งรายละเอียดไป Data Control ให้จัดการต่อ</p>` : '';
@@ -1472,7 +1476,7 @@ function renderPipelineHealth(result){
       <p>${escapeHtml(mainDetail)}</p>
       ${issuePreview ? `<div class="health-mini-list">${issuePreview}</div>${extraCount}` : ''}
       <div class="health-next">
-        <div><b>${escapeHtml(nextText)}</b><br><span>${escapeHtml(hasIssues ? 'Data Control จะช่วยหา Run ID และจัดลำดับ Preview → Clear → Build ให้ต่อ' : sourceLabel + ' · ' + autoNote)}</span></div>
+        <div><b>${escapeHtml(nextText)}</b><br><span>${escapeHtml(hasIssues ? 'ระบบจะส่งรายชื่อเกมและ Hash ที่ต้องใช้ไปหน้า Data Control เพื่อหา Run ID และซ่อมตามลำดับ' : sourceLabel + ' · ' + autoNote)}</span></div>
       </div>
     </div>
   `;
