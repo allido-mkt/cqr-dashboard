@@ -1235,9 +1235,12 @@ async function runPipelineCommand(command){
   const suggestedRunId = lastCleanupSuggestion && lastCleanupSuggestion.target_game_code === game && lastCleanupSuggestion.target_month === month
     ? lastCleanupSuggestion.run_id
     : '';
-  const cleanupRunId = selectedRuns[0]?.run_id || suggestedRunId || query;
-  const effectiveGame = selectedRuns.length === 1 ? selectedRuns[0].game_code : game;
   const queryLooksLikeRunId = /^RUN[-_]/i.test(query);
+  const cleanupRunId = selectedRuns[0]?.run_id || suggestedRunId || (queryLooksLikeRunId ? query : '');
+  const cleanupHash = query && !queryLooksLikeRunId
+    ? query
+    : selectedRuns[0]?.data_hash_before || selectedRuns[0]?.data_hash_after || lastCleanupSuggestion?.hash || '';
+  const effectiveGame = selectedRuns.length === 1 ? selectedRuns[0].game_code : game;
   const actionMap = {
     'cleanup.preview': 'admin.n8n.cleanup.preview',
     'cleanup.run': 'admin.n8n.cleanup.run',
@@ -1248,9 +1251,9 @@ async function runPipelineCommand(command){
     'cleanup.run': 'Clear',
     'master.run': 'Build'
   };
-  if((command === 'cleanup.preview' || command === 'cleanup.run') && !cleanupRunId){
+  if((command === 'cleanup.preview' || command === 'cleanup.run') && !cleanupRunId && !cleanupHash){
     resultBox.classList.add('warn');
-    resultBox.textContent = 'กรุณากด FIND หรือเลือก run ที่ต้องการก่อนใช้ Preview/Clear';
+    resultBox.textContent = 'กรุณาใส่ Run ID หรือ Hash จาก Data Health ก่อนใช้ Preview/Clear';
     return;
   }
   if(month === 'ALL' && !selectedRuns.length){
@@ -1287,7 +1290,8 @@ Run ID: ${selectedRuns.length > 1 ? selectedRuns.map(run => run.run_id).join(', 
       run_id: cleanupRunId,
       run_ids: commandRunItems.length ? JSON.stringify(commandRunItems.map(run => run.run_id)) : '',
       run_items: commandRunItems.length ? JSON.stringify(commandRunItems) : '',
-      hash: query
+      cleanup_hash: cleanupHash,
+      hash: cleanupHash || query
     });
     if(!result.ok){
       const err = new Error(result.message || 'n8n command failed');

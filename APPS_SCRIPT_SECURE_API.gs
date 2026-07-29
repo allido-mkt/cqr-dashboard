@@ -640,12 +640,12 @@ function handleAdminN8nCommand_(e, callback, command) {
     .map(function (value) { return String(value || '').trim(); })
     .filter(Boolean);
   const runItems = safeJsonParse_(e.parameter.run_items || '[]', []);
-  const hash = String(e.parameter.hash || '').trim();
+  const cleanupHash = String(e.parameter.cleanup_hash || e.parameter.hash || '').trim();
   if (!month) throw new Error('Month is required.');
-  if ((command === 'cleanup.preview' || command === 'cleanup.run') && !runId && !runIds.length) {
+  if ((command === 'cleanup.preview' || command === 'cleanup.run') && !runId && !runIds.length && !cleanupHash) {
     throw new Error('Run ID or hash is required for cleanup.');
   }
-  if ((command === 'cleanup.preview' || command === 'cleanup.run') && game === 'ALL' && !runIds.length) {
+  if ((command === 'cleanup.preview' || command === 'cleanup.run') && game === 'ALL' && !runIds.length && !cleanupHash) {
     throw new Error('Cleanup requires one selected game, not ALL.');
   }
 
@@ -661,7 +661,9 @@ function handleAdminN8nCommand_(e, callback, command) {
     run_id: runId,
     run_ids: runIds,
     run_items: runItems,
-    hash,
+    cleanup_hash: cleanupHash,
+    old_hash: cleanupHash,
+    hash: cleanupHash,
     confirm_delete: command === 'cleanup.run' ? 'YES' : 'NO',
     run_mode: command === 'master.run' ? 'force' : '',
     source: 'cqr_admin_panel'
