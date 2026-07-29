@@ -267,6 +267,9 @@ tbody tr:hover{background:#fbfaf8}
 .action-btn:disabled{opacity:.55;cursor:not-allowed}
 .action-result{border:1px solid #f1f0ee;background:#fbfaf8;border-radius:12px;padding:12px;margin-top:12px;font-size:12px;line-height:1.6;white-space:pre-wrap}
 .action-result.warn{border-color:#fed7aa;background:#fffaf0;color:#7c2d12}
+.handoff-games{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.handoff-game-btn{border:1px solid #fdba74;background:#fff;color:#9a3412;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:900;cursor:pointer}
+.handoff-game-btn.active{background:#ff9800;color:#fff;border-color:#ff9800}
 @media(max-width:1040px){
  .ai-layout,.admin-layout{grid-template-columns:1fr}
  .filter-grid,.tool-grid,.status-grid,.run-meta,.action-grid,.step-list,.flow-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1643,21 +1646,36 @@ function copyText(value, button){
 function sendHealthToDataControl(){
   const healthGame = document.getElementById('healthGame').value || 'ALL';
   const healthMonth = document.getElementById('healthMonth').value || '2026-06';
-  const singleRepairGame = lastHealthRepairGames.length === 1 ? lastHealthRepairGames[0] : '';
-  document.getElementById('toolGame').value = healthGame === 'ALL' ? (singleRepairGame || 'ALL') : healthGame;
+  const repairGames = [...new Set(lastHealthRepairGames.filter(game => game && game !== 'ALL'))];
+  const targetGame = healthGame === 'ALL' ? (repairGames[0] || 'ALL') : healthGame;
+  document.getElementById('toolGame').value = targetGame;
   document.getElementById('toolMonth').value = healthMonth;
   document.getElementById('toolRunQuery').value = '';
   const resultBox = document.getElementById('pipelineActionResult');
   resultBox.classList.add('warn');
-  resultBox.textContent = 'ส่งรายการจาก Data Health มาแล้ว\nขั้นตอนต่อไป: กด FIND เพื่อดู run ที่เกี่ยวข้อง แล้วเลือก run ก่อน Preview';
+  resultBox.innerHTML = `
+    <b>ส่งรายการจาก Data Health มาแล้ว</b><br>
+    ${repairGames.length > 1
+      ? `พบ ${repairGames.length} เกมที่ควรซ่อม ระบบเลือก ${escapeHtml(targetGame)} ให้ก่อน กดเกมอื่นด้านล่างเพื่อสลับรายการ`
+      : `ระบบเลือก ${escapeHtml(targetGame)} และ ${escapeHtml(healthMonth)} ให้แล้ว`}
+    ${repairGames.length > 1 ? `<div class="handoff-games">${repairGames.map(game => `<button class="handoff-game-btn ${game === targetGame ? 'active' : ''}" type="button" onclick="useHealthRepairGame('${escapeAttr(game)}','${escapeAttr(healthMonth)}')">${escapeHtml(game)}</button>`).join('')}</div>` : ''}
+  `;
   switchAdminTool('pipeline');
   document.getElementById('runInspectorResult').innerHTML = `
     <div class="health-item warn">
-      <div><b>พร้อมค้นหา run สำหรับซ่อม</b><p>ระบบใส่ Game และ Month จาก Data Health ให้แล้ว กด FIND เพื่อดูรายการ run ที่เกี่ยวข้อง</p></div>
+      <div><b>กำลังค้นหา run สำหรับ ${escapeHtml(targetGame)}</b><p>ระบบจะค้นจาก Game + Month ก่อน เพื่อให้เลือก run ได้ถูกเกม</p></div>
       <span class="health-badge warn">Next</span>
     </div>
   `;
   document.getElementById('batchActions').classList.remove('active');
+  inspectRun();
+}
+
+function useHealthRepairGame(game, month){
+  document.getElementById('toolGame').value = game || 'ALL';
+  document.getElementById('toolMonth').value = month || document.getElementById('healthMonth')?.value || '2026-06';
+  document.getElementById('toolRunQuery').value = '';
+  document.querySelectorAll('.handoff-game-btn').forEach(button => button.classList.toggle('active', button.textContent.trim() === game));
   inspectRun();
 }
 
