@@ -526,7 +526,7 @@ tbody tr:hover{background:#fbfaf8}
                   </div>
                   <div>
                     <label>Run ID / Hash สำหรับค้นหา</label>
-                    <input id="toolRunQuery" placeholder="RUN-... หรือ ew6tt" oninput="toolQueryAutoFilled=false">
+                    <input id="toolRunQuery" placeholder="RUN-... หรือ ew6tt" oninput="toolQueryAutoFilled=false;healthHandoffActive=false">
                   </div>
                   <button class="context-submit" type="button" onclick="inspectRun()">FIND</button>
                 </div>
@@ -648,9 +648,12 @@ const AUTH_CONFIG = {
     'tipchareon.t@gmail.com'
   ]
 };
-const MONTH_TH = {'2026-06':'มิถุนายน','2026-05':'พฤษภาคม','2026-04':'เมษายน','2026-03':'มีนาคม','2026-02':'กุมภาพันธ์'};
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const REPORT_START_MONTH = '2026-02';
+const DEFAULT_LATEST_MONTH = '2026-06';
+const MONTH_TH = buildMonthLabelMap(REPORT_START_MONTH, latestKnownMonthKey());
 const CQR_GAMES = ['CBM_TH','CBM_SEA','CBPC_TH','CBPC_SEA'];
-const CQR_MONTHS = Object.keys(MONTH_TH);
+let CQR_MONTHS = Object.keys(MONTH_TH).sort().reverse();
 const LOCAL_PREVIEW_ALLOWED = location.protocol === 'file:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
 let previewMode = false;
 let selectedUserEmail = '';
@@ -660,6 +663,77 @@ let lastHealthRepairGames = [];
 let lastHealthRepairTasks = [];
 let lastRunMatches = [];
 let toolQueryAutoFilled = false;
+let healthHandoffActive = false;
+
+function latestKnownMonthKey(){
+  const now = new Date();
+  const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  return current > DEFAULT_LATEST_MONTH ? current : DEFAULT_LATEST_MONTH;
+}
+
+function monthRangeKeys(start, end){
+  const startMatch = String(start || '').match(/(20\d{2})-(\d{2})/);
+  const endMatch = String(end || '').match(/(20\d{2})-(\d{2})/);
+  if(!startMatch || !endMatch) return [];
+  const months = [];
+  let year = Number(startMatch[1]);
+  let month = Number(startMatch[2]);
+  const endYear = Number(endMatch[1]);
+  const endMonth = Number(endMatch[2]);
+  while(year < endYear || (year === endYear && month <= endMonth)){
+    months.push(`${year}-${String(month).padStart(2, '0')}`);
+    month += 1;
+    if(month > 12){
+      month = 1;
+      year += 1;
+    }
+  }
+  return months;
+}
+
+function buildMonthLabelMap(start, end){
+  return monthRangeKeys(start, end).reduce((map, key) => {
+    const monthIndex = Number(key.slice(5, 7)) - 1;
+    map[key] = THAI_MONTHS[monthIndex] || key;
+    return map;
+  }, {});
+}
+
+function monthLabel(key){
+  const normalized = normalizePeriodKey(key, '');
+  if(!normalized) return 'ALL';
+  const monthIndex = Number(normalized.slice(5, 7)) - 1;
+  return `${MONTH_TH[normalized] || THAI_MONTHS[monthIndex] || normalized} ${normalized.slice(0, 4)}`;
+}
+
+function registerKnownMonth(value){
+  const month = normalizePeriodKey(value, '');
+  if(!month) return;
+  if(!MONTH_TH[month]){
+    const monthIndex = Number(month.slice(5, 7)) - 1;
+    MONTH_TH[month] = THAI_MONTHS[monthIndex] || month;
+  }
+  if(!CQR_MONTHS.includes(month)) CQR_MONTHS.push(month);
+  CQR_MONTHS = [...new Set(CQR_MONTHS)].sort().reverse();
+}
+
+function populateMonthSelect(selectId, allowAll){
+  const select = document.getElementById(selectId);
+  if(!select) return;
+  const currentValue = select.value || (allowAll ? 'ALL' : CQR_MONTHS[0]);
+  const options = [
+    ...(allowAll ? [{value:'ALL', label:'ALL'}] : []),
+    ...CQR_MONTHS.map(month => ({value:month, label:monthLabel(month)}))
+  ];
+  select.innerHTML = options.map(option => `<option value="${escapeAttr(option.value)}">${escapeHtml(option.label)}</option>`).join('');
+  select.value = options.some(option => option.value === currentValue) ? currentValue : (allowAll ? 'ALL' : CQR_MONTHS[0]);
+}
+
+function populateAllMonthSelects(){
+  populateMonthSelect('f-month', false);
+  populateMonthSelect('healthMonth', true);
+  populateMonthSelect('toolMonth', true);
+}
 
 function decodeJwtPayload(token){
   try{
@@ -1198,12 +1272,18 @@ function handleDataControlFilterChange(){
   const month = document.getElementById('toolMonth')?.value || 'ALL';
   const task = findHealthRepairTask(game, month);
   const queryInput = document.getElementById('toolRunQuery');
+  if(game === 'ALL' && healthHandoffActive){
+    queryInput.value = '';
+    toolQueryAutoFilled = true;
+    return;
+  }
   if(task){
     queryInput.value = task.hash || task.runId || '';
     toolQueryAutoFilled = !!queryInput.value;
   }else{
     queryInput.value = '';
     toolQueryAutoFilled = false;
+    healthHandoffActive = false;
   }
 }
 
@@ -1218,6 +1298,7 @@ async function inspectRun(){
   const month = document.getElementById('toolMonth').value.trim() || '2026-06';
   const monthForLookup = month === 'ALL' ? '' : month;
   const query = document.getElementById('toolRunQuery').value.trim();
+  registerKnownMonth(month);
   resultBox.textContent = 'กำลังค้นหา run_id / hash ที่เกี่ยวข้อง...';
   try{
     const result = await callAppsScript('admin.pipeline.run.lookup', {
@@ -1647,9 +1728,28 @@ function renderRunLookupScopeTable(rows, usableCount){
   `;
 }
 
+function filterMatchesByHealthTasks(matches){
+  if(!healthHandoffActive || !lastHealthRepairTasks.length) return matches;
+  const tasks = lastHealthRepairTasks.filter(task => task.game && task.game !== 'ALL');
+  if(!tasks.length) return matches;
+  const scoped = matches.filter(run => tasks.some(task => {
+    const sameGame = run.game_code === task.game;
+    const sameMonth = !task.month || task.month === 'ALL' || run.period_key === task.month;
+    const wanted = String(task.hash || task.runId || '').trim().toLowerCase();
+    if(!sameGame || !sameMonth) return false;
+    if(!wanted) return true;
+    return [
+      run.run_id,
+      run.data_hash_before,
+      run.data_hash_after
+    ].join(' ').toLowerCase().includes(wanted);
+  }));
+  return scoped.length ? scoped : matches;
+}
+
 function renderRunInspector(result){
   const rawMatches = result.matches || [];
-  const matches = compactRunLookupMatches(rawMatches);
+  const matches = compactRunLookupMatches(filterMatchesByHealthTasks(rawMatches));
   const selectedGame = document.getElementById('toolGame')?.value || 'ALL';
   const selectedMonth = document.getElementById('toolMonth')?.value || 'ALL';
   const scopeRows = buildRunLookupScopeRows(rawMatches, matches);
@@ -1731,7 +1831,7 @@ function isCleanupCandidate(run){
   const hasReference = !!(runId || run?.data_hash_before || run?.data_hash_after);
   if(!hasReference || /^CLEANUP/i.test(runId)) return false;
   if(status.includes('cleanup') || status.includes('deleted')) return false;
-  return ['ready','needs_review','raw_ready'].includes(status);
+  return status === 'ready';
 }
 
 function getIssueGame(issue){
@@ -1756,6 +1856,8 @@ function buildHealthOverviewRows(result, issues, recommendations){
   const selectedMonth = document.getElementById('healthMonth')?.value || result.month || '2026-06';
   const backendRows = Array.isArray(result.scope_rows) ? result.scope_rows : (Array.isArray(result.overview_rows) ? result.overview_rows : []);
   if(backendRows.length){
+    backendRows.forEach(row => registerKnownMonth(row.period_key || row.month));
+    populateAllMonthSelects();
     return backendRows.map(row => ({
       game: String(row.game_code || row.game || '').trim(),
       month: normalizePeriodKey(row.period_key || row.month || ''),
@@ -1768,6 +1870,7 @@ function buildHealthOverviewRows(result, issues, recommendations){
       actionStatus: String(row.action_status || '').trim(),
       rawHash: String(row.raw_hash || '').trim(),
       masterHash: String(row.master_hash || '').trim(),
+      previousHash: String(row.previous_hash || '').trim(),
       readyRunId: String(row.ready_run_id || '').trim(),
       latestRunId: String(row.latest_run_id || '').trim()
     })).filter(row => row.game && row.game !== 'ALL');
@@ -1895,6 +1998,7 @@ function renderPipelineHealth(result){
   const summary = result.summary || {};
   const selectedGame = document.getElementById('healthGame')?.value || result.game || 'ALL';
   const selectedMonth = document.getElementById('healthMonth')?.value || result.month || 'ALL';
+  registerKnownMonth(selectedMonth);
   const scopeGames = getScopeGames(selectedGame);
   const scopeMonths = getScopeMonths(selectedMonth);
   const scopeCount = scopeGames.length * scopeMonths.length;
@@ -1913,7 +2017,7 @@ function renderPipelineHealth(result){
     .map(row => ({
       game: row.game,
       month: row.month,
-      hash: row.masterHash || row.rawHash || '',
+      hash: row.previousHash || row.masterHash || '',
       runId: row.readyRunId || row.latestRunId || ''
     }))
     .filter(task => task.game && task.game !== 'ALL' && (task.hash || task.runId));
@@ -2024,7 +2128,7 @@ function copyText(value, button){
 
 function sendHealthToDataControl(){
   const healthGame = document.getElementById('healthGame').value || 'ALL';
-  const healthMonth = document.getElementById('healthMonth').value || '2026-06';
+  const healthMonth = document.getElementById('healthMonth').value || 'ALL';
   const repairGames = [...new Set(lastHealthRepairGames.filter(game => game && game !== 'ALL'))];
   const targetGame = healthGame === 'ALL' ? 'ALL' : healthGame;
   const targetTask = targetGame === 'ALL' ? {} : (lastHealthRepairTasks.find(task => task.game === targetGame) || {});
@@ -2034,7 +2138,8 @@ function sendHealthToDataControl(){
   document.getElementById('toolGame').value = targetGame;
   document.getElementById('toolMonth').value = targetMonth || 'ALL';
   document.getElementById('toolRunQuery').value = targetQuery;
-  toolQueryAutoFilled = !!targetQuery;
+  toolQueryAutoFilled = true;
+  healthHandoffActive = true;
   const resultBox = document.getElementById('pipelineActionResult');
   resultBox.classList.add('warn');
   resultBox.innerHTML = `
@@ -2059,9 +2164,10 @@ function sendHealthToDataControl(){
 function useHealthRepairGame(game, month){
   const task = lastHealthRepairTasks.find(item => item.game === game) || {};
   document.getElementById('toolGame').value = game || 'ALL';
-  document.getElementById('toolMonth').value = task.month || month || document.getElementById('healthMonth')?.value || '2026-06';
+  document.getElementById('toolMonth').value = game === 'ALL' ? (month || document.getElementById('healthMonth')?.value || 'ALL') : (task.month || month || document.getElementById('healthMonth')?.value || 'ALL');
   document.getElementById('toolRunQuery').value = game === 'ALL' ? '' : (task.hash || task.runId || '');
-  toolQueryAutoFilled = game !== 'ALL' && !!document.getElementById('toolRunQuery').value;
+  toolQueryAutoFilled = true;
+  healthHandoffActive = true;
   document.querySelectorAll('.handoff-game-btn').forEach(button => button.classList.toggle('active', button.textContent.trim() === game));
   inspectRun();
 }
@@ -2218,6 +2324,7 @@ document.getElementById('aiAskInput').addEventListener('keydown', event => {
   document.getElementById(id).addEventListener('change', getAiAskFilters);
 });
 
+populateAllMonthSelects();
 applyQueryContext();
 initAuth();
 </script>

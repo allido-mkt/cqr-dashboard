@@ -266,13 +266,7 @@ td{vertical-align:middle;}
       <select id="f-channel" onchange="renderAll()"><option value="all">ทุก Channel</option>
         <option>Facebook Ads</option><option>Google Ads</option>
         <option>In-App Register</option><option>Organic / Unknown</option></select>
-      <select id="f-month" onchange="syncWeekOptions();renderAll()">
-        <option value="2026-06" selected>มิถุนายน 2026</option>
-        <option value="2026-05">พฤษภาคม 2026</option>
-        <option value="2026-04">เมษายน 2026</option>
-        <option value="2026-03">มีนาคม 2026</option>
-        <option value="2026-02">กุมภาพันธ์ 2026</option>
-      </select>
+      <select id="f-month" onchange="syncWeekOptions();renderAll()"></select>
       <select id="f-period-type" onchange="syncWeekOptions();renderAll()">
         <option value="month" selected>Monthly View</option>
         <option value="week">Weekly View</option>
@@ -507,6 +501,7 @@ async function loadSecureData(sessionToken){
     const json = await callAppsScript('dashboard.data', {session_token:sessionToken, period:month, game});
     if(json.ok === false) throw new Error(json.message || 'Data access denied');
     D = json.data || json.CQR_DATA || json;
+    refreshDashboardMonths();
     renderAll();
   }catch(e){
     showDashboardUnavailable(`โหลดข้อมูลไม่สำเร็จ: ${e.message || e}`);
@@ -615,8 +610,75 @@ initAuth();
 const ICONS = {"userPlus": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"10\" cy=\"8\" r=\"3.2\"/><path d=\"M3.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5\"/><path d=\"M18.5 5.5v6M15.5 8.5h6\"/></svg>", "star": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M12 3.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6L12 3.5Z\"/></svg>", "recall": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3\"/><path d=\"M18 3v4h-4M6 21v-4h4\"/></svg>", "streak": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M3.5 9.5h17\"/><path d=\"M12 12.5c1.8 1 2.4 2.3 1.6 3.6-.5.8-1.6.9-2.1.1-.5.9-.2 2 .8 2.3 1.7.5 3.1-1 2.7-2.7-.3-1.5-1.4-2.6-3-3.3Z\"/></svg>", "megaphone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 11v3a1 1 0 0 0 1 1h1l3 5V6l-3 5H4a1 1 0 0 0-1 1Z\"/><path d=\"M9 6l10-3v17l-10-3\"/><path d=\"M19 10a3 3 0 0 1 0 5\"/></svg>", "gap": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"2\" stroke-dasharray=\"3 2.5\"/><path d=\"M9 12h6M12 9v6\"/></svg>", "info": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v5.5\"/><circle cx=\"12\" cy=\"8\" r=\"0.8\" fill=\"currentColor\" stroke=\"none\"/></svg>", "sparkle": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z\"/><path d=\"M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z\"/></svg>", "close": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "arrowUp": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 19V5M5 12l7-7 7 7\"/></svg>"};
 let D = window.CQR_DATA || (typeof CQR_DATA !== 'undefined' ? CQR_DATA : null);
 const CH_COLOR = {'Facebook Ads':'#2563eb','Google Ads':'#d97706','In-App Register':'#94a3b8','Organic / Unknown':'#cbd5e1'};
-const MONTH_TH = {'2026-06':'มิถุนายน','2026-05':'พฤษภาคม','2026-04':'เมษายน','2026-03':'มีนาคม','2026-02':'กุมภาพันธ์'};
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const REPORT_START_MONTH = '2026-02';
+let DASHBOARD_MONTHS = [];
+let MONTH_TH = {};
 const GAME_LABEL = {ALL:'รวม 4 เกม',CBM_TH:'CBM TH',CBM_SEA:'CBM SEA',CBPC_TH:'CBPC TH',CBPC_SEA:'CBPC SEA'};
+
+function normalizeMonthKey(value){
+  const text = String(value || '').trim();
+  const match = text.match(/(\d{4}-\d{2})/);
+  return match ? match[1] : '';
+}
+
+function currentMonthKey(){
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthRangeKeys(start, end){
+  const startKey = normalizeMonthKey(start);
+  const endKey = normalizeMonthKey(end);
+  if(!startKey || !endKey) return [];
+  const out = [];
+  let y = Number(startKey.slice(0, 4));
+  let m = Number(startKey.slice(5, 7));
+  const endY = Number(endKey.slice(0, 4));
+  const endM = Number(endKey.slice(5, 7));
+  while(y < endY || (y === endY && m <= endM)){
+    out.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if(m > 12){ m = 1; y += 1; }
+  }
+  return out;
+}
+
+function knownDashboardMonths(){
+  const months = new Set();
+  const collectKey = key => {
+    const month = normalizeMonthKey(String(key || '').split('|').pop());
+    if(month) months.add(month);
+  };
+  ['overview_data','channel_data','legacy','weeks_by_month'].forEach(name => {
+    const source = D?.[name] || {};
+    Object.keys(source).forEach(collectKey);
+  });
+  const known = [...months].sort();
+  const latest = known.length ? known[known.length - 1] : currentMonthKey();
+  return monthRangeKeys(REPORT_START_MONTH, latest).sort().reverse();
+}
+
+function monthLabel(key, withYear = false){
+  const monthKey = normalizeMonthKey(key);
+  if(!monthKey) return String(key || '');
+  const year = monthKey.slice(0, 4);
+  const monthName = THAI_MONTHS[Number(monthKey.slice(5, 7)) - 1] || monthKey;
+  return withYear ? `${monthName} ${year}` : monthName;
+}
+
+function refreshDashboardMonths(){
+  DASHBOARD_MONTHS = knownDashboardMonths();
+  MONTH_TH = DASHBOARD_MONTHS.reduce((acc, key) => {
+    acc[key] = monthLabel(key);
+    return acc;
+  }, {});
+  const select = document.getElementById('f-month');
+  if(!select) return;
+  const previous = select.value || DASHBOARD_MONTHS[0] || REPORT_START_MONTH;
+  select.innerHTML = DASHBOARD_MONTHS.map(key => `<option value="${key}">${monthLabel(key, true)}</option>`).join('');
+  select.value = DASHBOARD_MONTHS.includes(previous) ? previous : (DASHBOARD_MONTHS[0] || REPORT_START_MONTH);
+}
 
 function toggleChat(){
   const p=document.getElementById('chatPanel'), f=document.getElementById('fab');
@@ -635,7 +697,7 @@ function getAiAskFilters(){
   return {
     game: document.getElementById('f-game')?.value || 'ALL',
     channel: channel === 'all' ? 'ALL' : channel,
-    period: activePeriod().key || document.getElementById('f-month')?.value || '2026-06',
+    period: activePeriod().key || document.getElementById('f-month')?.value || DASHBOARD_MONTHS[0] || REPORT_START_MONTH,
     view: periodType === 'week' ? 'weekly' : 'monthly'
   };
 }
@@ -915,7 +977,7 @@ function activePeriod(){
     const week = document.getElementById('f-week');
     return {key:week.value, label:week.options[week.selectedIndex]?.text || week.value, mode:'สัปดาห์'};
   }
-  return {key:month, label:`${MONTH_TH[month]} 2026`, mode:'เดือน'};
+  return {key:month, label:monthLabel(month, true), mode:'เดือน'};
 }
 
 function renderAll(){
@@ -1048,6 +1110,7 @@ function renderAll(){
 
 initAiAskBox();
 
+refreshDashboardMonths();
 renderAll();
 </script>
 </body>
