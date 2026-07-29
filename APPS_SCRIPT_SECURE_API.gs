@@ -318,10 +318,13 @@ function handleAdminPipelineHealth_(e, callback) {
 
   const pipelineRows = readCentralSheetRows_('PipelineLogs');
   const dataIndexRows = readCentralSheetRows_('DataIndex');
+  const rawRows = readCentralSheetRows_('RawIngestionLogs');
   const targetRows = filterPipelineRows_(pipelineRows, game, month);
+  const targetRawRows = filterPipelineRows_(rawRows, game, month);
   const readyRows = targetRows.filter(row => String(row.status || '').toLowerCase() === 'ready');
   const reviewRows = targetRows.filter(row => String(row.status || '').toLowerCase() === 'needs_review');
   const expectedGames = ['CBM_TH', 'CBM_SEA', 'CBPC_TH', 'CBPC_SEA'];
+  const rawReadyRows = targetRawRows.filter(row => String(row.status || '').toLowerCase() === 'raw_ready');
 
   const issues = [];
   const recommendations = [];
@@ -376,9 +379,36 @@ function handleAdminPipelineHealth_(e, callback) {
 
   const dataIndexGameSet = new Set(dataIndexTargetRows.map(row => String(row.game_code || '').trim()).filter(Boolean));
   const readyGameSet = new Set(readyRows.map(row => String(row.game_code || '').trim()).filter(Boolean));
+  const rawReadyGameSet = new Set(rawReadyRows.map(row => String(row.game_code || '').trim()).filter(Boolean));
   const gamesToCheck = game === 'ALL' ? expectedGames : [game];
+  const missingRawGames = targetRawRows.length ? gamesToCheck.filter(gameCode => gameCode && !rawReadyGameSet.has(gameCode)) : gamesToCheck;
   const missingReadyGames = targetRows.length ? gamesToCheck.filter(gameCode => gameCode && !readyGameSet.has(gameCode)) : [];
   const missingIndexGames = dataIndexTargetRows.length ? gamesToCheck.filter(gameCode => gameCode && !dataIndexGameSet.has(gameCode)) : [];
+
+  missingRawGames.forEach(gameCode => {
+    const latestRaw = targetRawRows
+      .filter(row => String(row.game_code || '') === gameCode)
+      .sort((a, b) => String(b.checked_at || '').localeCompare(String(a.checked_at || '')))[0] || null;
+    const status = latestRaw ? String(latestRaw.status || '-') : 'no raw log';
+    issues.push({
+      level: 'warn',
+      badge: 'Raw check',
+      title: gameCode + ' ยังไม่ผ่าน Raw Check ในเดือนนี้',
+      detail: latestRaw
+        ? 'Raw log ล่าสุดเป็นสถานะ ' + status + ' และพบ ' + (latestRaw.tab_count_found || 0) + '/' + (latestRaw.tab_count_expected || 5) + ' tab แนะนำตรวจ Raw file ก่อน Build'
+        : 'ยังไม่พบ RawIngestionLogs ของ ' + gameCode + ' สำหรับรอบ ' + month + ' แนะนำรัน Raw Data Check หรือรอ Auto Pipeline รอบวันอาทิตย์'
+    });
+    recommendations.push({
+      title: 'ตรวจ Raw Data ของ ' + gameCode,
+      detail: 'ตรวจว่า Raw file เดือน ' + month + ' มีครบ 5 tab และอ่านแถวได้ ก่อนสั่ง Build Master ใหม่',
+      cleanup: {
+        target_game_code: gameCode,
+        target_month: month,
+        run_id: '',
+        search_hash: ''
+      }
+    });
+  });
 
   missingReadyGames.forEach(gameCode => {
     if (reviewRows.some(row => String(row.game_code || '') === gameCode)) return;
@@ -415,6 +445,8 @@ function handleAdminPipelineHealth_(e, callback) {
     month,
     summary: {
       health_score: issues.length ? 'Needs Review' : 'Healthy',
+      raw_ready: rawReadyRows.length,
+      raw_logs: targetRawRows.length,
       ready_runs: readyRows.length,
       needs_review: reviewRows.length,
       cleanup_needed: recommendations.length,
@@ -422,6 +454,7 @@ function handleAdminPipelineHealth_(e, callback) {
       data_index_rows: dataIndexTargetRows.length
     },
     source: 'apps_script_central_db',
+    auto_pipeline_note: 'Auto Pipeline วันอาทิตย์: Raw Check 15:00, Master Build 16:00, Controller 17:00. Manual tools ใช้ซ่อมเฉพาะเคส',
     issues,
     recommendations
   }, callback);
