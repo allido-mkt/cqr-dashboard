@@ -2003,6 +2003,7 @@ function renderPipelineHealth(result){
   const scopeMonths = getScopeMonths(selectedMonth);
   const scopeCount = scopeGames.length * scopeMonths.length;
   lastHealthRecommendations = result.recommendations || [];
+  const issues = result.issues || [];
   const rawRepairTasks = lastHealthRecommendations
     .map(item => item.cleanup || {})
     .map(cleanup => ({
@@ -2033,7 +2034,6 @@ function renderPipelineHealth(result){
       ? 'พยายามเช็กผ่าน n8n แล้ว แต่ workflow ยังตอบไม่สำเร็จ'
       : 'เช็กจาก Central DB ผ่าน Apps Script';
   const autoNote = result.auto_pipeline_note || 'Auto Pipeline ทำงานวันอาทิตย์ตามเวลา ส่วนหน้านี้ใช้ตรวจและซ่อมเฉพาะเคส';
-  const issues = result.issues || [];
   const repairIssueGames = [...new Set(issues.filter(isRepairHealthIssue).map(getIssueGame).filter(game => game && game !== 'ALL'))];
   lastHealthRepairGames = [...new Set([...lastHealthRepairGames, ...repairIssueGames])];
   repairIssueGames.forEach(game => {
