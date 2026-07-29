@@ -224,7 +224,7 @@ tbody tr:hover{background:#fbfaf8}
 .mini-btn{height:30px;border:1px solid #fed7aa;background:#fffaf0;color:#7c2d12;border-radius:9px;padding:0 9px;font-size:10.5px;font-weight:900;cursor:pointer}
 .sample-btn{height:34px;border:1px solid #fed7aa;background:#fff;color:#7c2d12;border-radius:10px;padding:0 11px;font-size:11px;font-weight:900;cursor:pointer;text-transform:uppercase}
 .sample-btn:hover{background:#fff7ed}
-.batch-actions{display:none;border:1px solid #fed7aa;background:#fffaf0;border-radius:16px;padding:12px;margin-top:12px}
+.batch-actions{display:none;border:1px solid #fed7aa;background:#fffaf0;border-radius:16px;padding:12px;margin-top:12px;margin-bottom:12px}
 .batch-actions.active{display:block}
 .batch-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
 .batch-head b{font-size:13.5px}
@@ -531,11 +531,6 @@ tbody tr:hover{background:#fbfaf8}
                   <button class="sample-btn" type="button" onclick="showDataControlSample()">SHOW SAMPLE</button>
                 </div>
                 </div>
-                <div id="pipelineActionResult" class="action-result warn">ยังไม่ได้ส่งคำสั่งซ่อม
-หลังจากเลือก run แล้ว ให้เริ่มจาก Preview ก่อนเสมอ ผลของ Preview / Clear / Build จะแสดงตรงนี้</div>
-                <div id="runInspectorResult" class="run-card">
-                  เลือกเกม/เดือน แล้วกด FIND เพื่อดู run ที่เกี่ยวข้องและคำแนะนำขั้นตอนถัดไป
-                </div>
                 <div class="batch-actions" id="batchActions">
                   <div class="batch-head">
                   <div><b>MANUAL ACTIONS</b><span id="batchCount">เลือกรายการที่ต้องจัดการก่อน</span></div>
@@ -546,6 +541,11 @@ tbody tr:hover{background:#fbfaf8}
                     <button class="action-btn danger" type="button" onclick="runPipelineCommand('cleanup.run')">Clear</button>
                     <button class="action-btn secondary" type="button" onclick="runPipelineCommand('master.run')">Build</button>
                   </div>
+                </div>
+                <div id="pipelineActionResult" class="action-result warn">ยังไม่ได้ส่งคำสั่งซ่อม
+หลังจากเลือก run แล้ว ให้เริ่มจาก Preview ก่อนเสมอ ผลของ Preview / Clear / Build จะแสดงตรงนี้</div>
+                <div id="runInspectorResult" class="run-card">
+                  เลือกเกม/เดือน แล้วกด FIND เพื่อดู run ที่เกี่ยวข้องและคำแนะนำขั้นตอนถัดไป
                 </div>
                 <div class="history-panel">
                   <div class="history-head">
@@ -1279,16 +1279,42 @@ Run ID: ${selectedRuns.length > 1 ? selectedRuns.map(run => run.run_id).join(', 
       run_items: selectedRuns.length ? JSON.stringify(selectedRuns) : '',
       hash: query
     });
-    if(!result.ok) throw new Error(result.message || 'n8n command failed');
+    if(!result.ok){
+      const err = new Error(result.message || 'n8n command failed');
+      err.requiredProperty = result.required_property || '';
+      err.status = result.status || '';
+      throw err;
+    }
     renderPipelineActionResult(labelMap[command], result);
   }catch(error){
     resultBox.classList.add('warn');
-    resultBox.textContent = `${labelMap[command]} ยังทำงานไม่ได้: ${error.message || error}
-
-ตรวจว่า Apps Script ตั้งค่า webhook ของ n8n ไว้ใน Script Properties แล้วหรือยัง. ถ้ายังไม่ได้ต่อ webhook ให้ใช้หน้านี้เป็นตัวช่วยหา Run ID/Hash แล้วไปรัน n8n workflow ด้วยมือก่อน`;
+    resultBox.innerHTML = renderPipelineCommandError(labelMap[command], command, error);
   }finally{
     setPipelineActionBusy(false);
   }
+}
+
+function renderPipelineCommandError(label, command, error){
+  const message = String(error?.message || error || '');
+  const property = error?.requiredProperty || (
+    message.includes('CQR_N8N_MASTER_UPDATE_WEBHOOK_URL') ? 'CQR_N8N_MASTER_UPDATE_WEBHOOK_URL' :
+    message.includes('CQR_N8N_CLEANUP_WEBHOOK_URL') ? 'CQR_N8N_CLEANUP_WEBHOOK_URL' : ''
+  );
+  if(property){
+    const purpose = property === 'CQR_N8N_CLEANUP_WEBHOOK_URL'
+      ? 'ใช้สำหรับปุ่ม Preview และ Clear'
+      : 'ใช้สำหรับปุ่ม Build';
+    return `
+      <b>${escapeHtml(label)} ยังส่งไป n8n ไม่ได้</b><br>
+      Apps Script ยังไม่มีค่า <code>${escapeHtml(property)}</code><br>
+      ${escapeHtml(purpose)}. หลังตั้งค่า Script Properties และ Deploy Apps Script ใหม่แล้ว ปุ่มนี้จะยิงคำสั่งไป n8n ได้เลย.
+    `;
+  }
+  return `
+    <b>${escapeHtml(label)} ยังทำงานไม่ได้</b><br>
+    ${escapeHtml(message || 'เรียก Apps Script ไม่สำเร็จ')}<br>
+    ถ้าเพิ่งตั้งค่า webhook แล้ว ให้ Save และ Deploy Apps Script อีกครั้งก่อนลองใหม่.
+  `;
 }
 
 function setPipelineActionBusy(isBusy){

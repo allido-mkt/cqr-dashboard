@@ -111,7 +111,13 @@ function doGet(e) {
 
     return json_({ ok: true, message: 'CQR API is running.' }, callback);
   } catch (err) {
-    return json_({ ok: false, message: err.message || String(err) }, e.parameter.callback);
+    const message = err.message || String(err);
+    const propertyMatch = String(message).match(/Missing Script Property:\s*([A-Z0-9_]+)/);
+    return json_({
+      ok: false,
+      message,
+      required_property: propertyMatch ? propertyMatch[1] : ''
+    }, e.parameter.callback);
   }
 }
 
