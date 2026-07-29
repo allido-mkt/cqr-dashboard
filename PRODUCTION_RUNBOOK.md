@@ -6,7 +6,7 @@
 
 - Dashboard: https://allido-mkt.github.io/cqr-dashboard/
 - GitHub repo: https://github.com/allido-mkt/cqr-dashboard
-- Apps Script Web App: `https://script.google.com/macros/s/AKfycbznAComgV78zZUi0gbceCAkU7QkFp92ySZU5Z_pH3oHFEVjUaCeE31JJSJt9-9xMhQ0/exec`
+- Apps Script Web App: `https://script.google.com/macros/s/AKfycbyZwor9CRKgKWTf2Zs0rTWHDo3qGniF7swEv1cszTHJ5oAZbKCiMzp_86UGUuiecI-mQQ/exec`
 
 ## 2. ไฟล์สำคัญ
 
