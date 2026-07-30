@@ -86,6 +86,10 @@ function doGet(e) {
       return handleAdminPipelineRunLookup_(e, callback);
     }
 
+    if (action === 'admin.n8n.raw.check') {
+      return handleAdminN8nCommand_(e, callback, 'raw.check');
+    }
+
     if (action === 'admin.n8n.cleanup.preview') {
       return handleAdminN8nCommand_(e, callback, 'cleanup.preview');
     }
@@ -318,9 +322,9 @@ function handleAdminPipelineHealth_(e, callback) {
   requireSuperAdmin_(session);
 
   const game = String(e.parameter.game || 'ALL').trim();
-  const month = String(e.parameter.month || '2026-06').trim();
+  const month = String(e.parameter.month || 'ALL').trim();
   const n8nHealth = tryAdminPipelineHealthViaN8n_(session, game, month);
-  if (n8nHealth) return json_(n8nHealth, callback);
+  if (n8nHealth && adminHealthResponseHasScope_(n8nHealth, game, month)) return json_(n8nHealth, callback);
 
   const pipelineRows = readCentralSheetRows_('PipelineLogs');
   const dataIndexRows = readCentralSheetRows_('DataIndex');
@@ -331,12 +335,42 @@ function handleAdminPipelineHealth_(e, callback) {
   const reviewRows = targetRows.filter(row => pipelineStatus_(row) === 'needs_review');
   const expectedGames = ['CBM_TH', 'CBM_SEA', 'CBPC_TH', 'CBPC_SEA'];
   const rawReadyRows = targetRawRows.filter(row => pipelineStatus_(row) === 'raw_ready');
+  const scopeRows = buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, month);
 
   const issues = [];
   const recommendations = [];
+  scopeRows
+    .filter(row => row.action_status === 'repair')
+    .forEach(row => {
+      const oldRunId = row.ready_run_id || '';
+      issues.push({
+        level: 'warn',
+        badge: 'Hash mismatch',
+        game_code: row.game_code,
+        period_key: row.period_key,
+        title: row.game_code + ' ยังใช้ข้อมูลเก่าอยู่',
+        detail: 'เดือน ' + row.period_key + ' ไฟล์ Raw มีรอบใหม่แล้ว แต่ Master/Central DB ยังตามไม่ทัน'
+      });
+      recommendations.push({
+        title: 'ซ่อมข้อมูล ' + row.game_code + ' รอบ ' + row.period_key,
+        detail: oldRunId
+          ? 'ส่งไป Data Control เพื่อ Preview ก่อน ถ้าจำนวนแถวถูกต้องค่อย Clear และ Build ใหม่'
+          : 'ส่งไป Data Control เพื่อหา Run ID จาก hash เก่าก่อน แล้วค่อย Preview, Clear และ Build',
+        cleanup: {
+          target_game_code: row.game_code,
+          target_month: row.period_key,
+          run_id: oldRunId,
+          search_hash: row.master_hash || row.previous_hash || '',
+          previous_hash: row.master_hash || row.previous_hash || '',
+          current_hash: row.raw_hash || ''
+        }
+      });
+    });
+
   reviewRows.forEach(row => {
     const gameCode = pipelineGame_(row);
     const periodKey = pipelinePeriod_(row);
+    if (issues.some(issue => issue.badge === 'Hash mismatch' && issue.game_code === gameCode && issue.period_key === periodKey)) return;
     const previousHash = pipelineHashBefore_(row);
     const currentHash = pipelineHashAfter_(row);
     const oldRun = findOldReadyRunForHash_(pipelineRows, gameCode, periodKey, previousHash);
@@ -366,7 +400,7 @@ function handleAdminPipelineHealth_(e, callback) {
 
   const dataIndexTargetRows = dataIndexRows.filter(row =>
     (normalizeGameCode_(game) === 'ALL' || pipelineGame_(row) === normalizeGameCode_(game)) &&
-    pipelinePeriod_(row) === normalizePeriodKey_(month)
+    (!normalizePeriodKey_(month) || pipelinePeriod_(row) === normalizePeriodKey_(month))
   );
   if (!targetRows.length) {
     issues.push({
@@ -391,9 +425,9 @@ function handleAdminPipelineHealth_(e, callback) {
   const readyGameSet = new Set(readyRows.map(pipelineGame_).filter(Boolean));
   const rawReadyGameSet = new Set(rawReadyRows.map(pipelineGame_).filter(Boolean));
   const gamesToCheck = normalizeGameCode_(game) === 'ALL' ? expectedGames : [normalizeGameCode_(game)];
-  const missingRawGames = targetRawRows.length ? gamesToCheck.filter(gameCode => gameCode && !rawReadyGameSet.has(gameCode)) : gamesToCheck;
-  const missingReadyGames = targetRows.length ? gamesToCheck.filter(gameCode => gameCode && !readyGameSet.has(gameCode)) : [];
-  const missingIndexGames = dataIndexTargetRows.length ? gamesToCheck.filter(gameCode => gameCode && !dataIndexGameSet.has(gameCode)) : [];
+  const missingRawGames = normalizePeriodKey_(month) ? (targetRawRows.length ? gamesToCheck.filter(gameCode => gameCode && !rawReadyGameSet.has(gameCode)) : gamesToCheck) : [];
+  const missingReadyGames = normalizePeriodKey_(month) && targetRows.length ? gamesToCheck.filter(gameCode => gameCode && !readyGameSet.has(gameCode)) : [];
+  const missingIndexGames = normalizePeriodKey_(month) && dataIndexTargetRows.length ? gamesToCheck.filter(gameCode => gameCode && !dataIndexGameSet.has(gameCode)) : [];
 
   missingRawGames.forEach(gameCode => {
     const latestRaw = targetRawRows
@@ -414,7 +448,7 @@ function handleAdminPipelineHealth_(e, callback) {
       detail: 'ตรวจว่า Raw file เดือน ' + month + ' มีครบ 5 tab และอ่านแถวได้ ก่อนสั่ง Build Master ใหม่',
       cleanup: {
         target_game_code: gameCode,
-        target_month: month,
+        target_month: normalizePeriodKey_(month) || month,
         run_id: '',
         search_hash: ''
       }
@@ -464,13 +498,181 @@ function handleAdminPipelineHealth_(e, callback) {
       needs_review: reviewRows.length,
       cleanup_needed: recommendations.length,
       pipeline_logs: targetRows.length,
-      data_index_rows: dataIndexTargetRows.length
+      data_index_rows: dataIndexTargetRows.length,
+      scope_rows: scopeRows.length
     },
     source: 'apps_script_central_db',
     auto_pipeline_note: 'Auto Pipeline วันอาทิตย์: Raw Check 15:00, Master Build 16:00, Controller 17:00. Manual tools ใช้ซ่อมเฉพาะเคส',
+    scope_rows: scopeRows,
     issues,
     recommendations
   }, callback);
+}
+
+function adminHealthResponseHasScope_(data, game, month) {
+  const rows = data.scope_rows || data.overview_rows || [];
+  if (!Array.isArray(rows) || !rows.length) return false;
+  const wantedMonth = normalizePeriodKey_(month);
+  if (wantedMonth) {
+    const expectedCount = adminScopeGames_(game).length;
+    return rows.filter(function (row) {
+      return normalizePeriodKey_(row.period_key || row.month) === wantedMonth;
+    }).length >= expectedCount;
+  }
+  return rows.some(function (row) {
+    return adminScopeGames_(game).indexOf(normalizeGameCode_(row.game_code || row.game)) >= 0;
+  });
+}
+
+function adminScopeGames_(game) {
+  const expectedGames = ['CBM_TH', 'CBM_SEA', 'CBPC_TH', 'CBPC_SEA'];
+  const wantedGame = normalizeGameCode_(game);
+  return wantedGame === 'ALL' ? expectedGames : [wantedGame].filter(Boolean);
+}
+
+function adminScopeMonths_(month, rowGroups) {
+  const wantedMonth = normalizePeriodKey_(month);
+  if (wantedMonth) return [wantedMonth];
+  const knownMonths = [];
+  (rowGroups || []).forEach(function (rows) {
+    (rows || []).forEach(function (row) {
+      const period = pipelinePeriod_(row);
+      if (period) knownMonths.push(period);
+    });
+  });
+  const uniqueMonths = uniqueValues_(knownMonths).filter(Boolean).sort();
+  if (!uniqueMonths.length) {
+    const currentMonth = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM');
+    return monthRange_('2026-02', currentMonth);
+  }
+  return monthRange_('2026-02', uniqueMonths[uniqueMonths.length - 1]);
+}
+
+function monthRange_(startMonth, endMonth) {
+  const start = normalizePeriodKey_(startMonth);
+  const end = normalizePeriodKey_(endMonth);
+  if (!start || !end) return [];
+  const months = [];
+  let year = Number(start.slice(0, 4));
+  let month = Number(start.slice(5, 7));
+  const endYear = Number(end.slice(0, 4));
+  const endMonthNum = Number(end.slice(5, 7));
+  while (year < endYear || (year === endYear && month <= endMonthNum)) {
+    months.push(year + '-' + ('0' + month).slice(-2));
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return months;
+}
+
+function latestPipelineRow_(rows) {
+  return rows
+    .filter(Boolean)
+    .sort(function (a, b) {
+      return String(pipelineTime_(b) || rowValue_(b, ['last_updated_at', 'updated_at']) || '').localeCompare(String(pipelineTime_(a) || rowValue_(a, ['last_updated_at', 'updated_at']) || ''));
+    })[0] || null;
+}
+
+function dataIndexHash_(row) {
+  return String(rowValue_(row || {}, ['data_hash', 'data hash']) || '').trim();
+}
+
+function buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, month) {
+  const games = adminScopeGames_(game);
+  const months = adminScopeMonths_(month, [pipelineRows, rawRows, dataIndexRows]);
+  const rows = [];
+  games.forEach(function (gameCode) {
+    months.forEach(function (periodKey) {
+      const rawForSlot = rawRows.filter(function (row) {
+        return pipelineGame_(row) === gameCode && pipelinePeriod_(row) === periodKey;
+      });
+      const pipeForSlot = pipelineRows.filter(function (row) {
+        return pipelineGame_(row) === gameCode && pipelinePeriod_(row) === periodKey;
+      });
+      const indexForSlot = dataIndexRows.filter(function (row) {
+        return pipelineGame_(row) === gameCode && pipelinePeriod_(row) === periodKey;
+      });
+      const latestRaw = latestPipelineRow_(rawForSlot);
+      const latestReady = latestPipelineRow_(pipeForSlot.filter(function (row) { return pipelineStatus_(row) === 'ready'; }));
+      const latestReview = latestPipelineRow_(pipeForSlot.filter(function (row) { return pipelineStatus_(row) === 'needs_review'; }));
+      const latestIndex = latestPipelineRow_(indexForSlot);
+      const rawStatus = pipelineStatus_(latestRaw || {});
+      const rawHash = pipelineHashAfter_(latestRaw || {});
+      const readyHash = pipelineHashAfter_(latestReady || {}) || pipelineHashBefore_(latestReady || {});
+      const reviewNewHash = pipelineHashAfter_(latestReview || {});
+      const reviewOldHash = pipelineHashBefore_(latestReview || {});
+      const indexHash = dataIndexHash_(latestIndex);
+      const masterHash = indexHash || readyHash;
+      const readyMatchesRaw = rawHash && (readyHash === rawHash || indexHash === rawHash);
+      const reviewMatchesRaw = rawHash && reviewNewHash === rawHash;
+
+      let rawLabel = 'ยังไม่มี Raw Check';
+      let rawLevel = 'warn';
+      let masterLabel = latestReady || latestIndex ? 'มีข้อมูลเดิม' : 'ยังไม่ยืนยัน';
+      let masterLevel = latestReady || latestIndex ? 'warn' : 'warn';
+      let actionLabel = 'รัน Raw Check รอบนี้ก่อน';
+      let actionLevel = 'warn';
+      let actionStatus = 'raw_missing';
+
+      if (rawStatus === 'raw_ready') {
+        rawLabel = 'มีรอบล่าสุดแล้ว';
+        rawLevel = 'ok';
+        if (readyMatchesRaw) {
+          masterLabel = 'พร้อมใช้';
+          masterLevel = 'ok';
+          actionLabel = 'ไม่ต้องทำอะไร';
+          actionLevel = 'ok';
+          actionStatus = 'ready';
+        } else if (reviewMatchesRaw || masterHash) {
+          masterLabel = 'ยังเป็นข้อมูลเก่า';
+          masterLevel = 'danger';
+          actionLabel = 'ไป Data Control';
+          actionLevel = 'danger';
+          actionStatus = 'repair';
+        } else {
+          masterLabel = 'ยังไม่ได้ Build';
+          masterLevel = 'warn';
+          actionLabel = 'Build รอบนี้';
+          actionLevel = 'warn';
+          actionStatus = 'build_required';
+        }
+      } else if (rawStatus) {
+        rawLabel = rawStatus === 'raw_partial' ? 'Raw ยังไม่ครบ' : 'Raw ยังไม่พร้อม';
+        rawLevel = 'danger';
+        masterLabel = latestReady || latestIndex ? 'มีข้อมูลเดิม' : 'ยังไม่ยืนยัน';
+        actionLabel = 'ตรวจไฟล์ Raw ก่อน';
+        actionStatus = 'raw_not_ready';
+      }
+
+      rows.push({
+        game_code: gameCode,
+        period_key: periodKey,
+        raw: rawLabel,
+        raw_level: rawLevel,
+        master: masterLabel,
+        master_level: masterLevel,
+        action: actionLabel,
+        action_level: actionLevel,
+        action_status: actionStatus,
+        raw_status: rawStatus || '',
+        raw_hash: rawHash || '',
+        master_hash: masterHash || '',
+        previous_hash: reviewOldHash || readyHash || masterHash || '',
+        raw_check_id: pipelineRunId_(latestRaw || {}) || rowValue_(latestRaw || {}, ['raw_check_id']) || '',
+        ready_run_id: pipelineRunId_(latestReady || {}),
+        review_run_id: pipelineRunId_(latestReview || {}),
+        latest_run_id: pipelineRunId_(latestReview || {}) || pipelineRunId_(latestReady || {}),
+        raw_checked_at: pipelineTime_(latestRaw || {}),
+        master_updated_at: pipelineTime_(latestReady || {}) || rowValue_(latestIndex || {}, ['last_updated_at', 'updated_at']) || '',
+        raw_rows: rowValue_(latestRaw || {}, ['registered_rows']) || '',
+        master_rows: rowValue_(latestReady || {}, ['rows_written', 'rows written']) || ''
+      });
+    });
+  });
+  return rows;
 }
 
 function tryAdminPipelineHealthViaN8n_(session, game, month) {
@@ -585,7 +787,7 @@ function handleAdminPipelineRunLookup_(e, callback) {
 
   const rows = compactPipelineLookupRows_(candidateRows, !!query)
     .sort((a, b) => String(b.sort_time || '').localeCompare(String(a.sort_time || '')))
-    .slice(0, 30);
+    .slice(0, 160);
 
   const firstReady = rows.find(item => item.status === 'ready') || rows[0] || null;
   return json_({
@@ -672,6 +874,9 @@ function handleAdminN8nCommand_(e, callback, command) {
     .filter(Boolean);
   const runItems = safeJsonParse_(e.parameter.run_items || '[]', []);
   const cleanupHash = String(e.parameter.cleanup_hash || e.parameter.hash || '').trim();
+  const targetGamesCsv = String(e.parameter.target_games_csv || game || 'ALL').trim();
+  const targetMonthsCsv = String(e.parameter.target_months_csv || month || 'AUTO').trim();
+  const expectedTabsCsv = String(e.parameter.expected_tabs_csv || 'Registered,DAU,Returners,Late_Starters,Login').trim();
   if (!month) throw new Error('Month is required.');
   if ((command === 'cleanup.preview' || command === 'cleanup.run') && !runId && !runIds.length && !cleanupHash) {
     throw new Error('Run ID or hash is required for cleanup.');
@@ -696,7 +901,11 @@ function handleAdminN8nCommand_(e, callback, command) {
     old_hash: cleanupHash,
     hash: cleanupHash,
     confirm_delete: command === 'cleanup.run' ? 'YES' : 'NO',
-    run_mode: command === 'master.run' ? 'force' : '',
+    run_mode: command === 'master.run' ? 'force' : command === 'raw.check' ? 'manual_check' : '',
+    check_mode: command === 'raw.check' ? String(e.parameter.check_mode || 'manual') : '',
+    target_games_csv: targetGamesCsv,
+    target_months_csv: targetMonthsCsv,
+    expected_tabs_csv: expectedTabsCsv,
     source: 'cqr_admin_panel'
   };
   const options = {
@@ -733,6 +942,7 @@ function handleAdminN8nCommand_(e, callback, command) {
 
 function n8nWebhookUrlForCommand_(props, command) {
   const map = {
+    'raw.check': 'CQR_N8N_RAW_CHECK_WEBHOOK_URL',
     'cleanup.preview': 'CQR_N8N_CLEANUP_WEBHOOK_URL',
     'cleanup.run': 'CQR_N8N_CLEANUP_WEBHOOK_URL',
     'master.run': 'CQR_N8N_MASTER_UPDATE_WEBHOOK_URL'

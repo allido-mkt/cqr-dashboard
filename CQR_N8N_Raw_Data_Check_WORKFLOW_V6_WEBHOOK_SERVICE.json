@@ -1,0 +1,1014 @@
+{
+  "name": "CQR_N8N_Raw_Data_Check_V6_Webhook_Service",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cqr-raw-file-check-v1",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cqr-raw-file-check-webhook-v1",
+      "name": "Webhook - Raw File Check",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -820,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json.body || $json.query || $json || {};\nconst headers = $json.headers || {};\nconst now = new Date().toISOString();\nconst game = String(input.target_game_code || input.game || input.target_games_csv || 'ALL').trim() || 'ALL';\nconst month = String(input.target_month || input.month || input.target_months_csv || 'AUTO').trim() || 'AUTO';\nreturn [{ json: {\n  central_db_id: input.central_db_id || '',\n  target_game_code: game,\n  target_games_csv: String(input.target_games_csv || game || 'ALL').trim() || 'ALL',\n  target_month: month,\n  target_months_csv: String(input.target_months_csv || month || 'AUTO').trim() || 'AUTO',\n  expected_tabs_csv: input.expected_tabs_csv || 'Registered,DAU,Returners,Late_Starters,Login',\n  batch_id: input.batch_id || ('BATCH-MANUAL-' + now.replace(/[-:.]/g, '').slice(0, 15) + 'Z'),\n  request_id: input.request_id || ('RAW-CHECK-' + now),\n  requested_by: input.requested_by || '',\n  check_mode: input.check_mode || 'manual',\n  source: input.source || 'cqr_admin_panel',\n  webhook_received_at: now,\n  request_header_secret_present: Boolean(headers['x-cqr-admin-secret'] || headers['X-CQR-Admin-Secret'])\n}}];"
+      },
+      "id": "cqr-raw-file-check-normalize-v1",
+      "name": "Normalize Raw Check Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -580,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Webhook entry for Admin Panel\nUse this workflow for the Data Control button CHECK RAW.\n\nProduction URL path: `cqr-raw-file-check-v1`\n\nApps Script property:\n`CQR_N8N_RAW_CHECK_WEBHOOK_URL`\n\nInput keys expected: `target_game_code`, `target_month`, `target_games_csv`, `target_months_csv`, `expected_tabs_csv`.",
+        "height": 240,
+        "width": 420
+      },
+      "id": "cqr-raw-file-check-note-v1",
+      "name": "Sticky Note - Raw Check Webhook",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "cqr-raw-file-check-respond-v1",
+      "name": "Respond to Apps Script",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3020,
+        80
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        160
+      ],
+      "id": "raw-check-manual",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                0
+              ],
+              "triggerAtHour": 15,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        360
+      ],
+      "id": "raw-check-schedule",
+      "name": "Sunday 15:00 Raw Check Schedule",
+      "disabled": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "central-db-id",
+              "name": "central_db_id",
+              "value": "={{ $json.central_db_id || '1uM85a9Fqt3j4NAM1XcEI2ORIw0Uef7Unr-JmIIbpm2g' }}",
+              "type": "string"
+            },
+            {
+              "id": "target-month",
+              "name": "target_month",
+              "value": "={{ $json.target_month || new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString().slice(0, 7) }}",
+              "type": "string"
+            },
+            {
+              "id": "target-games",
+              "name": "target_games_csv",
+              "value": "={{ $json.target_games_csv || $json.target_game_code || 'ALL' }}",
+              "type": "string"
+            },
+            {
+              "id": "batch-id",
+              "name": "batch_id",
+              "value": "={{ $json.batch_id || ('BATCH-' + new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z') }}",
+              "type": "string"
+            },
+            {
+              "id": "expected-tabs",
+              "name": "expected_tabs_csv",
+              "value": "={{ $json.expected_tabs_csv || 'Registered,DAU,Returners,Late_Starters,Login' }}",
+              "type": "string"
+            },
+            {
+              "id": "target_months_csv",
+              "name": "target_months_csv",
+              "value": "={{ $json.target_months_csv || $json.target_month || 'AUTO' }}",
+              "type": "string"
+            },
+            {
+              "id": "request-id",
+              "name": "request_id",
+              "value": "={{ $json.request_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "requested-by",
+              "name": "requested_by",
+              "value": "={{ $json.requested_by || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "check-mode",
+              "name": "check_mode",
+              "value": "={{ $json.check_mode || 'scheduled' }}",
+              "type": "string"
+            },
+            {
+              "id": "source",
+              "name": "source",
+              "value": "={{ $json.source || 'raw_check_flow' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -304,
+        256
+      ],
+      "id": "raw-check-config",
+      "name": "Set Raw Check Config"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "SourceFiles",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -48,
+        256
+      ],
+      "id": "raw-check-read-source-files",
+      "name": "Read Central DB - SourceFiles",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Set Raw Check Config').first().json;\nconst REPORT_START_MONTH = '2026-01';\nfunction currentMonthKey() {\n  const now = new Date();\n  return now.getUTCFullYear() + '-' + String(now.getUTCMonth() + 1).padStart(2, '0');\n}\nfunction monthRange(start, end) {\n  const out = [];\n  let [y, m] = start.split('-').map(Number);\n  const [ey, em] = end.split('-').map(Number);\n  while (y < ey || (y === ey && m <= em)) {\n    out.push(y + '-' + String(m).padStart(2, '0'));\n    m += 1;\n    if (m > 12) { m = 1; y += 1; }\n  }\n  return out;\n}\nfunction normalizeMonths(value) {\n  const text = String(value || '').trim();\n  if (!text || text.toUpperCase() === 'ALL' || text.toUpperCase() === 'AUTO') return monthRange(REPORT_START_MONTH, currentMonthKey());\n  return [...new Set(text.split(',').map(v => v.trim()).filter(Boolean))];\n}\nconst targetMonths = normalizeMonths(config.target_months_csv || config.target_month);\nconst targetGamesCsv = config.target_games_csv || 'ALL';\nconst targetGames = targetGamesCsv === 'ALL' ? null : targetGamesCsv.split(',').map(v => v.trim()).filter(Boolean);\nconst sourceRows = $('Read Central DB - SourceFiles').all().map(item => item.json).filter(row => !row.error);\nconst activeRows = sourceRows.filter(row => String(row.status || '').toLowerCase() === 'active');\nconst filteredRows = targetGames ? activeRows.filter(row => targetGames.includes(row.game_code)) : activeRows;\nfunction requiredTabsFor(month) {\n  return [\n    { sheet_type: 'registered', tab_name: `Registered_${month}` },\n    { sheet_type: 'dau', tab_name: `DAU_${month}` },\n    { sheet_type: 'returners', tab_name: `Returners_${month}` },\n    { sheet_type: 'late_starters', tab_name: `Late_Starters_${month}` },\n    { sheet_type: 'login', tab_name: `Login_${month}` }\n  ];\n}\nconst nowKey = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';\nconst units = [];\nfor (const row of filteredRows) {\n  for (const targetMonth of targetMonths) {\n    const requiredTabs = requiredTabsFor(targetMonth);\n    units.push({ json: {\n      raw_check_id: 'RAWCHK-' + row.game_code + '-' + targetMonth + '-' + nowKey,\n      batch_id: config.batch_id,\n      request_id: config.request_id || '',\n      requested_by: config.requested_by || '',\n      check_mode: config.check_mode || 'scheduled',\n      request_source: config.source || '',\n      central_db_id: config.central_db_id,\n      game_code: row.game_code,\n      period_key: targetMonth,\n      target_month: targetMonth,\n      raw_file_id: row.source_file_id,\n      raw_file_name: row.source_file_name,\n      master_file_id: row.master_file_id || '',\n      required_tabs: requiredTabs,\n      tab_count_expected: requiredTabs.length\n    }});\n  }\n}\nreturn units;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        256
+      ],
+      "id": "raw-check-build-units",
+      "name": "Build Raw Check Units"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        464,
+        256
+      ],
+      "id": "raw-check-split-game",
+      "name": "Split In Batches - One Game"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, checked_started_at: new Date().toISOString() } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        256
+      ],
+      "id": "raw-check-prepare",
+      "name": "Prepare Raw Tab Plan"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.raw_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Registered_${$json.target_month}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        976,
+        -128
+      ],
+      "id": "raw-check-read-registered",
+      "name": "Read Raw - Registered",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Prepare Raw Tab Plan').first().json.raw_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `DAU_${$('Prepare Raw Tab Plan').first().json.target_month}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1232,
+        -128
+      ],
+      "id": "raw-check-read-dau",
+      "name": "Read Raw - DAU",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Prepare Raw Tab Plan').first().json.raw_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Returners_${$('Prepare Raw Tab Plan').first().json.target_month}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1488,
+        -128
+      ],
+      "id": "raw-check-read-returners",
+      "name": "Read Raw - Returners",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Prepare Raw Tab Plan').first().json.raw_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Late_Starters_${$('Prepare Raw Tab Plan').first().json.target_month}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1744,
+        -128
+      ],
+      "id": "raw-check-read-late",
+      "name": "Read Raw - Late Starters",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Prepare Raw Tab Plan').first().json.raw_file_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Login_${$('Prepare Raw Tab Plan').first().json.target_month}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2000,
+        -128
+      ],
+      "id": "raw-check-read-login",
+      "name": "Read Raw - Login",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      },
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const unit = $('Prepare Raw Tab Plan').first().json;\nconst now = new Date().toISOString();\nfunction rowsFrom(name) {\n  try { return $(name).all().map(item => item.json).filter(row => !row.error); }\n  catch (error) { return []; }\n}\nfunction errorsFrom(name) {\n  try { return $(name).all().map(item => item.json).filter(row => row.error).map(row => row.error || row.message || 'read error'); }\n  catch (error) { return [error.message]; }\n}\nfunction simpleHash(value) {\n  const text = JSON.stringify(value);\n  let hash = 0;\n  for (let i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;\n  return Math.abs(hash).toString(36);\n}\nfunction getValue(row, keys) {\n  for (const key of keys) {\n    if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return String(row[key]).trim();\n  }\n  return '';\n}\nfunction getPreviousRawHash(gameCode, periodKey) {\n  let rows = [];\n  try { rows = $('Read Central DB - RawIngestionLogs').all().map(item => item.json).filter(row => !row.error); }\n  catch (error) { rows = []; }\n  const matches = rows\n    .filter(row => getValue(row, ['game_code', 'game']) === gameCode && getValue(row, ['period_key', 'month', 'target_month']) === periodKey)\n    .filter(row => getValue(row, ['raw_data_hash', 'raw_updated_signal', 'hash']))\n    .sort((a, b) => String(getValue(b, ['checked_at', 'created_at', 'timestamp'])).localeCompare(String(getValue(a, ['checked_at', 'created_at', 'timestamp']))));\n  return matches.length ? getValue(matches[0], ['raw_data_hash', 'raw_updated_signal', 'hash']) : '';\n}\nconst tabs = {\n  registered: { tab_name: `Registered_${unit.target_month}`, rows: rowsFrom('Read Raw - Registered'), errors: errorsFrom('Read Raw - Registered') },\n  dau: { tab_name: `DAU_${unit.target_month}`, rows: rowsFrom('Read Raw - DAU'), errors: errorsFrom('Read Raw - DAU') },\n  returners: { tab_name: `Returners_${unit.target_month}`, rows: rowsFrom('Read Raw - Returners'), errors: errorsFrom('Read Raw - Returners') },\n  late_starters: { tab_name: `Late_Starters_${unit.target_month}`, rows: rowsFrom('Read Raw - Late Starters'), errors: errorsFrom('Read Raw - Late Starters') },\n  login: { tab_name: `Login_${unit.target_month}`, rows: rowsFrom('Read Raw - Login'), errors: errorsFrom('Read Raw - Login') }\n};\nconst missingTabs = Object.entries(tabs).filter(([, tab]) => tab.errors.length || !tab.rows.length).map(([, tab]) => tab.tab_name);\nconst tabCountFound = Object.values(tabs).filter(tab => tab.rows.length && !tab.errors.length).length;\nconst RAW_HASH_PREFIX = 'v2-full:';\n\nfunction stableStringify(value) {\n  if (value === undefined) return '\"__undefined__\"';\n\n  if (value === null || typeof value !== 'object') {\n    return JSON.stringify(value);\n  }\n\n  if (Array.isArray(value)) {\n    return '[' + value.map(stableStringify).join(',') + ']';\n  }\n\n  return '{' + Object.keys(value)\n    .sort()\n    .map(\n      key =>\n        JSON.stringify(key) +\n        ':' +\n        stableStringify(value[key])\n    )\n    .join(',') + '}';\n}\n\nfunction updateHash(hash, text) {\n  const value = String(text || '');\n\n  for (let i = 0; i < value.length; i++) {\n    hash =\n      ((hash << 5) - hash + value.charCodeAt(i)) | 0;\n  }\n\n  return hash;\n}\n\nlet rawHashState = 0;\n\nrawHashState = updateHash(\n  rawHashState,\n  unit.game_code + '|' + unit.target_month\n);\n\nfor (const [tabKey, tab] of Object.entries(tabs)) {\n  rawHashState = updateHash(\n    rawHashState,\n    '|' + tabKey + ':' + tab.rows.length + '|'\n  );\n\n  for (const row of tab.rows) {\n    rawHashState = updateHash(\n      rawHashState,\n      stableStringify(row)\n    );\n  }\n}\n\nconst rawDataHash =\n  RAW_HASH_PREFIX +\n  Math.abs(rawHashState).toString(36);\nconst previousRawHash = getPreviousRawHash(unit.game_code, unit.target_month);\nconst comparablePreviousRawHash =\n  previousRawHash.startsWith(RAW_HASH_PREFIX)\n    ? previousRawHash\n    : '';\n\nlet status = 'raw_ready';\nif (tabCountFound === 0) status = 'raw_missing';\nelse if (missingTabs.length) status = 'raw_partial';\nelse if (\n  comparablePreviousRawHash &&\n  comparablePreviousRawHash !== rawDataHash\n) status = 'raw_updated';\nconst statusText = {\n  raw_ready: comparablePreviousRawHash\n    ? 'Raw data is unchanged: all 5 tabs match the latest Raw Check log.'\n    : 'Raw data is ready: all 5 tabs were found with readable rows.',\n  raw_updated: 'Raw data has changed since the latest Raw Check log. Save this result, then rebuild Master if Dashboard still shows old data.',\n  raw_partial: 'Raw data needs review: some tabs are missing or empty.',\n  raw_missing: 'Raw data needs review: no readable raw tabs were found.'\n};\nreturn [{ json: {\n  raw_check_id: unit.raw_check_id,\n  batch_id: unit.batch_id,\n  request_id: unit.request_id || '',\n  requested_by: unit.requested_by || '',\n  check_mode: unit.check_mode || '',\n  request_source: unit.request_source || '',\n  game_code: unit.game_code,\n  period_key: unit.target_month,\n  raw_file_id: unit.raw_file_id,\n  checked_at: now,\n  status,\n  tab_count_expected: unit.tab_count_expected,\n  tab_count_found: tabCountFound,\n  missing_tabs: missingTabs.join(', '),\n  registered_rows: tabs.registered.rows.length,\n  dau_rows: tabs.dau.rows.length,\n  returners_rows: tabs.returners.rows.length,\n  late_starters_rows: tabs.late_starters.rows.length,\n  login_rows: tabs.login.rows.length,\n  previous_raw_hash: previousRawHash,\n  raw_data_hash: rawDataHash,\n  raw_updated_signal: rawDataHash,\n  message: statusText[status] + (missingTabs.length ? ' Missing tabs: ' + missingTabs.join(', ') : ''),\n  central_db_id: unit.central_db_id,\n  source_file_name: unit.raw_file_name,\n  master_file_id: unit.master_file_id\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2256,
+        256
+      ],
+      "id": "raw-check-build-log",
+      "name": "Build RawIngestionLogs Row"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "RawIngestionLogs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2512,
+        256
+      ],
+      "id": "raw-check-append-log",
+      "name": "Append Central DB - RawIngestionLogs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json);\nfunction pick(row) {\n  return {\n    status: row.status,\n    raw_check_id: row.raw_check_id,\n    request_id: row.request_id || '',\n    requested_by: row.requested_by || '',\n    check_mode: row.check_mode || '',\n    batch_id: row.batch_id,\n    game_code: row.game_code,\n    period_key: row.period_key,\n    tab_count_found: row.tab_count_found,\n    tab_count_expected: row.tab_count_expected,\n    missing_tabs: row.missing_tabs || '',\n    registered_rows: row.registered_rows,\n    dau_rows: row.dau_rows,\n    returners_rows: row.returners_rows,\n    late_starters_rows: row.late_starters_rows,\n    login_rows: row.login_rows,\n    previous_raw_hash: row.previous_raw_hash || '',\n    raw_data_hash: row.raw_data_hash,\n    message: row.message\n  };\n}\nif (rows.length <= 1) return [{ json: pick(rows[0] || {}) }];\nconst counts = rows.reduce((acc, row) => {\n  const status = row.status || 'unknown';\n  acc[status] = (acc[status] || 0) + 1;\n  return acc;\n}, {});\nconst status = counts.raw_missing || counts.raw_partial\n  ? 'raw_partial'\n  : counts.raw_updated\n    ? 'raw_updated'\n    : 'raw_ready';\nreturn [{ json: {\n  status,\n  scope_count: rows.length,\n  raw_ready_count: counts.raw_ready || 0,\n  raw_updated_count: counts.raw_updated || 0,\n  raw_partial_count: (counts.raw_partial || 0) + (counts.raw_missing || 0),\n  batch_id: rows[0]?.batch_id || '',\n  request_id: rows[0]?.request_id || '',\n  check_mode: rows[0]?.check_mode || '',\n  message: status === 'raw_ready'\n    ? 'Raw check completed: every selected game/month is readable and unchanged.'\n    : status === 'raw_updated'\n      ? 'Raw check completed: some selected game/month data changed since the latest Raw Check log.'\n      : 'Raw check completed: some selected game/month data is missing or incomplete.',\n  results: rows.map(pick)\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2768,
+        256
+      ],
+      "id": "raw-check-summary",
+      "name": "Run Summary"
+    },
+    {
+      "parameters": {
+        "content": "## Raw Data Check V5\nอ่าน Raw File ตาม Game/Month แล้วบันทึกสถานะลง Central DB แท็บ RawIngestionLogs\n\n- ใช้ AUTO/ALL เพื่อไล่ตั้งแต่ 2026-01 ถึงเดือนล่าสุด\n- เขียน 1 row ต่อ 1 Game + 1 Month\n- Data Health อ่านผลจาก Central DB ไม่ต้องอ่าน Raw File ซ้ำ",
+        "height": 260,
+        "width": 420
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -160
+      ],
+      "id": "raw-check-note",
+      "name": "Sticky Note - Overview"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn new Promise(resolve => {\n  setTimeout(() => resolve(items), 8 * 1000);\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        48
+      ],
+      "id": "delay-before-registered-read",
+      "name": "Delay - Before Registered Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn new Promise(resolve => {\n  setTimeout(() => resolve(items), 15 * 1000);\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        48
+      ],
+      "id": "delay-before-dau-read",
+      "name": "Delay - Before DAU Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn new Promise(resolve => {\n  setTimeout(() => resolve(items), 15 * 1000);\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        48
+      ],
+      "id": "delay-before-returners-read",
+      "name": "Delay - Before Returners Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn new Promise(resolve => {\n  setTimeout(() => resolve(items), 15 * 1000);\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        48
+      ],
+      "id": "delay-before-late-starters-read",
+      "name": "Delay - Before Late Starters Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn new Promise(resolve => {\n  setTimeout(() => resolve(items), 15 * 1000);\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1872,
+        48
+      ],
+      "id": "delay-before-login-read",
+      "name": "Delay - Before Login Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn new Promise(resolve => {\n  setTimeout(() => resolve(items), 10 * 1000);\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2384,
+        48
+      ],
+      "id": "delay-before-raw-log-append",
+      "name": "Delay - Before Raw Log Append"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Prepare Raw Tab Plan').first().json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        96
+      ],
+      "id": "continue-after-registered-read",
+      "name": "Continue - After Registered Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Prepare Raw Tab Plan').first().json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        96
+      ],
+      "id": "continue-after-dau-read",
+      "name": "Continue - After DAU Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Prepare Raw Tab Plan').first().json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        96
+      ],
+      "id": "continue-after-returners-read",
+      "name": "Continue - After Returners Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Prepare Raw Tab Plan').first().json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        96
+      ],
+      "id": "continue-after-late-starters-read",
+      "name": "Continue - After Late Starters Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Prepare Raw Tab Plan').first().json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2064,
+        96
+      ],
+      "id": "continue-after-login-read",
+      "name": "Continue - After Login Read"
+    },
+    {
+      "parameters": {
+        "content": "## Sunday Auto Raw Check\n\nรันทุกวันอาทิตย์ 15:00 เพื่อตรวจ Raw Data ล่าสุดก่อน Build Master\n\nWorkflow นี้รับค่า input ได้ด้วย เช่น `target_month`, `target_games_csv`, `batch_id` สำหรับให้ Controller เรียกใช้ภายหลัง",
+        "height": 220,
+        "width": 420
+      },
+      "id": "sticky-sunday-raw-v4",
+      "name": "Sticky Note - Sunday Auto",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        460,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.central_db_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "RawIngestionLogs",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        176,
+        256
+      ],
+      "id": "raw-check-read-raw-ingestion-logs",
+      "name": "Read Central DB - RawIngestionLogs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TCNFnLz3WEr0FyWM",
+          "name": "Google Sheets account 116"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Raw Check Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Raw Check Config": {
+      "main": [
+        [
+          {
+            "node": "Read Central DB - SourceFiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Central DB - SourceFiles": {
+      "main": [
+        [
+          {
+            "node": "Read Central DB - RawIngestionLogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Raw Check Units": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches - One Game",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches - One Game": {
+      "main": [
+        [
+          {
+            "node": "Prepare Raw Tab Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Raw Tab Plan": {
+      "main": [
+        [
+          {
+            "node": "Delay - Before Registered Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Raw - Registered": {
+      "main": [
+        [
+          {
+            "node": "Continue - After Registered Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Raw - DAU": {
+      "main": [
+        [
+          {
+            "node": "Continue - After DAU Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Raw - Returners": {
+      "main": [
+        [
+          {
+            "node": "Continue - After Returners Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Raw - Late Starters": {
+      "main": [
+        [
+          {
+            "node": "Continue - After Late Starters Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Raw - Login": {
+      "main": [
+        [
+          {
+            "node": "Continue - After Login Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build RawIngestionLogs Row": {
+      "main": [
+        [
+          {
+            "node": "Delay - Before Raw Log Append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Central DB - RawIngestionLogs": {
+      "main": [
+        [
+          {
+            "node": "Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay - Before Registered Read": {
+      "main": [
+        [
+          {
+            "node": "Read Raw - Registered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay - Before DAU Read": {
+      "main": [
+        [
+          {
+            "node": "Read Raw - DAU",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay - Before Returners Read": {
+      "main": [
+        [
+          {
+            "node": "Read Raw - Returners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay - Before Late Starters Read": {
+      "main": [
+        [
+          {
+            "node": "Read Raw - Late Starters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay - Before Login Read": {
+      "main": [
+        [
+          {
+            "node": "Read Raw - Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay - Before Raw Log Append": {
+      "main": [
+        [
+          {
+            "node": "Append Central DB - RawIngestionLogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Continue - After Registered Read": {
+      "main": [
+        [
+          {
+            "node": "Delay - Before DAU Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Continue - After DAU Read": {
+      "main": [
+        [
+          {
+            "node": "Delay - Before Returners Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Continue - After Returners Read": {
+      "main": [
+        [
+          {
+            "node": "Delay - Before Late Starters Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Continue - After Late Starters Read": {
+      "main": [
+        [
+          {
+            "node": "Delay - Before Login Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Continue - After Login Read": {
+      "main": [
+        [
+          {
+            "node": "Build RawIngestionLogs Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sunday 15:00 Raw Check Schedule": {
+      "main": [
+        [
+          {
+            "node": "Set Raw Check Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Raw File Check": {
+      "main": [
+        [
+          {
+            "node": "Normalize Raw Check Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Raw Check Request": {
+      "main": [
+        [
+          {
+            "node": "Set Raw Check Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Summary": {
+      "main": [
+        [
+          {
+            "node": "Respond to Apps Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Central DB - RawIngestionLogs": {
+      "main": [
+        [
+          {
+            "node": "Build Raw Check Units",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "updatedAt": "2026-07-29T19:28:57.225Z"
+}

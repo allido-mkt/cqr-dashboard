@@ -228,6 +228,21 @@ tbody tr:hover{background:#fbfaf8}
 .sample-btn:hover{background:#fff7ed}
 .batch-actions{display:none;border:1px solid #fed7aa;background:#fffaf0;border-radius:16px;padding:12px;margin-top:12px;margin-bottom:12px}
 .batch-actions.active{display:block}
+.raw-check-panel{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff 0,#fff 100%);border-radius:16px;padding:14px;margin:12px 0;display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:14px;align-items:center}
+.raw-check-panel b{display:block;font-size:13px;text-transform:uppercase}
+.raw-check-panel p{margin:5px 0 0;color:var(--sub);font-size:12px;line-height:1.55}
+.raw-check-panel .context-submit{width:100%;background:#1d4ed8}
+.raw-check-panel .context-submit:hover{background:#1e40af}
+.raw-result{border:1px solid #e7e3dc;background:#fff;border-radius:14px;padding:12px;margin:10px 0;display:grid;gap:8px;font-size:12px;line-height:1.55}
+.raw-result.ok{border-color:#99f6e4;background:#f0fdfa}
+.raw-result.warn{border-color:#fed7aa;background:#fffaf0}
+.raw-result.danger{border-color:#fecdd3;background:#fff1f2}
+.raw-result h4{margin:0;font-size:14px}
+.raw-result p{margin:0;color:var(--sub)}
+.raw-result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.raw-result-grid div{border:1px solid rgba(148,163,184,.24);background:rgba(255,255,255,.68);border-radius:10px;padding:8px}
+.raw-result-grid span{display:block;color:var(--muted);font-size:9.5px;text-transform:uppercase;font-weight:900;letter-spacing:.05em}
+.raw-result-grid b{display:block;margin-top:3px;font-size:12px;overflow-wrap:anywhere}
 .batch-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
 .batch-head b{font-size:13.5px}
 .batch-head span{font-size:11px;color:var(--sub)}
@@ -533,6 +548,17 @@ tbody tr:hover{background:#fbfaf8}
                 <div class="toolbar">
                   <button class="sample-btn" type="button" onclick="showDataControlSample()">SHOW SAMPLE</button>
                 </div>
+                </div>
+                <div class="raw-check-panel">
+                  <div>
+                    <b>RAW FILE CHECK</b>
+                    <p>ตรวจไฟล์ Raw ของ Game/Month ที่เลือกอีกครั้ง แล้วบันทึกผลลง Central DB ถ้าไฟล์เหมือนเดิมจะบอกว่าปกติ ถ้ามีข้อมูลใหม่จะบอกว่าอัปเดทใหม่ ถ้าขาด Tab จะบอกว่าข้อมูลไม่ครบ</p>
+                  </div>
+                  <button class="context-submit" id="rawCheckButton" type="button" onclick="runRawFileCheck()">CHECK RAW</button>
+                </div>
+                <div id="rawCheckResult" class="raw-result warn">
+                  <h4>ยังไม่ได้ตรวจ Raw File จากหน้านี้</h4>
+                  <p>ใช้ปุ่มนี้เมื่อต้องการตรวจ Raw เฉพาะรอบที่เลือกเอง เช่น CBM TH เดือนเมษายน ก่อนซ่อมข้อมูลใน Data Control</p>
                 </div>
                 <div class="batch-actions" id="batchActions">
                   <div class="batch-head">
@@ -937,6 +963,9 @@ function mockBackend(action, params){
   if(action === 'admin.n8n.master.run'){
     return buildMockN8nCommand('master_update', params || {});
   }
+  if(action === 'admin.n8n.raw.check'){
+    return buildMockRawCheck(params || {});
+  }
   return {ok:true};
 }
 
@@ -1338,6 +1367,141 @@ async function loadPipelineHealth(){
   }
 }
 
+async function runRawFileCheck(){
+  const session = getSavedSession();
+  const resultBox = document.getElementById('rawCheckResult');
+  if(!session || !session.sessionToken){
+    resultBox.className = 'raw-result danger';
+    resultBox.innerHTML = '<h4>Session หมดอายุ</h4><p>กรุณา Sign in ใหม่ก่อนใช้ RAW FILE CHECK</p>';
+    return;
+  }
+  const game = document.getElementById('toolGame').value || 'ALL';
+  const month = document.getElementById('toolMonth').value || 'ALL';
+  resultBox.className = 'raw-result warn';
+  resultBox.innerHTML = `<h4>กำลังตรวจ Raw File</h4><p>ส่งคำขอไป n8n สำหรับ ${escapeHtml(game)} / ${escapeHtml(month)} แล้ว ระบบจะบันทึกผลลง Central DB เมื่อทำงานสำเร็จ</p>`;
+  setPipelineActionBusy(true);
+  try{
+    const result = await callAppsScript('admin.n8n.raw.check', {
+      session_token: session.sessionToken,
+      game,
+      month,
+      target_game_code: game,
+      target_month: month,
+      target_games_csv: game,
+      target_months_csv: month,
+      check_mode: 'manual',
+      expected_tabs_csv: 'Registered,DAU,Returners,Late_Starters,Login',
+      _timeout_ms: 60000
+    });
+    if(!result.ok){
+      const err = new Error(result.message || 'raw check failed');
+      err.requiredProperty = result.required_property || '';
+      err.status = result.status || '';
+      err.detail = result.detail || '';
+      throw err;
+    }
+    renderRawCheckResult(result);
+    appendAdminActionLog({
+      command: 'Raw Check',
+      game,
+      month,
+      status: result.status || result.n8n_result?.status || 'sent',
+      message: result.n8n_result?.message || result.message || 'Raw check request sent',
+      run_id: result.request_id || ''
+    });
+  }catch(error){
+    resultBox.className = 'raw-result danger';
+    resultBox.innerHTML = renderPipelineCommandError('Raw Check', 'raw.check', error);
+  }finally{
+    setPipelineActionBusy(false);
+  }
+}
+
+function renderRawCheckResult(result){
+  const resultBox = document.getElementById('rawCheckResult');
+  const payload = normalizeN8nPayload(result.n8n_result || result.result || result);
+  if(Array.isArray(payload.results) && payload.results.length > 1){
+    const updatedCount = Number(payload.raw_updated_count || 0);
+    const partialCount = Number(payload.raw_partial_count || 0);
+    const readyCount = Number(payload.raw_ready_count || 0);
+    const tone = partialCount ? 'danger' : updatedCount ? 'warn' : 'ok';
+    const title = partialCount
+      ? 'Raw File บางรายการยังไม่ครบ'
+      : updatedCount
+        ? 'Raw File บางรายการมีข้อมูลใหม่'
+        : 'Raw File ในขอบเขตที่เลือกปกติ';
+    const sampleRows = payload.results.slice(0, 6).map(row => `
+      <div><span>${escapeHtml(row.game_code || '-')} / ${escapeHtml(row.period_key || '-')}</span><b>${escapeHtml(statusLabelForRawCheck(row.status))}</b></div>
+    `).join('');
+    resultBox.className = `raw-result ${tone}`;
+    resultBox.innerHTML = `
+      <h4>${escapeHtml(title)}</h4>
+      <p>${escapeHtml(payload.message || 'ตรวจ Raw File สำเร็จ')}</p>
+      <div class="raw-result-grid">
+        <div><span>ตรวจทั้งหมด</span><b>${escapeHtml(String(payload.scope_count || payload.results.length))}</b></div>
+        <div><span>ปกติ</span><b>${escapeHtml(String(readyCount))}</b></div>
+        <div><span>มีข้อมูลใหม่</span><b>${escapeHtml(String(updatedCount))}</b></div>
+        <div><span>ยังไม่ครบ</span><b>${escapeHtml(String(partialCount))}</b></div>
+      </div>
+      ${sampleRows ? `<div class="raw-result-grid">${sampleRows}</div>` : ''}
+      <p><b>ขั้นตอนต่อไป:</b> ถ้ามีรายการที่มีข้อมูลใหม่หรือยังไม่ครบ ให้กด FIND เพื่อดู run ที่เกี่ยวข้อง แล้วค่อย Preview / Clear / Build เฉพาะรายการนั้น</p>
+    `;
+    return;
+  }
+  const status = String(payload.status || payload.raw_status || '').toLowerCase();
+  const rawHash = payload.raw_data_hash || payload.raw_updated_signal || payload.hash || '-';
+  const game = payload.game_code || payload.target_game_code || result.game || document.getElementById('toolGame')?.value || '-';
+  const month = payload.period_key || payload.target_month || result.month || document.getElementById('toolMonth')?.value || '-';
+  const found = payload.tab_count_found ?? payload.tabs_found ?? '-';
+  const expected = payload.tab_count_expected ?? payload.tabs_expected ?? '5';
+  const missingTabs = payload.missing_tabs || payload.missingTabs || '';
+  const message = payload.message || result.message || 'ส่งคำขอตรวจ Raw สำเร็จ';
+  let tone = 'ok';
+  let title = 'Raw File ปกติ';
+  let next = 'ถ้า Dashboard ยังไม่ครบ ให้ไปที่ FIND เพื่อดู run ล่าสุด แล้วค่อย Preview / Clear / Build ตามขั้นตอน';
+  if(status.includes('updated') || status.includes('change')){
+    tone = 'warn';
+    title = 'Raw File มีข้อมูลใหม่';
+    next = 'กด FIND เพื่อหา run ที่เกี่ยวข้อง จากนั้น Preview ก่อน Clear/Build เฉพาะเกมและเดือนนี้';
+  }else if(status.includes('partial') || status.includes('missing') || status.includes('incomplete')){
+    tone = 'danger';
+    title = 'Raw File ยังไม่ครบ';
+    next = 'เช็กไฟล์ Raw ก่อนว่า Tab ครบ 5 Tab และมีข้อมูลในแต่ละ Tab แล้วค่อย CHECK RAW ใหม่';
+  }
+  resultBox.className = `raw-result ${tone}`;
+  resultBox.innerHTML = `
+    <h4>${escapeHtml(title)}</h4>
+    <p>${escapeHtml(message)}</p>
+    <div class="raw-result-grid">
+      <div><span>Game</span><b>${escapeHtml(game)}</b></div>
+      <div><span>Month</span><b>${escapeHtml(month)}</b></div>
+      <div><span>Tabs</span><b>${escapeHtml(String(found))} / ${escapeHtml(String(expected))}</b></div>
+      <div><span>Raw Hash</span><b>${escapeHtml(String(rawHash))}</b></div>
+    </div>
+    ${missingTabs ? `<p><b>Tab ที่ต้องเช็ก:</b> ${escapeHtml(String(missingTabs))}</p>` : ''}
+    <p><b>ขั้นตอนต่อไป:</b> ${escapeHtml(next)}</p>
+  `;
+  if(rawHash && rawHash !== '-' && (status.includes('updated') || status.includes('change'))){
+    const query = document.getElementById('toolRunQuery');
+    if(query && !query.value.trim()) query.value = rawHash;
+  }
+}
+
+function statusLabelForRawCheck(status){
+  const text = String(status || '').toLowerCase();
+  if(text.includes('updated') || text.includes('change')) return 'มีข้อมูลใหม่';
+  if(text.includes('partial') || text.includes('missing') || text.includes('incomplete')) return 'ยังไม่ครบ';
+  if(text.includes('ready')) return 'ปกติ';
+  return status || '-';
+}
+
+function normalizeN8nPayload(payload){
+  if(Array.isArray(payload)) return normalizeN8nPayload(payload[0] || {});
+  if(payload?.json) return normalizeN8nPayload(payload.json);
+  if(payload?.body) return normalizeN8nPayload(payload.body);
+  return payload || {};
+}
+
 async function runPipelineCommand(command){
   const session = getSavedSession();
   const resultBox = document.getElementById('pipelineActionResult');
@@ -1448,12 +1612,15 @@ function renderPipelineCommandError(label, command, error){
   const message = String(error?.message || error || '');
   const property = error?.requiredProperty || (
     message.includes('CQR_N8N_MASTER_UPDATE_WEBHOOK_URL') ? 'CQR_N8N_MASTER_UPDATE_WEBHOOK_URL' :
-    message.includes('CQR_N8N_CLEANUP_WEBHOOK_URL') ? 'CQR_N8N_CLEANUP_WEBHOOK_URL' : ''
+    message.includes('CQR_N8N_CLEANUP_WEBHOOK_URL') ? 'CQR_N8N_CLEANUP_WEBHOOK_URL' :
+    message.includes('CQR_N8N_RAW_CHECK_WEBHOOK_URL') ? 'CQR_N8N_RAW_CHECK_WEBHOOK_URL' : ''
   );
   if(property){
     const purpose = property === 'CQR_N8N_CLEANUP_WEBHOOK_URL'
       ? 'ใช้สำหรับปุ่ม Preview และ Clear'
-      : 'ใช้สำหรับปุ่ม Build';
+      : property === 'CQR_N8N_RAW_CHECK_WEBHOOK_URL'
+        ? 'ใช้สำหรับปุ่ม CHECK RAW'
+        : 'ใช้สำหรับปุ่ม Build';
     return `
       <b>${escapeHtml(label)} ยังส่งไป n8n ไม่ได้</b><br>
       Apps Script ยังไม่มีค่า <code>${escapeHtml(property)}</code><br>
@@ -1490,6 +1657,8 @@ function formatN8nErrorDetail(detail){
 
 function setPipelineActionBusy(isBusy){
   document.querySelectorAll('.action-btn').forEach(button => button.disabled = isBusy);
+  const rawCheckButton = document.getElementById('rawCheckButton');
+  if(rawCheckButton) rawCheckButton.disabled = isBusy;
 }
 
 function getSelectedRunItems(){
@@ -2270,6 +2439,27 @@ function buildMockN8nCommand(type, params){
       delete_request_count: type === 'cleanup_preview' ? 4 : undefined,
       rows_deleted: isCleanupRun ? 4 : undefined,
       message:'Preview mode เท่านั้นใน local file. หลังตั้งค่า n8n webhook ใน Apps Script production ปุ่มนี้จะส่งคำสั่งจริง'
+    }
+  };
+}
+
+function buildMockRawCheck(params){
+  const game = params.game || params.target_game_code || 'CBM_TH';
+  const month = params.month || params.target_month || '2026-06';
+  return {
+    ok:true,
+    game,
+    month,
+    status:'mock_sent',
+    request_id:'ADMIN-RAW-CHECK-MOCK',
+    n8n_result:{
+      status:'raw_updated',
+      game_code:game,
+      period_key:month,
+      tab_count_found:5,
+      tab_count_expected:5,
+      raw_data_hash:'mockraw',
+      message:'Mock: พบ Raw ครบ 5 Tab และข้อมูลเปลี่ยนจากรอบก่อน'
     }
   };
 }
