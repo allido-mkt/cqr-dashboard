@@ -1401,14 +1401,7 @@ async function runRawFileCheck(){
       throw err;
     }
     renderRawCheckResult(result);
-    appendAdminActionLog({
-      command: 'Raw Check',
-      game,
-      month,
-      status: result.status || result.n8n_result?.status || 'sent',
-      message: result.n8n_result?.message || result.message || 'Raw check request sent',
-      run_id: result.request_id || ''
-    });
+    recordAdminActionLog('Raw Check', result, normalizeN8nPayload(result.n8n_result || result.result || result));
   }catch(error){
     resultBox.className = 'raw-result danger';
     resultBox.innerHTML = renderPipelineCommandError('Raw Check', 'raw.check', error);
