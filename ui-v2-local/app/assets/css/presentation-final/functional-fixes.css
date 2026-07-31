@@ -1,0 +1,13 @@
+/* CQR Copilot functional stabilization — visual changes are intentionally scoped. */
+#page-content .button[disabled],
+#page-content .send-button[disabled],
+#page-content .suggest-chip[disabled] {
+  cursor: not-allowed;
+  opacity: .58;
+  transform: none !important;
+}
+#page-content .notice + .notice { margin-top: 10px; }
+#page-content .json-preview { max-height: 420px; overflow: auto; }
+#page-content .code-chip { overflow-wrap: anywhere; }
+#page-content .table-wrap { max-width: 100%; }
+.ai-insight-page .ai-busy-note { grid-column: 1 / -1; }

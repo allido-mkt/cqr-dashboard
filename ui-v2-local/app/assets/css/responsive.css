@@ -1,0 +1,53 @@
+@media (max-width: 1320px) {
+  .topbar { align-items:flex-start;flex-direction:column; }
+  .topbar-actions { width:100%;justify-content:flex-start; }
+  .ai-context { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .ai-context .button { grid-column:span 1; }
+}
+@media (max-width: 1120px) {
+  .grid-4,.metric-grid,.health-status-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .grid-main-aside,.grid-wide-aside,.ai-layout { grid-template-columns:1fr; }
+  .raw-hero { grid-template-columns:74px minmax(0,1fr); }
+  .raw-side { grid-column:1/-1;padding:14px 0 0;border-left:0;border-top:1px solid var(--line); }
+  .pipeline-nodes,.permission-grid { grid-template-columns:1fr; }
+}
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns:var(--sidebar-collapsed-width) minmax(0,1fr); }
+  .app-shell .brand-copy,.app-shell .nav-group-label,.app-shell .nav-text,.app-shell .nav-chevron,.app-shell .profile-copy,.app-shell .profile-more { display:none; }
+  .app-shell .brand-block { justify-content:center;padding-inline:9px; }
+  .app-shell .sidebar-toggle { display:none; }
+  .app-shell .sidebar-scroll { padding-inline:9px; }
+  .app-shell .nav-item,.app-shell .nav-parent,.app-shell .nav-child { justify-content:center;padding:0; }
+  .app-shell .nav-children { display:none; }
+  .app-shell .profile-card { grid-template-columns:1fr;padding:8px; }
+  .app-shell .profile-avatar { margin:auto; }
+  .app-shell .profile-popover { left:76px;right:auto;bottom:14px;width:190px; }
+  .overview-layout,.grid-2,.grid-3 { grid-template-columns:1fr; }
+  .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .workflow-guide,.stepper,.request-timeline { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 680px) {
+  .app-shell { display:block;padding:10px; }
+  .sidebar { position:fixed;z-index:60;left:10px;right:10px;bottom:10px;top:auto;width:auto;height:72px;display:block;border-radius:22px; }
+  .brand-block,.nav-group-label,.nav-parent,.nav-children,.sidebar-footer { display:none !important; }
+  .sidebar-scroll { height:100%;overflow:hidden;padding:9px; }
+  .nav-group + .nav-group { margin-top:0; }
+  .nav-list { height:100%;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px; }
+  .nav-item { height:100%;min-height:0;justify-content:center;padding:0; }
+  .nav-item.admin-mobile-hidden { display:none; }
+  .app-main { padding-bottom:84px; }
+  .topbar { position:static;margin-bottom:12px;padding:15px; }
+  .topbar-actions { display:grid;grid-template-columns:1fr 1fr;width:100%; }
+  .filter-control { min-width:0; }
+  .filter-control select { min-width:0;width:100%; }
+  .period-segment { grid-column:1/-1;justify-content:stretch; }.period-segment button { flex:1; }
+  .export-menu { grid-column:1/-1; }.export-trigger { width:100%;justify-content:center; }
+  .export-popover { left:0;right:0;width:auto; }
+  .grid-4,.metric-grid,.health-status-grid,.overview-stats,.form-grid,.workflow-guide,.stepper,.request-timeline,.suggest-grid { grid-template-columns:1fr; }
+  .ai-context { grid-template-columns:1fr; }
+  .raw-hero,.profile-page-card { grid-template-columns:1fr; }
+  .bar-row { grid-template-columns:105px minmax(0,1fr) 42px; }
+  .ai-message { max-width:94%; }
+  .preference-row { grid-template-columns:1fr;gap:10px; }
+  .confirm-grid { grid-template-columns:1fr; }
+}
