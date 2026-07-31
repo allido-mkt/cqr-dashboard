@@ -236,17 +236,24 @@
   }
 
   /* === CQR_PRODUCTION_ENTRY_ROUTING_START === */
-  function isProductionEntry() {
-    return /\/(?:index|copilot)\.html$/i.test(location.pathname);
+  function isLocalV2Entry() {
+    return /\/ui-v2-local\/app\/(?:dashboard-v2|copilot-v2)\.html$/i.test(location.pathname);
   }
+
+  function isProductionEntry() {
+    return !isLocalV2Entry();
+  }
+
 
   function dashboardEntryName() {
     return isProductionEntry() ? "index.html" : "dashboard-v2.html";
   }
 
+
   function copilotEntryName() {
     return isProductionEntry() ? "copilot.html" : "copilot-v2.html";
   }
+
 
   function currentRoute() {
     if (/(?:dashboard-v2|index)\.html$/i.test(location.pathname)) return "dashboard";

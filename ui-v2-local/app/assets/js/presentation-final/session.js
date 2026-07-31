@@ -2,6 +2,15 @@ import { PREVIEW_PERMISSION_SETS } from "./permissions.js";
 
 const SESSION_KEY = "cqr_auth";
 
+function isLocalV2Entry() {
+  return /\/ui-v2-local\/app\/(?:dashboard-v2|copilot-v2)\.html$/i.test(window.location.pathname);
+}
+
+function dashboardEntryUrl() {
+  return new URL(isLocalV2Entry() ? "./dashboard-v2.html" : "./index.html", window.location.href);
+}
+
+
 export function getSavedSession() {
   try {
     const session = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
@@ -50,5 +59,5 @@ export function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
 export function signOutAndRedirect() {
   clearSession();
   if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
-  window.location.replace(new URL("./dashboard-v2.html", window.location.href).href);
+  window.location.replace(dashboardEntryUrl().href);
 }
