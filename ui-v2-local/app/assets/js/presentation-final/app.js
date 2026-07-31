@@ -3,9 +3,18 @@ import { renderTopbar, bindTopbarEvents } from "./topbar.js";
 import { renderCurrentPage } from "./router.js";
 import { getSavedSession, userFromSession } from "./session.js";
 
+
+function isLocalV2Entry() {
+  return /\/ui-v2-local\/app\/(?:dashboard-v2|copilot-v2)\.html$/i.test(window.location.pathname);
+}
+
+function dashboardEntryUrl() {
+  return new URL(isLocalV2Entry() ? "./dashboard-v2.html" : "./index.html", window.location.href);
+}
+
 function redirectLegacyDashboard() {
   if (getState().route !== "dashboard") return false;
-  const target = new URL("./dashboard-v2.html", window.location.href);
+  const target = dashboardEntryUrl();
   if (new URLSearchParams(location.search).get("preview") === "1") target.searchParams.set("preview", "1");
   if (window.location.pathname !== target.pathname) window.location.replace(target.href);
   return true;
@@ -54,7 +63,7 @@ function bootstrap() {
   ensurePreviewSelfTestSession();
   const session = getSavedSession();
   if (!session) {
-    const target = new URL("./dashboard-v2.html", window.location.href);
+    const target = dashboardEntryUrl();
     target.searchParams.set("return", getState().route);
     if (new URLSearchParams(location.search).get("preview") === "1") target.searchParams.set("preview", "1");
     window.location.replace(target.href);
