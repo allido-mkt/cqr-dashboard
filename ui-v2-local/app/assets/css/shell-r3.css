@@ -1,0 +1,101 @@
+/* CQR UI V2 R3 — one visual shell and route-specific filters */
+:root {
+  --sidebar-width: 252px;
+  --sidebar-collapsed-width: 82px;
+  --v2-sidebar-width: 252px;
+  --v2-sidebar-collapsed: 82px;
+}
+
+/* Shared sidebar dimensions */
+.app-shell { grid-template-columns:var(--sidebar-width) minmax(0,1fr);gap:14px;padding:14px; }
+.sidebar,.v2-sidebar { border-radius:24px; }
+.brand-block { padding:16px 14px 10px;gap:10px; }
+.brand-mark { width:40px;height:40px;border-radius:13px; }
+.brand-mark .app-icon { width:21px;height:21px; }
+.brand-name { font-size:16px;font-weight:680; }
+.brand-subtitle { margin-top:3px;font-size:8.8px; }
+.sidebar-toggle { width:32px;height:32px;border-radius:11px; }
+.sidebar-scroll { padding:4px 12px 12px; }
+.nav-group + .nav-group { margin-top:20px; }
+.nav-group-label { margin:0 9px 7px;font-size:9px;letter-spacing:.09em; }
+.nav-list { gap:5px; }
+.nav-item,.nav-parent,.nav-child { min-height:40px;gap:10px;padding:0 12px;border-radius:14px; }
+.nav-text { font-size:12.5px;font-weight:590; }
+.nav-icon { width:18px;height:18px; }
+.nav-child { min-height:35px;padding-left:10px; }
+.nav-child .nav-icon { width:16px;height:16px; }
+.nav-children-inner { padding-left:16px; }
+.nav-item.active,.nav-child.active,.v2-nav-item.active,.v2-nav-child.active { color:#fff;background:linear-gradient(145deg,#2a2b2f,#17181b);box-shadow:6px 7px 15px rgba(45,48,56,.23),-5px -5px 14px rgba(255,255,255,.58); }
+.nav-parent.section-active { background:transparent;color:var(--ink); }
+
+/* Compact profile, same on every page */
+.sidebar-footer { padding:12px; }
+.profile-card { min-height:56px;grid-template-columns:38px minmax(0,1fr) 22px;gap:9px;padding:8px 9px;border-radius:16px; }
+.profile-avatar { width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#fff0df,#f2cfa8);color:#8a4707;font-size:12px;box-shadow:none; }
+.profile-name { font-size:12.5px; }
+.profile-meta { font-size:9.5px; }
+.profile-more { width:20px;height:20px; }
+
+/* Static legacy Dashboard sidebar uses v2-* names */
+.v2-sidebar-head { min-height:76px;padding:14px 13px;gap:10px; }
+.v2-sidebar-logo { width:40px;height:40px;flex-basis:40px;border-radius:13px; }
+.v2-sidebar-brand b { font-size:16px; }
+.v2-sidebar-brand span { font-size:9px; }
+.v2-sidebar-toggle { width:32px;height:32px;border-radius:11px; }
+.v2-sidebar-scroll { padding:14px 12px; }
+.v2-nav-group + .v2-nav-group { margin-top:20px; }
+.v2-nav-label { padding:0 10px 7px;font-size:9px; }
+.v2-nav-list { gap:5px; }
+.v2-nav-item,.v2-nav-parent,.v2-nav-child { min-height:40px;gap:10px;padding:0 12px;border-radius:14px;font-size:12.5px; }
+.v2-nav-child { min-height:35px;padding:0 10px; }
+.v2-nav-child .v2-nav-icon { display:block;width:16px;height:16px; }
+.v2-nav-children { gap:4px;margin-left:16px;padding-left:11px; }
+.v2-sidebar-footer { padding:12px; }
+.v2-profile-trigger { min-height:56px;grid-template-columns:38px minmax(0,1fr) 22px;gap:9px;padding:8px 9px;border-radius:16px; }
+.v2-profile-avatar { width:38px;height:38px;border-radius:12px; }
+.v2-profile-copy b { font-size:12.5px; }
+.v2-profile-copy span { font-size:9.5px; }
+
+/* Shared header */
+.topbar { min-height:100px;padding:15px 18px;border-radius:22px;gap:18px; }
+.topbar.topbar-title-only { min-height:96px; }
+.page-title { font-size:31px;font-weight:690;letter-spacing:-.045em; }
+.page-description { font-size:11.5px; }
+.topbar-actions { gap:8px; }
+.filter-control { min-height:45px;padding:0 11px;border-radius:14px; }
+.filter-label { font-size:8.5px; }
+.filter-control select { font-size:12px; }
+
+/* AI Context: only Game + Period + Apply */
+.ai-context-compact { grid-template-columns:minmax(220px,1fr) minmax(220px,1fr) auto;max-width:860px; }
+.ai-context-card .card-body { padding:17px 19px; }
+.ai-context-compact .form-control { min-height:45px; }
+
+/* Read-only scope on Data Control Preview */
+.scope-strip { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px; }
+.scope-value { padding:11px 12px;border-radius:14px;background:rgba(255,255,255,.42);box-shadow:var(--shadow-inset); }
+.scope-value span { display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.06em; }
+.scope-value b { display:block;margin-top:4px;font-size:13px; }
+
+/* Legacy Dashboard header converted to labeled filter controls */
+body.with-v2-sidebar .hbar { display:grid;grid-template-columns:minmax(290px,.72fr) minmax(0,1.28fr);align-items:center;gap:16px; }
+body.with-v2-sidebar .hfilters { display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap; }
+.legacy-filter-control { min-height:45px;display:flex;align-items:center;gap:8px;padding:0 11px;border-radius:14px;background:var(--v2-surface);box-shadow:var(--v2-shadow-soft); }
+.legacy-filter-control svg { width:17px;height:17px;fill:none;stroke:#555b64;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
+.legacy-filter-copy { display:grid;gap:0; }
+.legacy-filter-label { color:#777b84;font-size:8.5px;font-weight:580;line-height:1;text-transform:none; }
+body.with-v2-sidebar .legacy-filter-control select { min-width:105px;height:25px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:12px;font-weight:650; }
+.legacy-filter-control.is-hidden { display:none; }
+body.with-v2-sidebar .export-menu summary { min-height:45px;padding:0 17px;border-radius:14px;background:linear-gradient(145deg,#29292c,#151517);color:#fff; }
+body.with-v2-sidebar .export-menu summary:hover { color:#fff; }
+
+@media(max-width:1320px) {
+  body.with-v2-sidebar .hbar { grid-template-columns:1fr; }
+  body.with-v2-sidebar .hfilters { justify-content:flex-start; }
+}
+@media(max-width:900px) {
+  :root { --sidebar-width:82px; }
+}
+@media(max-width:680px) {
+  .ai-context-compact,.scope-strip { grid-template-columns:1fr; }
+}
