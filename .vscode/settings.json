@@ -1,0 +1,43 @@
+{
+  "editor.formatOnSave": false,
+  "editor.formatOnPaste": false,
+  "editor.formatOnType": false,
+
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": false
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": false
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": false
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": false
+  },
+
+  "git.enableSmartCommit": false,
+  "git.confirmSync": true,
+  "git.autofetch": false,
+
+  "search.exclude": {
+    "**/.git/**": true,
+    "ui-v2-local/backups/**": true,
+    "ui-v2-local/audit-reports/**": true,
+    "ui-v2-local/generated/**": true,
+    "ui-v2-local/legacy/**": true,
+    "ui-v2-local.backup-before-r5-*/**": true
+  },
+
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "ui-v2-local/backups/**": true,
+    "ui-v2-local/audit-reports/**": true,
+    "ui-v2-local/generated/**": true,
+    "ui-v2-local.backup-before-r5-*/**": true
+  }
+}

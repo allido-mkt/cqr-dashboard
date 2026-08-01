@@ -1,0 +1,2515 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CQR Channel Quality Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+ --ink:#151922;--sub:#667085;--muted:#98a2b3;--line:#e7e3dc;--bg:#f7f4ef;--paper:#fff;
+ --teal:#0f766e;--teal-2:#14b8a6;--teal-bg:#ecfdf5;--amber:#d97706;--amber-bg:#fffbeb;
+ --rose:#be123c;--rose-bg:#fff1f2;--blue:#2563eb;--blue-bg:#eff6ff;--slate:#334155;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Sarabun',sans-serif;background:#f7f4ef;color:var(--ink);min-height:100vh}
+button,input,select,textarea{font-family:'Sarabun',sans-serif}
+.num{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums}
+.auth-screen{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#fffaf0,#ecfdf5)}
+.auth-ready .auth-screen{display:none}
+.auth-card{width:min(440px,100%);background:rgba(255,255,255,.94);border:1px solid #fed7aa;border-radius:18px;padding:28px;text-align:center;box-shadow:0 30px 90px -46px rgba(124,45,18,.9)}
+.auth-badge,.brand-mark{background:#14171f;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:800}
+.auth-badge{width:48px;height:48px;border-radius:16px;margin:0 auto 14px}
+.auth-card h1{font-size:24px;line-height:1.15;margin:0 0 8px}
+.auth-card p{font-size:12px;line-height:1.65;color:var(--sub);margin:0 auto 18px;max-width:340px}
+.auth-google{display:flex;justify-content:center;min-height:44px}
+.preview-btn{display:none;margin:12px auto 0;height:42px;border:1px solid #99f6e4;background:#f0fdfa;color:#115e59;border-radius:999px;padding:0 18px;font-size:13px;font-weight:800;cursor:pointer}
+.local-preview .preview-btn{display:inline-flex;align-items:center;justify-content:center}
+.notice{display:none;border-radius:12px;padding:10px 12px;margin-top:12px;font-size:12px;line-height:1.55}
+.notice.error{border:1px solid #fecdd3;background:var(--rose-bg);color:var(--rose)}
+.notice.ok{border:1px solid #99f6e4;background:var(--teal-bg);color:var(--teal)}
+.shell{max-width:1360px;margin:0 auto;padding:0 22px 42px}
+.topbar{position:sticky;top:0;z-index:10;min-height:68px;display:flex;align-items:center;gap:16px;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line);background:rgba(247,244,239,.92);backdrop-filter:blur(10px)}
+.brand{display:flex;align-items:center;gap:12px;min-width:260px}
+.brand-mark{width:38px;height:38px;border-radius:13px;font-size:13px}
+.brand-title{font-size:20px;font-weight:900;line-height:1.05;text-transform:uppercase;letter-spacing:.015em}
+.brand-title span{color:var(--teal)}
+.brand-sub{font-size:10.5px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:3px}
+.top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pill-link,.ghost-btn,.solid-btn{height:38px;border-radius:11px;padding:0 13px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12px;font-weight:900;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;text-transform:uppercase}
+.pill-link.primary{border-color:#99f6e4;background:#f0fdfa;color:#115e59}
+.solid-btn{background:#14171f;color:#fff;border-color:#14171f}
+.ghost-btn.warn{background:#fff7ed;border-color:#fed7aa;color:#7c2d12}
+.workspace-grid{display:block}
+.workspace-grid>div{padding:0}
+.panel{display:none}
+.panel.active{display:block}
+.panel{padding-top:22px}
+.ai-layout{display:block}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px -34px rgba(20,23,31,.55)}
+.chat-card{min-height:700px;display:flex;flex-direction:column;overflow:hidden;background:#fff;border-color:#fdba74;box-shadow:0 28px 80px -48px rgba(154,52,18,.9),0 0 0 1px rgba(255,255,255,.8) inset}
+.card-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.card-title{font-size:20px;font-weight:900;line-height:1.2;margin:0;text-transform:uppercase}
+.card-desc{font-size:12px;color:var(--sub);line-height:1.55;margin-top:4px}
+.chat-card .card-head{background:linear-gradient(135deg,#14171f 0%,#2a2f3b 100%);color:#fff;border-bottom:0;padding:22px 24px}
+.chat-card .card-desc{display:none}
+.chat-card .ghost-btn{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);color:#fff}
+.chat-feed{padding:24px;display:flex;flex-direction:column;gap:14px;min-height:490px;max-height:660px;overflow-y:auto;background:linear-gradient(180deg,#fffaf0 0%,#fff 42%,#fbfaf8 100%)}
+.msg{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:start;max-width:94%}
+.msg.user{align-self:flex-end;grid-template-columns:minmax(0,1fr) 34px}
+.avatar{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:11px;font-weight:800}
+.assistant .avatar{background:#fff7ed;color:#d97706;border:1px solid #fed7aa}
+.user .avatar{background:#eff6ff;color:#2563eb;grid-column:2}
+.bubble{border:1px solid #e7e3dc;background:#fff;border-radius:16px;padding:15px 17px;font-size:14px;line-height:1.8;white-space:normal;box-shadow:0 16px 42px -34px rgba(20,23,31,.75)}
+.bubble p{margin:0 0 10px}
+.bubble p:last-child{margin-bottom:0}
+.bubble ul{margin:0 0 10px;padding-left:18px}
+.bubble li{margin:5px 0}
+.bubble h4{margin:4px 0 8px;font-size:15px;line-height:1.35}
+.bubble code{font-family:'Inter',sans-serif;font-size:12px;border:1px solid #fed7aa;background:#fff7ed;border-radius:8px;padding:1px 5px;color:#9a3412}
+.user .bubble{background:#eff6ff;border-color:#bfdbfe;grid-column:1;grid-row:1}
+.composer{border-top:1px solid #fed7aa;padding:16px;background:#fffaf0}
+.composer-row{display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:12px;align-items:stretch}
+.composer textarea{width:100%;min-height:64px;max-height:150px;resize:vertical;border:1px solid #fed7aa;border-radius:16px;padding:15px 16px;font-size:13.5px;line-height:1.55;background:#fff}
+.composer textarea:focus{outline:none;border-color:#14b8a6;background:#fff}
+.send-btn{width:64px;height:64px;border:0;border-radius:16px;background:#d97706;color:#fff;font-size:24px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.send-btn:disabled,.composer textarea:disabled{opacity:.55;cursor:not-allowed}
+.chat-note{font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:8px}
+.composer-suggest{border-top:1px solid #f3efe8;margin-top:12px;padding-top:12px}
+.composer-suggest-head{font-size:11px;color:var(--sub);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.context-bar{padding:16px;margin-bottom:18px;background:linear-gradient(135deg,#fff 0,#fffaf0 100%)}
+.context-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:12px}
+.context-title{font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+.context-desc{font-size:11.5px;color:var(--sub);line-height:1.45;margin-top:2px}
+.filter-grid{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr)) auto;gap:10px;align-items:end}
+.filter-field label{display:block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 5px 2px}
+.filter-field select{width:100%;height:42px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 11px;font-size:12px;font-weight:700;box-shadow:0 10px 26px -24px rgba(20,23,31,.75)}
+.filter-field select:focus{outline:none;border-color:#fdba74;box-shadow:0 0 0 3px #ffedd5}
+.context-submit{height:42px;border:0;border-radius:12px;background:#14171f;color:#fff;padding:0 16px;font-size:12px;font-weight:900;cursor:pointer;white-space:nowrap;text-transform:uppercase;width:100%}
+.question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ask-chip{border:1px solid #fed7aa;background:#fffaf0;color:#7c2d12;border-radius:12px;padding:10px 11px;font-size:11.5px;font-weight:800;cursor:pointer;text-align:left;line-height:1.35}
+.ask-chip small{display:block;color:#9a3412;font-size:10px;font-weight:700;margin-top:3px;line-height:1.35}
+.admin-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,380px);gap:16px;align-items:start}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.form-field label{display:block;margin:0 0 5px 2px;font-size:9.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#667085}
+.form-grid input,.form-grid select{width:100%;height:44px;border:1px solid #e7e3dc;border-radius:13px;background:#fff;padding:0 12px;font-size:12.5px;font-weight:700;box-shadow:0 12px 28px -26px rgba(20,23,31,.8)}
+.form-grid input:focus,.form-grid select:focus{outline:none;border-color:#fdba74;box-shadow:0 0 0 3px #ffedd5}
+.form-help{margin-top:10px;border:1px solid #fed7aa;border-radius:12px;background:#fffaf0;color:#667085;padding:10px 12px;font-size:11.5px;line-height:1.55}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:10px;border-bottom:1px solid #f1f0ee;text-align:left;vertical-align:middle}
+th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--sub)}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#fbfaf8}
+.role-pill{display:inline-flex;border-radius:999px;padding:3px 8px;background:#eef2ff;color:#3730a3;font-size:11px;font-weight:800}
+.row-actions{display:flex;gap:6px;justify-content:flex-end}
+.row-btn{height:28px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:10.5px;font-weight:800;padding:0 9px;cursor:pointer}
+.row-btn.edit{color:#115e59;border-color:#99f6e4;background:#f0fdfa}
+.row-btn.delete{color:#9f1239;border-color:#fecdd3;background:#fff1f2}
+.edit-state{display:none;margin:12px 0 0;font-size:11.5px;color:#115e59;background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:8px 10px}
+.edit-state.active{display:block}
+.widget{padding:16px}
+.widget h3{font-size:15px;line-height:1.2;margin:0 0 10px}
+.system-lines{display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px}
+.system-line{display:block;font-size:11.5px;line-height:1.45;padding:10px;border:1px solid #f1f0ee;border-radius:12px;background:#fbfaf8}
+.system-line span{color:var(--sub)}
+.system-line b{display:block;word-break:break-word;overflow-wrap:anywhere;font-size:12px;margin-top:2px}
+.admin-nav{padding:28px 20px;background:linear-gradient(180deg,#fffaf0 0%,#fff 100%);border-top:1px solid #f3efe8;border-bottom:1px solid #fed7aa}
+.admin-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.admin-tab{--tab-icon:none;position:relative;min-height:112px;border:1px solid #e5e7eb;background:#F2F2F2;color:#334155;border-radius:20px;padding:18px 18px 18px 76px;font-size:16px;font-weight:900;cursor:pointer;text-align:left;box-shadow:0 18px 48px -36px rgba(20,23,31,.8);display:flex;flex-direction:column;justify-content:center;text-transform:uppercase;overflow:hidden}
+.admin-tab:before{content:"";position:absolute;left:20px;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:14px;background:#fff;border:1px solid #e7e3dc;box-shadow:0 12px 28px -24px rgba(20,23,31,.8)}
+.admin-tab:after{content:"";position:absolute;left:32px;top:50%;transform:translateY(-50%);width:18px;height:18px;background:#14171f;-webkit-mask:var(--tab-icon) center/18px 18px no-repeat;mask:var(--tab-icon) center/18px 18px no-repeat}
+.admin-tab small{display:block;margin-top:7px;color:#64748b;font-size:12px;font-weight:800;line-height:1.35;text-transform:none}
+.admin-tab:not(.active):hover{border-color:#fdba74;background:#fffaf0;transform:translateY(-1px)}
+.admin-tab.active{background:#E89005;border-color:#E89005;color:#fff;box-shadow:0 28px 58px -30px rgba(154,52,18,.95);transform:translateY(-2px)}
+.admin-tab.active:before{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.42);box-shadow:none}
+.admin-tab.active:after{background:#fff}
+.admin-tab.active small{color:#fff7ed}
+.admin-tab.active small:after{content:"";display:block;width:100%;height:4px;border-radius:99px;background:#fff7ed;margin-top:10px}
+.admin-refresh{height:34px;border:1px solid #e7e3dc;background:#fff;color:#667085;border-radius:10px;padding:0 11px;font-size:11px;font-weight:900;cursor:pointer;text-transform:uppercase}
+.admin-refresh:hover{color:#115e59;border-color:#99f6e4;background:#f0fdfa}
+#adminTabUsers{--tab-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z'/%3E%3C/svg%3E")}
+#adminTabHealth{--tab-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21s-7-4.4-9.2-9.1C1.4 8.7 3.4 5 6.9 5c2 0 3.3 1.1 4.1 2.2C11.8 6.1 13.1 5 15.1 5c3.5 0 5.5 3.7 4.1 6.9C19 16.6 12 21 12 21Z'/%3E%3C/svg%3E")}
+#adminTabPipeline{--tab-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 6V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4Zm2 0h2V5h-2v1Z'/%3E%3C/svg%3E")}
+.admin-view{display:none}
+.admin-view.active{display:block}
+.tool-panel{border:1px solid #fed7aa;background:linear-gradient(135deg,#fffaf0 0,#fff 100%);border-radius:16px;padding:14px;margin:14px 0;box-shadow:0 18px 42px -34px rgba(154,52,18,.7)}
+.tool-grid{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(280px,1.35fr) 120px;gap:12px;align-items:end;max-width:1040px;margin:0 auto}
+.tool-grid.health-tool{grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto}
+.tool-grid input,.tool-grid select{height:44px;border:1px solid #e7e3dc;border-radius:12px;background:#fff;padding:0 12px;font-size:13px;font-weight:700;box-shadow:0 10px 26px -24px rgba(20,23,31,.75)}
+.tool-grid input:focus,.tool-grid select:focus{outline:none;border-color:#fdba74;box-shadow:0 0 0 3px #ffedd5}
+.tool-grid label{display:block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 5px 2px}
+.section-intro{border:1px solid #f1f0ee;background:#fff;border-radius:16px;padding:16px;margin-bottom:14px}
+.section-eyebrow{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#d97706;margin-bottom:5px}
+.section-title{font-size:22px;font-weight:900;letter-spacing:.02em;text-transform:uppercase;line-height:1.1}
+.section-desc{font-size:12.5px;color:var(--sub);line-height:1.65;margin-top:6px;max-width:820px}
+.flow-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.flow-card{border:1px solid #f1f0ee;background:#fff;border-radius:14px;padding:12px;display:grid;gap:4px;min-height:86px}
+.flow-card b{font-size:12.5px;text-transform:uppercase}
+.flow-card span{font-size:11px;line-height:1.45;color:var(--sub)}
+.health-guide{margin-top:14px;border:1px solid #fed7aa;background:#fffaf0;border-radius:16px;padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.health-guide b{font-size:13px;text-transform:uppercase}
+.health-guide p{margin:4px 0 0;color:var(--sub);font-size:12px;line-height:1.55}
+.health-guide .guide-pill{border:1px solid #fdba74;background:#fff;color:#9a3412;border-radius:999px;padding:8px 12px;font-size:11px;font-weight:900;text-transform:uppercase;white-space:nowrap}
+.flow-card.auto{border-color:#99f6e4;background:#f0fdfa}
+.flow-card.manual{border-color:#fed7aa;background:#fffaf0}
+.flow-card.safe{border-color:#bfdbfe;background:#eff6ff}
+.status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.status-card{--status-icon:none;border:1px solid #f1f0ee;background:#fbfaf8;border-radius:14px;padding:13px;min-height:92px;position:relative;overflow:hidden}
+.status-card:before{content:"";position:absolute;right:12px;top:12px;width:26px;height:26px;opacity:.28;background:#14171f;-webkit-mask:var(--status-icon) center/24px 24px no-repeat;mask:var(--status-icon) center/24px 24px no-repeat}
+.status-card.health{--status-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21s-7-4.4-9.2-9.1C1.4 8.7 3.4 5 6.9 5c2 0 3.3 1.1 4.1 2.2C11.8 6.1 13.1 5 15.1 5c3.5 0 5.5 3.7 4.1 6.9C19 16.6 12 21 12 21Z'/%3E%3C/svg%3E")}
+.status-card.ready{--status-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.2 16.6 4.8 12.2l1.8-1.8 2.6 2.6 8.2-8.2 1.8 1.8-10 10Z'/%3E%3C/svg%3E")}
+.status-card.review{--status-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 4a6 6 0 1 0 3.7 10.7l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z'/%3E%3C/svg%3E")}
+.status-card.cleanup{--status-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 3h10l1 3H6l1-3Zm-1 5h12l-1 13H7L6 8Zm3 2 .4 9h1.6l-.3-9H9Zm4 0-.3 9h1.6l.4-9H13Z'/%3E%3C/svg%3E")}
+.status-card.health{background:#eff6ff;border-color:#bfdbfe}
+.status-card.ready{background:#f0fdfa;border-color:#99f6e4}
+.status-card.review{background:#fff7ed;border-color:#fed7aa}
+.status-card.cleanup{background:#fff1f2;border-color:#fecdd3}
+.status-card strong{display:block;font-size:18px;font-family:'Inter',sans-serif;line-height:1.1;margin-top:8px}
+.status-card span{font-size:10.5px;color:var(--sub);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.health-list,.recommend-list{display:grid;gap:10px;margin-top:14px}
+.health-summary{border:1px solid #fed7aa;background:#fffaf0;border-radius:16px;padding:16px;margin-top:14px;display:grid;gap:10px}
+.health-summary.ok{border-color:#99f6e4;background:#f0fdfa}
+.health-summary.warn{border-color:#fed7aa;background:#fffaf0}
+.health-summary.danger{border-color:#fecdd3;background:#fff1f2}
+.health-summary h3{margin:0;font-size:17px;line-height:1.25}
+.health-summary p{margin:0;color:var(--sub);font-size:12px;line-height:1.55}
+.health-next{border-top:1px solid rgba(217,119,6,.2);padding-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.health-next b{font-size:12.5px}
+.health-next span{font-size:11.5px;color:var(--sub);line-height:1.45}
+.health-mini-list{display:grid;gap:8px}
+.health-mini{border:1px solid #f1f0ee;background:#fff;border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.health-mini div{min-width:0}
+.health-mini b{font-size:12.5px}
+.health-mini p{margin:3px 0 0;font-size:11.2px;color:var(--sub);line-height:1.45}
+.health-game-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.health-game-chip{border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;border-radius:999px;padding:5px 8px;font-size:10.5px;font-weight:900}
+.health-overview{border:1px solid #f1f0ee;background:#fff;border-radius:14px;overflow:hidden;margin-top:10px}
+.health-overview table{width:100%;border-collapse:collapse}
+.health-overview th,.health-overview td{padding:10px 12px;border-bottom:1px solid #f1f0ee;text-align:left;font-size:11.5px;vertical-align:top}
+.health-overview th{background:#fbfaf8;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.health-overview tr:last-child td{border-bottom:none}
+.scope-summary{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px;background:#fffbf3;border-bottom:1px solid #f1f0ee;color:#1b1f2a;font-size:12px}
+.scope-summary span{color:var(--muted);font-weight:800}
+.health-status-pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900;background:#eef2ff;color:#3730a3;white-space:nowrap}
+.health-status-pill.ok{background:#dcfce7;color:#166534}
+.health-status-pill.warn{background:#fffbeb;color:#92400e}
+.health-status-pill.danger{background:#ffe4e6;color:#9f1239}
+.health-muted{font-size:11.5px;color:var(--sub);line-height:1.5}
+.health-item{border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:12px;padding:12px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+.health-item.warn{border-left-color:var(--amber);background:#fffaf0}
+.health-item.danger{border-left-color:var(--rose);background:#fff1f2}
+.health-item.ok{border-left-color:var(--teal);background:#f0fdfa}
+.health-item b{font-size:13px}
+.health-item p{margin:4px 0 0;color:var(--sub);font-size:11.5px;line-height:1.5}
+.run-debug{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.run-debug div{border:1px solid #fed7aa;background:#fff;border-radius:10px;padding:8px}
+.run-debug span{display:block;color:var(--muted);font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+.run-debug b{display:block;margin-top:3px;font-size:12px;color:var(--ink)}
+.health-badge{height:24px;border-radius:999px;padding:0 8px;display:inline-flex;align-items:center;font-size:10px;font-weight:800;background:#eef2ff;color:#3730a3;white-space:nowrap}
+.health-badge.warn{background:#fffbeb;color:#92400e}
+.health-badge.danger{background:#ffe4e6;color:#9f1239}
+.health-badge.ok{background:#dcfce7;color:#166534}
+.copy-chip{border:1px solid #fed7aa;background:#fff;color:#7c2d12;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900;cursor:pointer;margin-left:8px}
+.handoff-bar{display:none;border:1px solid #99f6e4;background:#f0fdfa;border-radius:14px;padding:12px;margin-top:14px;align-items:center;justify-content:space-between;gap:10px}
+.handoff-bar.active{display:flex}
+.handoff-bar b{font-size:13px}
+.handoff-bar p{font-size:11.5px;color:var(--sub);line-height:1.45;margin:3px 0 0}
+.run-list{display:grid;gap:10px;margin-top:12px}
+.run-item{border:1px solid #f1f0ee;background:#fff;border-radius:14px;padding:12px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start}
+.run-item input{margin-top:4px}
+.run-item b{font-size:13px}
+.run-item p{margin:3px 0 0;font-size:11.5px;color:var(--sub);line-height:1.5}
+.run-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.mini-btn{height:30px;border:1px solid #fed7aa;background:#fffaf0;color:#7c2d12;border-radius:9px;padding:0 9px;font-size:10.5px;font-weight:900;cursor:pointer}
+.sample-btn{height:34px;border:1px solid #fed7aa;background:#fff;color:#7c2d12;border-radius:10px;padding:0 11px;font-size:11px;font-weight:900;cursor:pointer;text-transform:uppercase}
+.sample-btn:hover{background:#fff7ed}
+.batch-actions{display:none;border:1px solid #fed7aa;background:#fffaf0;border-radius:16px;padding:12px;margin-top:12px;margin-bottom:12px}
+.batch-actions.active{display:block}
+.raw-check-panel{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff 0,#fff 100%);border-radius:16px;padding:14px;margin:12px 0;display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:14px;align-items:center}
+.raw-check-panel b{display:block;font-size:13px;text-transform:uppercase}
+.raw-check-panel p{margin:5px 0 0;color:var(--sub);font-size:12px;line-height:1.55}
+.raw-check-panel .context-submit{width:100%;background:#1d4ed8}
+.raw-check-panel .context-submit:hover{background:#1e40af}
+.raw-result{border:1px solid #e7e3dc;background:#fff;border-radius:14px;padding:12px;margin:10px 0;display:grid;gap:8px;font-size:12px;line-height:1.55}
+.raw-result.ok{border-color:#99f6e4;background:#f0fdfa}
+.raw-result.warn{border-color:#fed7aa;background:#fffaf0}
+.raw-result.danger{border-color:#fecdd3;background:#fff1f2}
+.raw-result h4{margin:0;font-size:14px}
+.raw-result p{margin:0;color:var(--sub)}
+.raw-result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.raw-result-grid div{border:1px solid rgba(148,163,184,.24);background:rgba(255,255,255,.68);border-radius:10px;padding:8px}
+.raw-result-grid span{display:block;color:var(--muted);font-size:9.5px;text-transform:uppercase;font-weight:900;letter-spacing:.05em}
+.raw-result-grid b{display:block;margin-top:3px;font-size:12px;overflow-wrap:anywhere}
+.batch-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
+.batch-head b{font-size:13.5px}
+.batch-head span{font-size:11px;color:var(--sub)}
+.batch-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.history-panel{border:1px solid #f1f0ee;background:#fbfaf8;border-radius:16px;padding:13px;margin-top:12px}
+.history-panel h4{margin:0 0 8px;font-size:13px}
+.history-panel p{margin:0;color:var(--sub);font-size:11.5px;line-height:1.55}
+.history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.history-head h4{margin:0}
+.log-list{display:grid;gap:8px;margin-top:10px}
+.log-item{border:1px solid #eceae6;background:#fff;border-radius:12px;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;font-size:11.5px;line-height:1.45}
+.log-item b{font-size:12.5px}
+.log-item span{color:var(--sub)}
+.log-item code{font-family:'Inter',sans-serif;color:#7c2d12;background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:1px 5px}
+.log-empty{color:var(--sub);font-size:11.5px;border:1px dashed #e7e3dc;border-radius:12px;padding:10px;background:#fff}
+.run-card{border:1px solid #f1f0ee;border-radius:12px;background:#fbfaf8;padding:12px;margin-top:12px}
+.run-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.run-meta div{border:1px solid #ede9e3;border-radius:10px;background:#fff;padding:9px;font-size:11px;color:var(--sub)}
+.run-meta b{display:block;color:var(--ink);font-size:12px;margin-top:2px;word-break:break-word}
+.copy-box{display:grid;gap:6px;border:1px solid #fed7aa;background:#fffaf0;border-radius:12px;padding:12px;margin-top:12px;font-size:12px}
+.copy-line{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #fde7c7;padding-bottom:6px}
+.copy-line:last-child{border-bottom:none;padding-bottom:0}
+.copy-line code{font-family:'Inter',sans-serif;color:#7c2d12;word-break:break-word;text-align:right}
+.soft-note{font-size:11.5px;color:var(--sub);line-height:1.55;margin-top:10px}
+.step-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.step-card{border:1px solid #f1f0ee;background:#fff;border-radius:14px;padding:12px;min-height:112px;display:flex;flex-direction:column;gap:7px}
+.step-card.active-step{border-color:#fed7aa;background:#fffaf0}
+.step-num{width:28px;height:28px;border-radius:9px;background:#ff9800;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:12px}
+.step-card b{font-size:12.5px;line-height:1.25}
+.step-card p{margin:0;color:var(--sub);font-size:11.2px;line-height:1.45}
+.explain-box{border:1px solid #fed7aa;background:#fffaf0;border-radius:14px;padding:13px;margin:0 0 14px;font-size:12px;line-height:1.6;color:var(--sub)}
+.explain-box b{color:var(--ink)}
+.field-help{font-size:10.8px;line-height:1.45;color:var(--sub);margin-top:6px}
+.action-tag{display:inline-flex;align-items:center;width:max-content;border-radius:999px;background:#fff7ed;color:#9a3412;font-size:10px;font-weight:900;padding:4px 8px}
+.action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.action-card{border:1px solid #fed7aa;background:#fffaf0;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:9px;min-height:150px}
+.action-card.danger{border-color:#fecdd3;background:#fff1f2}
+.action-card strong{font-size:13.5px;line-height:1.25}
+.action-card p{font-size:11.5px;line-height:1.5;color:var(--sub);margin:0}
+.action-btn{height:38px;border:0;border-radius:10px;background:#ff9800;color:#fff;padding:0 12px;font-size:12px;font-weight:900;cursor:pointer;margin-top:auto}
+.action-btn.secondary{background:#14171f}
+.action-btn.danger{background:#be123c}
+.action-btn:disabled{opacity:.55;cursor:not-allowed}
+.action-result{border:1px solid #f1f0ee;background:#fbfaf8;border-radius:12px;padding:12px;margin-top:12px;font-size:12px;line-height:1.6;white-space:pre-wrap}
+.action-result.warn{border-color:#fed7aa;background:#fffaf0;color:#7c2d12}
+.handoff-games{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.handoff-game-btn{border:1px solid #fdba74;background:#fff;color:#9a3412;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:900;cursor:pointer}
+.handoff-game-btn.active{background:#ff9800;color:#fff;border-color:#ff9800}
+@media(max-width:1040px){
+ .ai-layout,.admin-layout{grid-template-columns:1fr}
+ .filter-grid,.tool-grid,.status-grid,.run-meta,.action-grid,.step-list,.flow-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .context-submit{grid-column:1/-1}
+}
+@media(max-width:720px){
+ .shell{padding:0 14px 32px}.topbar{align-items:flex-start;flex-direction:column}
+ .form-grid,.filter-grid,.question-grid,.tool-grid,.status-grid,.run-meta,.admin-tabs,.action-grid,.step-list,.flow-strip{grid-template-columns:1fr}
+ .health-guide{display:grid}
+ .health-guide .guide-pill{width:max-content}
+ .chat-card{min-height:560px}.chat-feed{max-height:520px}
+}
+</style>
+</head>
+<body class="auth-locked">
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-badge">CQR</div>
+    <h1>CHANNEL QUALITY REPORT</h1>
+    <p>Sign in with the approved Google account to use AI CHAT and Admin Panel.</p>
+    <div id="googleSignIn" class="auth-google"></div>
+    <button id="previewButton" class="preview-btn" type="button" onclick="startPreviewMode()">Preview page</button>
+    <div id="authError" class="notice error"></div>
+  </div>
+</div>
+
+<main class="shell">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">CQR</div>
+      <div>
+        <div class="brand-title">CHANNEL QUALITY REPORT</div>
+        <div class="brand-sub">AI CHAT · ADMIN PANEL</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <a class="pill-link primary" href="index.html">Dashboard</a>
+      <button class="pill-link" type="button" onclick="switchPanel('adminPanel')">Admin Panel</button>
+      <button class="ghost-btn warn" type="button" onclick="signOutUser()">Sign out</button>
+    </div>
+  </div>
+
+  <section class="workspace-grid">
+    <div>
+      <section class="panel active" id="aiPanel">
+        <div class="card context-bar">
+          <div class="context-head">
+            <div>
+              <div class="context-title">AI CHAT CONTEXT</div>
+              <div class="context-desc">เลือก Game, Channel และช่วงเวลาก่อนถาม AI CHAT แล้วกด APPLY เพื่อใช้ชุดข้อมูลนี้</div>
+            </div>
+          </div>
+          <div class="filter-grid">
+            <div class="filter-field">
+              <label>Game</label>
+              <select id="f-game">
+                <option value="ALL">ทุกเกม (รวม 4 เกม)</option>
+                <option value="CBM_TH">CBM TH</option>
+                <option value="CBM_SEA">CBM SEA</option>
+                <option value="CBPC_TH">CBPC TH</option>
+                <option value="CBPC_SEA">CBPC SEA</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label>Channel</label>
+              <select id="f-channel">
+                <option value="all">ทุก Channel</option>
+                <option>Facebook Ads</option>
+                <option>Google Ads</option>
+                <option>In-App Register</option>
+                <option>Organic / Unknown</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label>Month</label>
+              <select id="f-month">
+                <option value="2026-06">มิถุนายน 2026</option>
+                <option value="2026-05">พฤษภาคม 2026</option>
+                <option value="2026-04">เมษายน 2026</option>
+                <option value="2026-03">มีนาคม 2026</option>
+                <option value="2026-02">กุมภาพันธ์ 2026</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label>View</label>
+              <select id="f-period-type">
+                <option value="month">Monthly View</option>
+                <option value="week">Weekly View</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label>Week</label>
+              <select id="f-week">
+                <option value="2026-06-W4">Week 4</option>
+                <option value="2026-06-W3">Week 3</option>
+                <option value="2026-06-W2">Week 2</option>
+                <option value="2026-06-W1">Week 1</option>
+              </select>
+            </div>
+            <button class="context-submit" type="button" onclick="applyContext()">APPLY</button>
+          </div>
+        </div>
+        <div class="ai-layout">
+          <article class="card chat-card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">AI CHAT</h2>
+              </div>
+              <div class="top-actions">
+                <button class="ghost-btn" type="button" onclick="downloadChatLog()">Export Chat</button>
+                <button class="ghost-btn" type="button" onclick="clearChat()">Clear</button>
+              </div>
+            </div>
+            <div class="chat-feed" id="chatFeed">
+              <div class="msg assistant">
+                <div class="avatar">AI</div>
+                <div class="bubble">พร้อมช่วยอ่านข้อมูล CQR ให้ครับ เลือกคำถามตัวอย่างหรือพิมพ์คำถามได้เลย คำตอบจะอิงจาก Summary Cache, Weekly Alert Log และ filter ที่เลือกอยู่</div>
+              </div>
+            </div>
+            <div class="composer">
+              <div class="composer-row">
+                <textarea id="aiAskInput" placeholder="ถาม AI CHAT เกี่ยวกับ Performance, Retention, Channel Quality หรือ Weekly Alert..." maxlength="1200"></textarea>
+                <button class="send-btn" id="aiAskSend" type="button" onclick="sendAiAsk()">↑</button>
+              </div>
+              <div class="chat-note" id="aiAskNote">AI CHAT ใช้ข้อมูลจาก Summary Cache และ Weekly Alert Log · สามารถดาวน์โหลดบทสนทนาเป็น MD ได้</div>
+              <div class="composer-suggest">
+                <div class="composer-suggest-head">Suggested Questions</div>
+                <div class="question-grid">
+                  <button class="ask-chip" type="button" onclick="askPreset('สรุป Executive Insight จาก context ปัจจุบัน โดยแยกเป็น Key Finding, Risk, และ Recommended Action')">Executive Insight<small>สรุปเพื่อส่งต่อผู้บริหารแบบพร้อมใช้</small></button>
+                  <button class="ask-chip" type="button" onclick="askPreset('วิเคราะห์ Channel Quality จาก context ปัจจุบัน เทียบ register, D1, D7, D14 และบอก channel ที่ควรเพิ่มหรือลดน้ำหนัก')">Channel Quality Review<small>เทียบคุณภาพช่องทาง ไม่ดูแค่ volume</small></button>
+                  <button class="ask-chip" type="button" onclick="askPreset('หาจุด drop-off ที่น่ากังวลที่สุดใน retention curve และเสนอ checklist ที่ทีมควรตรวจสอบต่อ')">Retention Drop-off Audit<small>หา D1/D3/D7/D14 ที่ควรรีบเช็ค</small></button>
+                  <button class="ask-chip" type="button" onclick="askPreset('สรุป Weekly Alert ล่าสุดจาก CQR_ALERT_LOG แล้วบอกประเด็นที่ต้องตามต่อในสัปดาห์นี้แบบสั้น กระชับ')">Weekly Alert Recap<small>อ่านสรุปย้อนหลังจาก alert log</small></button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" id="adminPanel">
+        <div class="admin-layout">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">ADMIN PANEL</h2>
+                <div class="card-desc">จัดการสิทธิ์ ตรวจ run_id และเช็กสุขภาพไฟล์ Master / Central DB ในที่เดียว</div>
+              </div>
+              <button class="admin-refresh" type="button" onclick="refreshActiveAdminTool()">Refresh</button>
+            </div>
+            <div class="admin-nav">
+              <div class="admin-tabs">
+                <button class="admin-tab active" id="adminTabUsers" type="button" onclick="switchAdminTool('users')">USER ACCESS<small>จัดการสิทธิ์และรายชื่อผู้ใช้</small></button>
+                <button class="admin-tab" id="adminTabHealth" type="button" onclick="switchAdminTool('health')">DATA HEALTH<small>ตรวจ Raw, Master และ Central DB</small></button>
+                <button class="admin-tab" id="adminTabPipeline" type="button" onclick="switchAdminTool('pipeline')">DATA CONTROL<small>ซ่อมข้อมูลเฉพาะเกม/เดือนผ่าน n8n</small></button>
+              </div>
+            </div>
+
+            <div class="admin-view active" id="adminViewUsers">
+              <div style="padding:18px 20px">
+              <div class="form-grid">
+                <div class="form-field"><label>Email</label><input id="email" placeholder="email@example.com"></div>
+                <div class="form-field"><label>Display name</label><input id="displayName" placeholder="ชื่อที่แสดงในระบบ"></div>
+                <div class="form-field"><label>Role</label><select id="role">
+                  <option value="viewer">viewer</option>
+                  <option value="analyst">analyst</option>
+                  <option value="manager">manager</option>
+                  <option value="admin">admin</option>
+                  <option value="super_admin">super_admin</option>
+                  <option value="guest">guest</option>
+                </select></div>
+                <div class="form-field"><label>Status</label><select id="status">
+                  <option value="active">active</option>
+                  <option value="disabled">disabled</option>
+                  <option value="pending">pending</option>
+                </select></div>
+                <div class="form-field"><label>Allowed games</label><input id="allowedGames" placeholder="ALL หรือ CBM_TH,CBM_SEA" value="ALL"></div>
+                <div class="form-field"><label>Allowed regions</label><input id="allowedRegions" placeholder="ALL หรือ TH,SEA" value="ALL"></div>
+              </div>
+              <div class="form-help">Allowed Games และ Allowed Regions ใช้กำหนดขอบเขตข้อมูลที่ user เห็นใน Dashboard, AI CHAT และ Admin tools. ใช้ <b>ALL</b> เมื่อให้เห็นทุกเกมหรือทุก region.</div>
+              <div class="toolbar">
+                <button class="solid-btn" type="button" onclick="saveUser()">Save User</button>
+                <button class="ghost-btn" type="button" onclick="deleteSelectedUser()">Delete User</button>
+                <button class="ghost-btn" type="button" onclick="clearUserForm()">Clear Form</button>
+              </div>
+              <div class="edit-state" id="editState">Editing selected user</div>
+              <div class="notice ok" id="okBox"></div>
+              <div class="notice error" id="errorBox"></div>
+              </div>
+              <div class="table-wrap" style="padding:0 20px 20px">
+                <table>
+                  <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Games</th><th>Regions</th><th>Last Login</th><th style="text-align:right;">Actions</th></tr></thead>
+                  <tbody id="userRows"><tr><td colspan="8">Sign in แล้วกด Refresh Users</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="admin-view" id="adminViewPipeline">
+              <div style="padding:18px 20px">
+                <div class="step-list">
+                  <div class="step-card">
+                    <span class="step-num">1</span>
+                    <b>เริ่มจาก Health</b>
+                    <p>ให้ Data Health สรุปก่อนว่าเกม/เดือนนี้พร้อมใช้ หรือมีข้อมูลเก่าค้างอยู่</p>
+                  </div>
+                  <div class="step-card active-step">
+                    <span class="step-num">2</span>
+                    <b>ค้นหารายการ</b>
+                    <p>ใช้ Game + Month เพื่อดูภาพรวม หรือใส่ Hash/Run ID เพื่อเจาะรายการเดียว</p>
+                  </div>
+                  <div class="step-card">
+                    <span class="step-num">3</span>
+                    <b>Preview ก่อนเสมอ</b>
+                    <p>ให้ n8n ตรวจจำนวนแถวและช่วงข้อมูลก่อนทำการลบจริง</p>
+                  </div>
+                  <div class="step-card">
+                    <span class="step-num">4</span>
+                    <b>Clear แล้ว Build</b>
+                    <p>หลัง Preview ถูกต้อง ค่อย Clear ข้อมูลเก่า แล้ว Build Master ใหม่เฉพาะรอบนั้น</p>
+                  </div>
+                </div>
+                <div class="explain-box">
+                  <b>วิธีค้นหาที่แนะนำ</b><br>
+                  ใช้หน้านี้เฉพาะเวลาต้องซ่อมข้อมูลเอง เช่น Data Health เจอ hash mismatch หรือ Build รอบนั้นยังไม่สมบูรณ์. ถ้าไม่ใส่ Hash/Run ID ระบบจะแสดง run ที่เกี่ยวข้องของ Game + Month ที่เลือก. ถ้าใส่ Run ID รายเกม ระบบจะยึดเกมจาก Run ID นั้นเพื่อป้องกันการ Clear ผิดเกม.
+                  <br><b>หมายเหตุ:</b> Auto Pipeline วันอาทิตย์ยังทำงานตามเวลาเดิม หน้านี้ไม่ไปปิด Auto แต่ไม่ควรกด Manual Clear/Build ทับช่วง Auto กำลังรัน.
+                </div>
+                <div class="tool-panel">
+                <div class="tool-grid">
+                  <div>
+                    <label>Game</label>
+                    <select id="toolGame" onchange="handleDataControlFilterChange()">
+                      <option value="ALL">ALL</option>
+                      <option value="CBM_TH">CBM TH</option>
+                      <option value="CBM_SEA">CBM SEA</option>
+                      <option value="CBPC_TH">CBPC TH</option>
+                      <option value="CBPC_SEA">CBPC SEA</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Month</label>
+                    <select id="toolMonth" onchange="handleDataControlFilterChange()">
+                      <option value="ALL">ALL</option>
+                      <option value="2026-06">มิถุนายน 2026</option>
+                      <option value="2026-05">พฤษภาคม 2026</option>
+                      <option value="2026-04">เมษายน 2026</option>
+                      <option value="2026-03">มีนาคม 2026</option>
+                      <option value="2026-02">กุมภาพันธ์ 2026</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Run ID / Hash สำหรับค้นหา</label>
+                    <input id="toolRunQuery" placeholder="RUN-... หรือ ew6tt" oninput="toolQueryAutoFilled=false;healthHandoffActive=false">
+                  </div>
+                  <button class="context-submit" type="button" onclick="inspectRun()">FIND</button>
+                </div>
+                <div class="toolbar">
+                  <button class="sample-btn" type="button" onclick="showDataControlSample()">SHOW SAMPLE</button>
+                </div>
+                </div>
+                <div class="raw-check-panel">
+                  <div>
+                    <b>RAW FILE CHECK</b>
+                    <p>ตรวจไฟล์ Raw ของ Game/Month ที่เลือกอีกครั้ง แล้วบันทึกผลลง Central DB ถ้าไฟล์เหมือนเดิมจะบอกว่าปกติ ถ้ามีข้อมูลใหม่จะบอกว่าอัปเดทใหม่ ถ้าขาด Tab จะบอกว่าข้อมูลไม่ครบ</p>
+                  </div>
+                  <button class="context-submit" id="rawCheckButton" type="button" onclick="runRawFileCheck()">CHECK RAW</button>
+                </div>
+                <div id="rawCheckResult" class="raw-result warn">
+                  <h4>ยังไม่ได้ตรวจ Raw File จากหน้านี้</h4>
+                  <p>ใช้ปุ่มนี้เมื่อต้องการตรวจ Raw เฉพาะรอบที่เลือกเอง เช่น CBM TH เดือนเมษายน ก่อนซ่อมข้อมูลใน Data Control</p>
+                </div>
+                <div class="batch-actions" id="batchActions">
+                  <div class="batch-head">
+                  <div><b>MANUAL ACTIONS</b><span id="batchCount">เลือกรายการที่ต้องจัดการก่อน</span></div>
+                    <button class="mini-btn" type="button" onclick="selectAllRunItems()">Select all</button>
+                  </div>
+                  <div class="batch-buttons">
+                    <button class="action-btn" type="button" onclick="runPipelineCommand('cleanup.preview')">Preview</button>
+                    <button class="action-btn danger" type="button" onclick="runPipelineCommand('cleanup.run')">Clear</button>
+                    <button class="action-btn secondary" type="button" onclick="runPipelineCommand('master.run')">Build</button>
+                  </div>
+                </div>
+                <div id="pipelineActionResult" class="action-result warn">ยังไม่ได้ส่งคำสั่งซ่อม
+หลังจากเลือก run แล้ว ให้เริ่มจาก Preview ก่อนเสมอ ผลของ Preview / Clear / Build จะแสดงตรงนี้</div>
+                <div id="runInspectorResult" class="run-card">
+                  เลือกเกม/เดือน แล้วกด FIND เพื่อดู run ที่เกี่ยวข้องและคำแนะนำขั้นตอนถัดไป
+                </div>
+                <div class="history-panel">
+                  <div class="history-head">
+                    <h4>WORK HISTORY</h4>
+                    <button class="mini-btn" type="button" onclick="renderAdminActionLogs()">Refresh</button>
+                  </div>
+                  <p>โชว์รายการล่าสุดที่ Super Admin กด Preview, Clear หรือ Build จากหน้านี้. Log นี้เป็นประวัติหน้าเว็บบนเครื่องนี้ ส่วน log กลางของระบบควรดูที่ Central DB แท็บ PipelineLogs หรือ AdminActionLogs ถ้าเปิดใช้แล้ว.</p>
+                  <div id="adminActionLogList" class="log-list"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-view" id="adminViewHealth">
+              <div style="padding:18px 20px">
+                <div class="section-intro">
+                  <div class="section-eyebrow">Admin Tool</div>
+                  <div class="section-title">DATA HEALTH CHECKUP</div>
+                  <div class="section-desc">ใช้หน้านี้เพื่อตรวจว่าไฟล์ข้อมูลต้นทางกับข้อมูลที่ Dashboard ใช้อยู่ตรงกันหรือยัง ถ้ามีเกมไหนยังใช้ข้อมูลเก่า ระบบจะบอกให้ส่งต่อไปซ่อมที่ Data Control.</div>
+                </div>
+                <div class="health-guide">
+                  <div>
+                    <b>วิธีใช้แบบสั้น</b>
+                    <p>เลือก Game กับ Month แล้วกด CHECKUP. ถ้าขึ้นว่าพร้อมใช้งาน ไม่ต้องทำอะไรต่อ. ถ้าระบบบอกว่าบางเกมยังใช้ข้อมูลเก่า ให้กด SEND TO DATA CONTROL เพื่อไปเลือก run และซ่อมต่อ.</p>
+                  </div>
+                  <span class="guide-pill">Check first</span>
+                </div>
+                <div class="tool-panel">
+                <div class="tool-grid health-tool">
+                  <div>
+                    <label>Game</label>
+                    <select id="healthGame">
+                      <option value="ALL">ALL</option>
+                      <option value="CBM_TH">CBM TH</option>
+                      <option value="CBM_SEA">CBM SEA</option>
+                      <option value="CBPC_TH">CBPC TH</option>
+                      <option value="CBPC_SEA">CBPC SEA</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Month</label>
+                    <select id="healthMonth">
+                      <option value="ALL">ALL</option>
+                      <option value="2026-06">มิถุนายน 2026</option>
+                      <option value="2026-05">พฤษภาคม 2026</option>
+                      <option value="2026-04">เมษายน 2026</option>
+                      <option value="2026-03">มีนาคม 2026</option>
+                      <option value="2026-02">กุมภาพันธ์ 2026</option>
+                    </select>
+                  </div>
+                  <button class="context-submit" type="button" onclick="loadPipelineHealth()">CHECKUP</button>
+                </div>
+                <div class="toolbar">
+                  <button class="sample-btn" type="button" onclick="showDataHealthSample()">SHOW SAMPLE</button>
+                </div>
+                </div>
+                <div class="status-grid" id="healthScoreCards">
+                  <div class="status-card health"><span>สถานะรวม</span><strong>-</strong></div>
+                  <div class="status-card ready"><span>Raw พร้อม</span><strong>-</strong></div>
+                  <div class="status-card review"><span>ต้องตรวจ</span><strong>-</strong></div>
+                  <div class="status-card cleanup"><span>ต้องซ่อม</span><strong>-</strong></div>
+                </div>
+                <div class="health-list" id="healthIssueList">
+                  <div class="health-summary ok"><h3>ยังไม่ได้ตรวจข้อมูล</h3><p>กด CHECKUP เพื่อดูสถานะของเกมและเดือนที่เลือก</p></div>
+                </div>
+                <div class="handoff-bar" id="healthHandoff">
+                  <div><b>มีรายการที่ควรซ่อมต่อ</b><p>กดปุ่มนี้เพื่อเปิด Data Control พร้อม Game และ Month ที่ต้องใช้ค้นหา run สำหรับซ่อม</p></div>
+                  <button class="context-submit" type="button" onclick="sendHealthToDataControl()">SEND TO DATA CONTROL</button>
+                </div>
+              </div>
+            </div>
+          </article>
+          <aside class="card widget">
+            <h3>System Information</h3>
+            <div class="system-lines">
+              <div class="system-line"><span>Username</span><b id="sysName">-</b></div>
+              <div class="system-line"><span>Email</span><b id="sysEmail">-</b></div>
+              <div class="system-line"><span>Session</span><b id="sysSession">ACTIVE</b></div>
+              <div class="system-line"><span>Expires</span><b id="sysExpires">-</b></div>
+            </div>
+            <div class="soft-note">Auto Pipeline ทำงานประจำตามเวลา ส่วน Data Control เป็น Manual Repair สำหรับซ่อมข้อมูลเฉพาะเคสเท่านั้น</div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </section>
+</main>
+
+<script>
+const AUTH_CONFIG = {
+  clientId: '496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com',
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyZwor9CRKgKWTf2Zs0rTWHDo3qGniF7swEv1cszTHJ5oAZbKCiMzp_86UGUuiecI-mQQ/exec',
+  allowedEmails: [
+    'bwm.workco@gmail.com',
+    'eveningbs@gmail.com',
+    'ksbing34@gmail.com',
+    'mkt.performance.center@gmail.com',
+    'tipchareon.t@gmail.com'
+  ]
+};
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const REPORT_START_MONTH = '2026-02';
+const DEFAULT_LATEST_MONTH = '2026-06';
+const MONTH_TH = buildMonthLabelMap(REPORT_START_MONTH, latestKnownMonthKey());
+const CQR_GAMES = ['CBM_TH','CBM_SEA','CBPC_TH','CBPC_SEA'];
+let CQR_MONTHS = Object.keys(MONTH_TH).sort().reverse();
+const LOCAL_PREVIEW_ALLOWED = location.protocol === 'file:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
+let previewMode = false;
+let selectedUserEmail = '';
+let lastCleanupSuggestion = null;
+let lastHealthRecommendations = [];
+let lastHealthRepairGames = [];
+let lastHealthRepairTasks = [];
+let lastRunMatches = [];
+let toolQueryAutoFilled = false;
+let healthHandoffActive = false;
+
+function latestKnownMonthKey(){
+  const now = new Date();
+  const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  return current > DEFAULT_LATEST_MONTH ? current : DEFAULT_LATEST_MONTH;
+}
+
+function monthRangeKeys(start, end){
+  const startMatch = String(start || '').match(/(20\d{2})-(\d{2})/);
+  const endMatch = String(end || '').match(/(20\d{2})-(\d{2})/);
+  if(!startMatch || !endMatch) return [];
+  const months = [];
+  let year = Number(startMatch[1]);
+  let month = Number(startMatch[2]);
+  const endYear = Number(endMatch[1]);
+  const endMonth = Number(endMatch[2]);
+  while(year < endYear || (year === endYear && month <= endMonth)){
+    months.push(`${year}-${String(month).padStart(2, '0')}`);
+    month += 1;
+    if(month > 12){
+      month = 1;
+      year += 1;
+    }
+  }
+  return months;
+}
+
+function buildMonthLabelMap(start, end){
+  return monthRangeKeys(start, end).reduce((map, key) => {
+    const monthIndex = Number(key.slice(5, 7)) - 1;
+    map[key] = THAI_MONTHS[monthIndex] || key;
+    return map;
+  }, {});
+}
+
+function monthLabel(key){
+  const normalized = normalizePeriodKey(key, '');
+  if(!normalized) return 'ALL';
+  const monthIndex = Number(normalized.slice(5, 7)) - 1;
+  return `${MONTH_TH[normalized] || THAI_MONTHS[monthIndex] || normalized} ${normalized.slice(0, 4)}`;
+}
+
+function registerKnownMonth(value){
+  const month = normalizePeriodKey(value, '');
+  if(!month) return;
+  if(!MONTH_TH[month]){
+    const monthIndex = Number(month.slice(5, 7)) - 1;
+    MONTH_TH[month] = THAI_MONTHS[monthIndex] || month;
+  }
+  if(!CQR_MONTHS.includes(month)) CQR_MONTHS.push(month);
+  CQR_MONTHS = [...new Set(CQR_MONTHS)].sort().reverse();
+}
+
+function populateMonthSelect(selectId, allowAll){
+  const select = document.getElementById(selectId);
+  if(!select) return;
+  const currentValue = select.value || (allowAll ? 'ALL' : CQR_MONTHS[0]);
+  const options = [
+    ...(allowAll ? [{value:'ALL', label:'ALL'}] : []),
+    ...CQR_MONTHS.map(month => ({value:month, label:monthLabel(month)}))
+  ];
+  select.innerHTML = options.map(option => `<option value="${escapeAttr(option.value)}">${escapeHtml(option.label)}</option>`).join('');
+  select.value = options.some(option => option.value === currentValue) ? currentValue : (allowAll ? 'ALL' : CQR_MONTHS[0]);
+}
+
+function populateAllMonthSelects(){
+  populateMonthSelect('f-month', false);
+  populateMonthSelect('healthMonth', true);
+  populateMonthSelect('toolMonth', true);
+}
+
+function decodeJwtPayload(token){
+  try{
+    const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const json = decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    return JSON.parse(json);
+  }catch(e){ return null; }
+}
+
+function showAuthError(message){
+  const box = document.getElementById('authError');
+  box.textContent = message;
+  box.style.display = 'block';
+}
+
+function getSavedSession(){
+  try{
+    const saved = JSON.parse(sessionStorage.getItem('cqr_auth') || 'null');
+    if(!saved || !saved.email || !saved.exp || saved.exp * 1000 <= Date.now()) return null;
+    if(!saved.sessionToken) return null;
+    return saved;
+  }catch(e){ return null; }
+}
+
+function setSavedSession(profile, sessionToken){
+  sessionStorage.setItem('cqr_auth', JSON.stringify({
+    email: (profile.email || '').toLowerCase(),
+    name: profile.name || profile.display_name || profile.email || 'CQR user',
+    picture: profile.picture || '',
+    exp: profile.exp || Math.floor(Date.now()/1000) + 3600,
+    sessionToken
+  }));
+}
+
+function unlockWorkspace(profile, sessionToken){
+  setSavedSession(profile, sessionToken);
+  document.body.classList.remove('auth-locked');
+  document.body.classList.add('auth-ready');
+  hydrateUser(profile);
+}
+
+function hydrateUser(profile){
+  const saved = getSavedSession();
+  const name = profile.name || profile.display_name || saved?.name || saved?.email || '-';
+  const email = (profile.email || saved?.email || '').toLowerCase();
+  document.getElementById('sysName').textContent = name;
+  document.getElementById('sysEmail').textContent = email || '-';
+  document.getElementById('sysExpires').textContent = saved?.exp ? new Date(saved.exp * 1000).toLocaleString('th-TH') : '-';
+}
+
+async function loginWithBackend(idToken){
+  const json = await callAppsScript('login', {id_token:idToken});
+  if(json.ok === false) throw new Error(json.message || 'Login failed');
+  if(!json.session_token || !json.user) throw new Error('Backend login response ไม่ครบ');
+  return json;
+}
+
+async function handleCredentialResponse(response){
+  const profile = decodeJwtPayload(response.credential);
+  const email = (profile && profile.email ? profile.email : '').toLowerCase();
+  if(!email){
+    showAuthError('ไม่สามารถอ่านอีเมลจาก Google Sign-In ได้ กรุณาลองใหม่อีกครั้ง');
+    return;
+  }
+  if(!AUTH_CONFIG.allowedEmails.includes(email)){
+    showAuthError(`อีเมล ${email} ยังไม่ได้รับสิทธิ์เข้าใช้งาน CHANNEL QUALITY REPORT นี้`);
+    return;
+  }
+  try{
+    const login = await loginWithBackend(response.credential);
+    const expiresAt = login.expires_at ? Math.floor(new Date(login.expires_at).getTime()/1000) : Math.floor(Date.now()/1000) + 3600;
+    unlockWorkspace({email:login.user.email, name:login.user.display_name || login.user.email, exp:expiresAt}, login.session_token);
+  }catch(e){
+    showAuthError(`ตรวจสอบสิทธิ์กับระบบหลังบ้านไม่สำเร็จ: ${e.message || e}`);
+  }
+}
+
+function initAuth(){
+  const saved = getSavedSession();
+  if(saved){
+    document.body.classList.remove('auth-locked');
+    document.body.classList.add('auth-ready');
+    hydrateUser(saved);
+    return;
+  }
+  if(LOCAL_PREVIEW_ALLOWED){
+    document.body.classList.add('local-preview');
+    if(new URLSearchParams(location.search).get('preview') === '1'){
+      startPreviewMode();
+      return;
+    }
+  }
+  if(!window.google || !google.accounts || !google.accounts.id){
+    setTimeout(initAuth, 250);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: AUTH_CONFIG.clientId,
+    callback: handleCredentialResponse,
+    auto_select: false,
+    cancel_on_tap_outside: false
+  });
+  google.accounts.id.renderButton(document.getElementById('googleSignIn'), {
+    theme: 'outline',
+    size: 'large',
+    shape: 'pill',
+    text: 'signin_with',
+    width: 260
+  });
+}
+
+function startPreviewMode(){
+  if(!LOCAL_PREVIEW_ALLOWED) return;
+  previewMode = true;
+  const exp = Math.floor(Date.now()/1000) + 3600;
+  const profile = {email:'preview@cqr.local', name:'CQR Preview', exp};
+  sessionStorage.setItem('cqr_auth', JSON.stringify({
+    email: profile.email,
+    name: profile.name,
+    exp,
+    sessionToken: 'preview-session'
+  }));
+  document.body.classList.remove('auth-locked');
+  document.body.classList.add('auth-ready');
+  hydrateUser(profile);
+  appendAiMessage('Preview mode เปิดแล้วครับ หน้านี้ใช้ข้อมูลตัวอย่างเพื่อดู layout เท่านั้น ยังไม่ยิงระบบหลังบ้านจริง', 'assistant');
+}
+
+function signOutUser(){
+  sessionStorage.removeItem('cqr_auth');
+  document.body.classList.add('auth-locked');
+  document.body.classList.remove('auth-ready');
+  if(window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+  initAuth();
+}
+
+function callAppsScript(action, params){
+  if(previewMode || params?.session_token === 'preview-session'){
+    return Promise.resolve(mockBackend(action, params));
+  }
+  return new Promise((resolve, reject)=>{
+    const timeoutMs = Number(params?._timeout_ms || 25000);
+    const callback = `cqrApi_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(()=>{
+      cleanup();
+      reject(new Error('Apps Script ไม่ตอบกลับภายในเวลาที่กำหนด'));
+    }, timeoutMs);
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[callback];
+      script.remove();
+    }
+    window[callback] = payload => {
+      cleanup();
+      resolve(payload || {});
+    };
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('เรียก Apps Script ไม่สำเร็จ'));
+    };
+    const query = new URLSearchParams({action, callback, t:String(Date.now()), user_agent:navigator.userAgent});
+    Object.keys(params || {}).forEach(key => {
+      if(key !== '_timeout_ms') query.set(key, params[key]);
+    });
+    script.src = `${AUTH_CONFIG.appsScriptUrl}?${query.toString()}`;
+    document.head.appendChild(script);
+  });
+}
+
+function mockBackend(action, params){
+  if(action === 'ai.ask'){
+    return {
+      ok: true,
+      answer: 'ตัวอย่างคำตอบจาก AI CHAT แบบเต็มหน้า:\\n\\n• Organic / Unknown ยังเป็นฐาน register ใหญ่ แต่ควรดูคุณภาพร่วมกับ D7/D14 ไม่ใช่ดูจำนวนอย่างเดียว\\n• In-App Register ควรใช้เป็น proxy สำคัญของ traffic ที่มาจาก install campaign โดยเฉพาะ Google Ads\\n• ถ้าจะทำ action ต่อ แนะนำแยก cohort ตามเกม แล้วดูจุด drop ระหว่าง D1 → D3 ก่อน เพราะเป็นช่วงที่บอกคุณภาพ onboarding ได้ชัดที่สุด\\n\\nนี่เป็น mock response สำหรับดูพื้นที่อ่านคำตอบยาวบนหน้าใหม่เท่านั้น'
+    };
+  }
+  if(action === 'admin.users.list'){
+    return {
+      ok: true,
+      users: [
+        {email:'bwm.workco@gmail.com',display_name:'Bew WM',role_id:'super_admin',status:'active',allowed_games:'ALL',allowed_regions:'ALL',last_login_at:'2026-07-27 08:30'},
+        {email:'mkt.performance.center@gmail.com',display_name:'Performance Center',role_id:'analyst',status:'active',allowed_games:'CBM_TH,CBPC_TH',allowed_regions:'TH',last_login_at:'2026-07-26 18:12'},
+        {email:'tipchareon.t@gmail.com',display_name:'CQR Manager',role_id:'manager',status:'active',allowed_games:'ALL',allowed_regions:'ALL',last_login_at:'2026-07-25 11:04'}
+      ]
+    };
+  }
+  if(action === 'admin.users.upsert') return {ok:true};
+  if(action === 'admin.pipeline.health'){
+    return buildMockPipelineHealth(params || {});
+  }
+  if(action === 'admin.pipeline.run.lookup'){
+    return buildMockRunLookup(params || {});
+  }
+  if(action === 'admin.n8n.cleanup.preview'){
+    return buildMockN8nCommand('cleanup_preview', params || {});
+  }
+  if(action === 'admin.n8n.cleanup.run'){
+    return buildMockN8nCommand('cleanup_run', params || {});
+  }
+  if(action === 'admin.n8n.master.run'){
+    return buildMockN8nCommand('master_update', params || {});
+  }
+  if(action === 'admin.n8n.raw.check'){
+    return buildMockRawCheck(params || {});
+  }
+  return {ok:true};
+}
+
+function switchPanel(panelId){
+  document.querySelectorAll('.panel').forEach(panel => panel.classList.toggle('active', panel.id === panelId));
+  if(panelId === 'adminPanel') refreshActiveAdminTool();
+}
+
+function switchAdminTool(tool){
+  ['users','pipeline','health'].forEach(name => {
+    document.getElementById(`adminTab${capitalize(name)}`).classList.toggle('active', name === tool);
+    document.getElementById(`adminView${capitalize(name)}`).classList.toggle('active', name === tool);
+  });
+  refreshActiveAdminTool();
+}
+
+function refreshActiveAdminTool(){
+  if(document.getElementById('adminViewUsers')?.classList.contains('active')) loadUsers();
+  if(document.getElementById('adminViewPipeline')?.classList.contains('active')) renderAdminActionLogs();
+}
+
+function capitalize(value){
+  return String(value || '').charAt(0).toUpperCase() + String(value || '').slice(1);
+}
+
+function getAiAskFilters(){
+  const channel = document.getElementById('f-channel')?.value || 'all';
+  const periodType = document.getElementById('f-period-type')?.value || 'month';
+  const month = document.getElementById('f-month')?.value || '2026-06';
+  const week = document.getElementById('f-week')?.value || `${month}-W4`;
+  const period = periodType === 'week' ? week : month;
+  return {
+    game: document.getElementById('f-game')?.value || 'ALL',
+    channel: channel === 'all' ? 'ALL' : channel,
+    period,
+    view: periodType === 'week' ? 'weekly' : 'monthly'
+  };
+}
+
+function appendAiMessage(text, role){
+  const feed = document.getElementById('chatFeed');
+  const msg = document.createElement('div');
+  msg.className = `msg ${role === 'user' ? 'user' : 'assistant'}`;
+  msg.innerHTML = role === 'user'
+    ? `<div class="bubble"></div><div class="avatar">YOU</div>`
+    : `<div class="avatar">AI</div><div class="bubble"></div>`;
+  const bubble = msg.querySelector('.bubble');
+  if(role === 'user'){
+    bubble.textContent = text;
+  }else{
+    bubble.innerHTML = renderAssistantText(text);
+  }
+  feed.appendChild(msg);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function renderAssistantText(text){
+  const escaped = escapeHtml(String(text || '').trim());
+  if(!escaped) return '<p>-</p>';
+  const lines = escaped.split('\n');
+  let html = '';
+  let inList = false;
+  const inline = value => value
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+  lines.forEach(line => {
+    const clean = line.trim();
+    if(!clean){
+      if(inList){ html += '</ul>'; inList = false; }
+      return;
+    }
+    const heading = clean.match(/^#{1,3}\s+(.+)/);
+    if(heading){
+      if(inList){ html += '</ul>'; inList = false; }
+      html += `<h4>${inline(heading[1])}</h4>`;
+      return;
+    }
+    const bullet = clean.match(/^(?:\*|-|•)\s+(.+)/);
+    if(bullet){
+      if(!inList){ html += '<ul>'; inList = true; }
+      html += `<li>${inline(bullet[1])}</li>`;
+      return;
+    }
+    if(inList){ html += '</ul>'; inList = false; }
+    html += `<p>${inline(clean)}</p>`;
+  });
+  if(inList) html += '</ul>';
+  return html || '<p>-</p>';
+}
+
+function setAiAskBusy(isBusy){
+  const input = document.getElementById('aiAskInput');
+  const send = document.getElementById('aiAskSend');
+  const note = document.getElementById('aiAskNote');
+  input.disabled = isBusy;
+  send.disabled = isBusy;
+  note.textContent = isBusy ? 'AI กำลังอ่านข้อมูลสรุปที่บันทึกไว้...' : 'AI ใช้ข้อมูลจาก Summary Cache และ Weekly Alert Log ที่เตรียมไว้';
+}
+
+async function sendAiAsk(questionOverride){
+  const input = document.getElementById('aiAskInput');
+  const question = String(questionOverride || input.value || '').trim();
+  if(!question) return;
+  const session = getSavedSession();
+  if(!session || !session.sessionToken){
+    appendAiMessage('กรุณา Sign in ก่อนใช้ AI CHAT', 'assistant');
+    return;
+  }
+  input.value = '';
+  appendAiMessage(question, 'user');
+  setAiAskBusy(true);
+  try{
+    const filters = getAiAskFilters();
+    const json = await callAppsScript('ai.ask', {
+      session_token: session.sessionToken,
+      question,
+      game: filters.game,
+      channel: filters.channel,
+      period: filters.period,
+      view: filters.view,
+      ai_mode: 'gemini',
+      dashboard_state: JSON.stringify(filters)
+    });
+    if(json.ok === false) throw new Error(json.message || 'AI CHAT failed');
+    appendAiMessage(json.answer || 'ยังไม่มีคำตอบจาก AI CHAT', 'assistant');
+  }catch(error){
+    appendAiMessage(`AI CHAT ยังตอบไม่ได้: ${error.message || error}`, 'assistant');
+  }finally{
+    setAiAskBusy(false);
+  }
+}
+
+function askPreset(text){
+  switchPanel('aiPanel');
+  sendAiAsk(text);
+}
+
+function applyContext(){
+  const filters = getAiAskFilters();
+  const channel = filters.channel === 'ALL' ? 'ทุก Channel' : filters.channel;
+  const view = filters.view === 'weekly' ? 'Weekly View' : 'Monthly View';
+  appendAiMessage(`ใช้ context แล้ว: ${filters.game} · ${channel} · ${filters.period} · ${view}`, 'assistant');
+}
+
+function clearChat(){
+  document.getElementById('chatFeed').innerHTML = '<div class="msg assistant"><div class="avatar">AI</div><div class="bubble">ล้างบทสนทนาแล้วครับ เริ่มถามเรื่อง CQR รอบใหม่ได้เลย</div></div>';
+}
+
+function downloadTextFile(filename, content, mime){
+  const blob = new Blob([content], {type:mime || 'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function downloadChatLog(){
+  const filters = getAiAskFilters();
+  const rows = [...document.querySelectorAll('#chatFeed .msg')].map(msg => {
+    const who = msg.classList.contains('user') ? 'User' : 'AI';
+    const text = msg.querySelector('.bubble')?.textContent || '';
+    return `## ${who}\n\n${text}`;
+  });
+  const body = [
+    '# CQR AI CHAT LOG',
+    '',
+    `Exported: ${new Date().toISOString()}`,
+    `Context: ${filters.game} / ${filters.channel} / ${filters.period} / ${filters.view}`,
+    '',
+    ...rows,
+    '',
+    'Note: ตอนนี้เป็นไฟล์ดาวน์โหลดจากหน้าเว็บ ถ้าต้องการเก็บถาวรเพื่อวิเคราะห์ซ้ำ ควรเพิ่ม backend action ให้บันทึกเข้า AI_ChatLogs ใน Central DB หรือ AI Summary Sheet'
+  ].join('\n');
+  downloadTextFile(`cqr-ai-chat-log-${filters.period}.md`, body, 'text/markdown;charset=utf-8');
+}
+
+async function loadUsers(){
+  const session = getSavedSession();
+  if(!session || !session.sessionToken) return;
+  try{
+    const result = await callAppsScript('admin.users.list', { session_token: session.sessionToken });
+    if(!result.ok) throw new Error(result.message || 'Cannot load users');
+    if(!Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.list กรุณา Update Apps Script production');
+    renderUsers(result.users || []);
+  }catch(err){
+    showError(err.message || String(err));
+  }
+}
+
+function renderUsers(users){
+  document.getElementById('userRows').innerHTML = users.length ? users.map(u => `
+      <tr data-user='${escapeAttr(JSON.stringify(u))}'>
+        <td>${escapeHtml(u.email)}</td>
+        <td>${escapeHtml(u.display_name || '')}</td>
+        <td><span class="role-pill">${escapeHtml(u.role_id)}</span></td>
+        <td>${escapeHtml(u.status)}</td>
+        <td>${escapeHtml(u.allowed_games || '')}</td>
+        <td>${escapeHtml(u.allowed_regions || '')}</td>
+        <td>${escapeHtml(u.last_login_at || '')}</td>
+        <td>
+          <div class="row-actions">
+            <button class="row-btn edit" type="button" data-action="edit">Edit</button>
+            <button class="row-btn delete" type="button" data-action="delete">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `).join('') : '<tr><td colspan="8">ยังไม่มีข้อมูลผู้ใช้</td></tr>';
+  document.querySelectorAll('#userRows tr[data-user]').forEach(row => {
+    row.addEventListener('click', event => {
+      const user = JSON.parse(row.getAttribute('data-user') || '{}');
+      const action = event.target?.dataset?.action;
+      if(action === 'delete'){
+        deleteUser(user.email || '');
+        return;
+      }
+      fillUser(user.email || '', user.display_name || '', user.role_id || 'viewer', user.status || 'active', user.allowed_games || 'ALL', user.allowed_regions || 'ALL');
+    });
+  });
+}
+
+async function saveUser(){
+  const session = getSavedSession();
+  if(!session || !session.sessionToken){
+    showError('Session expired. Please sign in again.');
+    return;
+  }
+  try{
+    const result = await callAppsScript('admin.users.upsert', {
+      session_token: session.sessionToken,
+      email: document.getElementById('email').value.trim(),
+      display_name: document.getElementById('displayName').value.trim(),
+      role_id: document.getElementById('role').value,
+      status: document.getElementById('status').value,
+      allowed_games: document.getElementById('allowedGames').value.trim(),
+      allowed_regions: document.getElementById('allowedRegions').value.trim()
+    });
+    if(!result.ok) throw new Error(result.message || 'Cannot save user');
+    if(!result.user && !Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.upsert กรุณา Update Apps Script production');
+    showOk(`Saved user · ${result.users?.length || 0} users total`);
+    if(result.users) renderUsers(result.users);
+    else loadUsers();
+  }catch(err){
+    showError(err.message || String(err));
+  }
+}
+
+function fillUser(email, name, role, status, games, regions){
+  selectedUserEmail = email;
+  document.getElementById('email').value = email;
+  document.getElementById('displayName').value = name;
+  document.getElementById('role').value = role;
+  document.getElementById('status').value = status;
+  document.getElementById('allowedGames').value = games;
+  document.getElementById('allowedRegions').value = regions;
+  const state = document.getElementById('editState');
+  state.textContent = `Editing: ${email}`;
+  state.classList.add('active');
+}
+
+function clearUserForm(){
+  selectedUserEmail = '';
+  ['email','displayName'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('role').value = 'viewer';
+  document.getElementById('status').value = 'active';
+  document.getElementById('allowedGames').value = 'ALL';
+  document.getElementById('allowedRegions').value = 'ALL';
+  document.getElementById('editState').classList.remove('active');
+}
+
+async function deleteSelectedUser(){
+  const email = selectedUserEmail || document.getElementById('email').value.trim();
+  deleteUser(email);
+}
+
+async function deleteUser(email){
+  const session = getSavedSession();
+  const normalized = String(email || '').trim().toLowerCase();
+  if(!normalized){
+    showError('เลือก user ที่ต้องการลบก่อน');
+    return;
+  }
+  if(!session || !session.sessionToken){
+    showError('Session expired. Please sign in again.');
+    return;
+  }
+  if(normalized === String(session.email || '').toLowerCase()){
+    showError('ไม่สามารถลบ account ที่กำลังใช้งานอยู่ได้');
+    return;
+  }
+  if(!confirm(`Delete ${normalized}?`)) return;
+  try{
+    const result = await callAppsScript('admin.users.delete', {
+      session_token: session.sessionToken,
+      email: normalized
+    });
+    if(!result.ok) throw new Error(result.message || 'Cannot delete user');
+    if(!Array.isArray(result.users)) throw new Error('Admin backend ยังไม่รองรับ admin.users.delete กรุณา Update Apps Script production');
+    showOk(`Deleted user · ${result.users.length} users total`);
+    clearUserForm();
+    renderUsers(result.users);
+  }catch(err){
+    showError(err.message || String(err));
+  }
+}
+
+function fillKnownIssue(game, month, hash){
+  document.getElementById('toolGame').value = game;
+  document.getElementById('toolMonth').value = month;
+  document.getElementById('toolRunQuery').value = hash;
+  toolQueryAutoFilled = true;
+  document.getElementById('healthGame').value = game;
+  document.getElementById('healthMonth').value = month;
+  inspectRun();
+}
+
+function findHealthRepairTask(game, month){
+  const targetGame = String(game || 'ALL');
+  const targetMonth = String(month || 'ALL');
+  if(targetGame === 'ALL') return null;
+  return lastHealthRepairTasks.find(task => {
+    if(task.game !== targetGame) return false;
+    return targetMonth === 'ALL' || !task.month || task.month === targetMonth;
+  }) || null;
+}
+
+function handleDataControlFilterChange(){
+  if(!toolQueryAutoFilled) return;
+  const game = document.getElementById('toolGame')?.value || 'ALL';
+  const month = document.getElementById('toolMonth')?.value || 'ALL';
+  const task = findHealthRepairTask(game, month);
+  const queryInput = document.getElementById('toolRunQuery');
+  if(game === 'ALL' && healthHandoffActive){
+    queryInput.value = '';
+    toolQueryAutoFilled = true;
+    return;
+  }
+  if(task){
+    queryInput.value = task.hash || task.runId || '';
+    toolQueryAutoFilled = !!queryInput.value;
+  }else{
+    queryInput.value = '';
+    toolQueryAutoFilled = false;
+    healthHandoffActive = false;
+  }
+}
+
+async function inspectRun(){
+  const session = getSavedSession();
+  const resultBox = document.getElementById('runInspectorResult');
+  if(!session || !session.sessionToken){
+    resultBox.textContent = 'Session expired. Please sign in again.';
+    return;
+  }
+  const game = document.getElementById('toolGame').value;
+  const month = document.getElementById('toolMonth').value.trim() || '2026-06';
+  const monthForLookup = month === 'ALL' ? '' : month;
+  const query = document.getElementById('toolRunQuery').value.trim();
+  registerKnownMonth(month);
+  resultBox.textContent = 'กำลังค้นหา run_id / hash ที่เกี่ยวข้อง...';
+  try{
+    const result = await callAppsScript('admin.pipeline.run.lookup', {
+      session_token: session.sessionToken,
+      game,
+      month: monthForLookup,
+      query,
+      _timeout_ms: 60000
+    });
+    if(!result.ok) throw new Error(result.message || 'Cannot inspect run');
+    renderRunInspector(result);
+  }catch(error){
+    resultBox.innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ FIND</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.run.lookup เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
+  }
+}
+
+async function loadPipelineHealth(){
+  const session = getSavedSession();
+  if(!session || !session.sessionToken) return;
+  const game = document.getElementById('healthGame')?.value || document.getElementById('toolGame')?.value || 'ALL';
+  const month = document.getElementById('healthMonth')?.value.trim() || document.getElementById('toolMonth')?.value.trim() || '2026-06';
+  const monthForHealth = month === 'ALL' ? '' : month;
+  document.getElementById('healthHandoff')?.classList.remove('active');
+  document.getElementById('healthIssueList').innerHTML = '<div class="health-summary warn"><h3>กำลังตรวจข้อมูล</h3><p>ระบบกำลังเช็ก Raw, Master และ Central DB ของเกม/เดือนที่เลือก</p></div>';
+  try{
+    const result = await callAppsScript('admin.pipeline.health', {
+      session_token: session.sessionToken,
+      game,
+      month: monthForHealth,
+      _timeout_ms: 60000
+    });
+    if(!result.ok) throw new Error(result.message || 'Cannot load health');
+    renderPipelineHealth(result);
+  }catch(error){
+    document.getElementById('healthHandoff')?.classList.remove('active');
+    document.getElementById('healthIssueList').innerHTML = `<div class="health-item warn"><div><b>Backend ยังไม่พร้อมสำหรับ Data Health</b><p>${escapeHtml(error.message || error)}<br>หลัง Update Apps Script ให้รองรับ admin.pipeline.health เครื่องมือนี้จะอ่าน Central DB จริงได้</p></div><span class="health-badge warn">Setup</span></div>`;
+  }
+}
+
+async function runRawFileCheck(){
+  const session = getSavedSession();
+  const resultBox = document.getElementById('rawCheckResult');
+  if(!session || !session.sessionToken){
+    resultBox.className = 'raw-result danger';
+    resultBox.innerHTML = '<h4>Session หมดอายุ</h4><p>กรุณา Sign in ใหม่ก่อนใช้ RAW FILE CHECK</p>';
+    return;
+  }
+  const game = document.getElementById('toolGame').value || 'ALL';
+  const month = document.getElementById('toolMonth').value || 'ALL';
+  resultBox.className = 'raw-result warn';
+  resultBox.innerHTML = `<h4>กำลังตรวจ Raw File</h4><p>ส่งคำขอไป n8n สำหรับ ${escapeHtml(game)} / ${escapeHtml(month)} แล้ว ระบบจะบันทึกผลลง Central DB เมื่อทำงานสำเร็จ</p>`;
+  setPipelineActionBusy(true);
+  try{
+    const result = await callAppsScript('admin.n8n.raw.check', {
+      session_token: session.sessionToken,
+      game,
+      month,
+      target_game_code: game,
+      target_month: month,
+      target_games_csv: game,
+      target_months_csv: month,
+      check_mode: 'manual',
+      expected_tabs_csv: 'Registered,DAU,Returners,Late_Starters,Login',
+      _timeout_ms: 60000
+    });
+    if(!result.ok){
+      const err = new Error(result.message || 'raw check failed');
+      err.requiredProperty = result.required_property || '';
+      err.status = result.status || '';
+      err.detail = result.detail || '';
+      throw err;
+    }
+    renderRawCheckResult(result);
+    recordAdminActionLog('Raw Check', result, normalizeN8nPayload(result.n8n_result || result.result || result));
+  }catch(error){
+    resultBox.className = 'raw-result danger';
+    resultBox.innerHTML = renderPipelineCommandError('Raw Check', 'raw.check', error);
+  }finally{
+    setPipelineActionBusy(false);
+  }
+}
+
+function renderRawCheckResult(result){
+  const resultBox = document.getElementById('rawCheckResult');
+  const payload = normalizeN8nPayload(result.n8n_result || result.result || result);
+  if(Array.isArray(payload.results) && payload.results.length > 1){
+    const updatedCount = Number(payload.raw_updated_count || 0);
+    const partialCount = Number(payload.raw_partial_count || 0);
+    const readyCount = Number(payload.raw_ready_count || 0);
+    const tone = partialCount ? 'danger' : updatedCount ? 'warn' : 'ok';
+    const title = partialCount
+      ? 'Raw File บางรายการยังไม่ครบ'
+      : updatedCount
+        ? 'Raw File บางรายการมีข้อมูลใหม่'
+        : 'Raw File ในขอบเขตที่เลือกปกติ';
+    const sampleRows = payload.results.slice(0, 6).map(row => `
+      <div><span>${escapeHtml(row.game_code || '-')} / ${escapeHtml(row.period_key || '-')}</span><b>${escapeHtml(statusLabelForRawCheck(row.status))}</b></div>
+    `).join('');
+    resultBox.className = `raw-result ${tone}`;
+    resultBox.innerHTML = `
+      <h4>${escapeHtml(title)}</h4>
+      <p>${escapeHtml(payload.message || 'ตรวจ Raw File สำเร็จ')}</p>
+      <div class="raw-result-grid">
+        <div><span>ตรวจทั้งหมด</span><b>${escapeHtml(String(payload.scope_count || payload.results.length))}</b></div>
+        <div><span>ปกติ</span><b>${escapeHtml(String(readyCount))}</b></div>
+        <div><span>มีข้อมูลใหม่</span><b>${escapeHtml(String(updatedCount))}</b></div>
+        <div><span>ยังไม่ครบ</span><b>${escapeHtml(String(partialCount))}</b></div>
+      </div>
+      ${sampleRows ? `<div class="raw-result-grid">${sampleRows}</div>` : ''}
+      <p><b>ขั้นตอนต่อไป:</b> ถ้ามีรายการที่มีข้อมูลใหม่หรือยังไม่ครบ ให้กด FIND เพื่อดู run ที่เกี่ยวข้อง แล้วค่อย Preview / Clear / Build เฉพาะรายการนั้น</p>
+    `;
+    return;
+  }
+  const status = String(payload.status || payload.raw_status || '').toLowerCase();
+  const rawHash = payload.raw_data_hash || payload.raw_updated_signal || payload.hash || '-';
+  const game = payload.game_code || payload.target_game_code || result.game || document.getElementById('toolGame')?.value || '-';
+  const month = payload.period_key || payload.target_month || result.month || document.getElementById('toolMonth')?.value || '-';
+  const found = payload.tab_count_found ?? payload.tabs_found ?? '-';
+  const expected = payload.tab_count_expected ?? payload.tabs_expected ?? '5';
+  const missingTabs = payload.missing_tabs || payload.missingTabs || '';
+  const message = payload.message || result.message || 'ส่งคำขอตรวจ Raw สำเร็จ';
+  let tone = 'ok';
+  let title = 'Raw File ปกติ';
+  let next = 'ถ้า Dashboard ยังไม่ครบ ให้ไปที่ FIND เพื่อดู run ล่าสุด แล้วค่อย Preview / Clear / Build ตามขั้นตอน';
+  if(status.includes('updated') || status.includes('change')){
+    tone = 'warn';
+    title = 'Raw File มีข้อมูลใหม่';
+    next = 'กด FIND เพื่อหา run ที่เกี่ยวข้อง จากนั้น Preview ก่อน Clear/Build เฉพาะเกมและเดือนนี้';
+  }else if(status.includes('partial') || status.includes('missing') || status.includes('incomplete')){
+    tone = 'danger';
+    title = 'Raw File ยังไม่ครบ';
+    next = 'เช็กไฟล์ Raw ก่อนว่า Tab ครบ 5 Tab และมีข้อมูลในแต่ละ Tab แล้วค่อย CHECK RAW ใหม่';
+  }
+  resultBox.className = `raw-result ${tone}`;
+  resultBox.innerHTML = `
+    <h4>${escapeHtml(title)}</h4>
+    <p>${escapeHtml(message)}</p>
+    <div class="raw-result-grid">
+      <div><span>Game</span><b>${escapeHtml(game)}</b></div>
+      <div><span>Month</span><b>${escapeHtml(month)}</b></div>
+      <div><span>Tabs</span><b>${escapeHtml(String(found))} / ${escapeHtml(String(expected))}</b></div>
+      <div><span>Raw Hash</span><b>${escapeHtml(String(rawHash))}</b></div>
+    </div>
+    ${missingTabs ? `<p><b>Tab ที่ต้องเช็ก:</b> ${escapeHtml(String(missingTabs))}</p>` : ''}
+    <p><b>ขั้นตอนต่อไป:</b> ${escapeHtml(next)}</p>
+  `;
+  if(rawHash && rawHash !== '-' && (status.includes('updated') || status.includes('change'))){
+    const query = document.getElementById('toolRunQuery');
+    if(query && !query.value.trim()) query.value = rawHash;
+  }
+}
+
+function statusLabelForRawCheck(status){
+  const text = String(status || '').toLowerCase();
+  if(text.includes('updated') || text.includes('change')) return 'มีข้อมูลใหม่';
+  if(text.includes('partial') || text.includes('missing') || text.includes('incomplete')) return 'ยังไม่ครบ';
+  if(text.includes('ready')) return 'ปกติ';
+  return status || '-';
+}
+
+function normalizeN8nPayload(payload){
+  if(Array.isArray(payload)) return normalizeN8nPayload(payload[0] || {});
+  if(payload?.json) return normalizeN8nPayload(payload.json);
+  if(payload?.body) return normalizeN8nPayload(payload.body);
+  return payload || {};
+}
+
+async function runPipelineCommand(command){
+  const session = getSavedSession();
+  const resultBox = document.getElementById('pipelineActionResult');
+  if(!session || !session.sessionToken){
+    resultBox.textContent = 'Session expired. Please sign in again.';
+    return;
+  }
+  const game = document.getElementById('toolGame').value;
+  const month = document.getElementById('toolMonth').value.trim() || '2026-06';
+  const query = document.getElementById('toolRunQuery').value.trim();
+  const selectedRuns = getSelectedRunItems();
+  const commandRunItems = selectedRuns.map(normalizeRunItemForCommand);
+  const suggestedRunId = lastCleanupSuggestion && lastCleanupSuggestion.target_game_code === game && lastCleanupSuggestion.target_month === month
+    ? lastCleanupSuggestion.run_id
+    : '';
+  const queryLooksLikeRunId = /^RUN[-_]/i.test(query);
+  const cleanupRunId = selectedRuns.length === 1
+    ? selectedRuns[0]?.run_id
+    : (suggestedRunId || (queryLooksLikeRunId ? query : ''));
+  const cleanupHash = query && !queryLooksLikeRunId
+    ? query
+    : selectedRuns.length === 1
+      ? (selectedRuns[0]?.data_hash_before || selectedRuns[0]?.data_hash_after || lastCleanupSuggestion?.hash || '')
+      : lastCleanupSuggestion?.hash || '';
+  const effectiveGame = selectedRuns.length === 1 ? selectedRuns[0].game_code : game;
+  const actionMap = {
+    'cleanup.preview': 'admin.n8n.cleanup.preview',
+    'cleanup.run': 'admin.n8n.cleanup.run',
+    'master.run': 'admin.n8n.master.run'
+  };
+  const labelMap = {
+    'cleanup.preview': 'Preview',
+    'cleanup.run': 'Clear',
+    'master.run': 'Build'
+  };
+  if((command === 'cleanup.preview' || command === 'cleanup.run') && !cleanupRunId && !cleanupHash){
+    resultBox.classList.add('warn');
+    resultBox.textContent = 'กรุณาใส่ Run ID หรือ Hash จาก Data Health ก่อนใช้ Preview/Clear';
+    return;
+  }
+  if(month === 'ALL' && !selectedRuns.length){
+    resultBox.classList.add('warn');
+    resultBox.textContent = 'ถ้าเลือก Month = ALL กรุณากด FIND แล้วเลือก run จากผลลัพธ์ก่อนส่งคำสั่ง เพื่อให้ระบบรู้ว่าต้องซ่อมเดือนไหน';
+    return;
+  }
+  if((command === 'cleanup.preview' || command === 'cleanup.run') && game === 'ALL' && queryLooksLikeRunId && !selectedRuns.length){
+    resultBox.classList.add('warn');
+    resultBox.textContent = 'Run ID เป็นรายการของเกมใดเกมหนึ่งเท่านั้น กรุณากด FIND ก่อน แล้วเลือก run จากผลลัพธ์ เพื่อให้ระบบรู้ว่าต้องซ่อมเกมไหน';
+    return;
+  }
+  if(command === 'cleanup.run'){
+    const ok = confirm(`Clear ข้อมูลเก่าจริงสำหรับ ${selectedRuns.length || 1} รายการ?
+Game: ${effectiveGame}
+Month: ${month}
+Run ID: ${selectedRuns.length > 1 ? selectedRuns.map(run => run.run_id).join(', ') : cleanupRunId}
+
+ควรกด Preview ก่อน และตรวจจำนวนแถวให้ถูกต้องแล้วเท่านั้น`);
+    if(!ok) return;
+  }
+  if(command === 'master.run' && game === 'ALL' && !selectedRuns.length){
+    const ok = confirm('Build แบบ ALL จะส่งคำสั่งสำหรับทุกเกมในเดือนที่เลือก ถ้าต้องการซ่อมแค่บางเกม ให้กด FIND แล้วเลือกเฉพาะรายการก่อน ต้องการส่งแบบ ALL ต่อหรือไม่?');
+    if(!ok) return;
+  }
+  resultBox.classList.remove('warn');
+  resultBox.textContent = `กำลังส่งคำสั่ง ${labelMap[command]} ไปที่ n8n...`;
+  setPipelineActionBusy(true);
+  try{
+    const result = await callAppsScript(actionMap[command], {
+      session_token: session.sessionToken,
+      game: effectiveGame,
+      month,
+      run_id: cleanupRunId,
+      run_ids: commandRunItems.length ? JSON.stringify(commandRunItems.map(run => run.run_id)) : '',
+      run_items: commandRunItems.length ? JSON.stringify(commandRunItems) : '',
+      cleanup_hash: cleanupHash,
+      hash: cleanupHash || query,
+      _timeout_ms: 60000
+    });
+    if(!result.ok){
+      const err = new Error(result.message || 'n8n command failed');
+      err.requiredProperty = result.required_property || '';
+      err.status = result.status || '';
+      err.detail = result.detail || '';
+      throw err;
+    }
+    renderPipelineActionResult(labelMap[command], result);
+  }catch(error){
+    resultBox.classList.add('warn');
+    resultBox.innerHTML = renderPipelineCommandError(labelMap[command], command, error);
+  }finally{
+    setPipelineActionBusy(false);
+  }
+}
+
+function normalizeRunItemForCommand(run){
+  return {
+    game_code: run.game_code || '',
+    period_key: run.period_key || '',
+    run_id: run.run_id || '',
+    data_hash_after: run.data_hash_after || '',
+    data_hash_before: run.data_hash_before || '',
+    cleanup_hash: run.data_hash_before || run.data_hash_after || '',
+    rows_written: run.rows_written || ''
+  };
+}
+
+function renderPipelineCommandError(label, command, error){
+  const message = String(error?.message || error || '');
+  const property = error?.requiredProperty || (
+    message.includes('CQR_N8N_MASTER_UPDATE_WEBHOOK_URL') ? 'CQR_N8N_MASTER_UPDATE_WEBHOOK_URL' :
+    message.includes('CQR_N8N_CLEANUP_WEBHOOK_URL') ? 'CQR_N8N_CLEANUP_WEBHOOK_URL' :
+    message.includes('CQR_N8N_RAW_CHECK_WEBHOOK_URL') ? 'CQR_N8N_RAW_CHECK_WEBHOOK_URL' : ''
+  );
+  if(property){
+    const purpose = property === 'CQR_N8N_CLEANUP_WEBHOOK_URL'
+      ? 'ใช้สำหรับปุ่ม Preview และ Clear'
+      : property === 'CQR_N8N_RAW_CHECK_WEBHOOK_URL'
+        ? 'ใช้สำหรับปุ่ม CHECK RAW'
+        : 'ใช้สำหรับปุ่ม Build';
+    return `
+      <b>${escapeHtml(label)} ยังส่งไป n8n ไม่ได้</b><br>
+      Apps Script ยังไม่มีค่า <code>${escapeHtml(property)}</code><br>
+      ${escapeHtml(purpose)}. หลังตั้งค่า Script Properties และ Deploy Apps Script ใหม่แล้ว ปุ่มนี้จะยิงคำสั่งไป n8n ได้เลย.
+    `;
+  }
+  return `
+    <b>${escapeHtml(label)} ยังทำงานไม่ได้</b><br>
+    ${escapeHtml(message || 'เรียก Apps Script ไม่สำเร็จ')}<br>
+    ${error?.status ? `HTTP Status: ${escapeHtml(String(error.status))}<br>` : ''}
+    ${error?.detail ? `<small>รายละเอียดจาก n8n: ${escapeHtml(formatN8nErrorDetail(error.detail))}</small><br>` : ''}
+    ถ้าเพิ่งตั้งค่า webhook แล้ว ให้ Save และ Deploy Apps Script อีกครั้งก่อนลองใหม่.
+  `;
+}
+
+function formatN8nErrorDetail(detail){
+  if(!detail) return '';
+  if(typeof detail === 'string') return detail.slice(0, 900);
+  const message =
+    detail.message ||
+    detail.error ||
+    detail.raw ||
+    detail.body?.message ||
+    detail.body?.error ||
+    detail.data?.message ||
+    '';
+  if(message) return String(message).slice(0, 900);
+  try{
+    return JSON.stringify(detail).slice(0, 900);
+  }catch(_error){
+    return String(detail).slice(0, 900);
+  }
+}
+
+function setPipelineActionBusy(isBusy){
+  document.querySelectorAll('.action-btn').forEach(button => button.disabled = isBusy);
+  const rawCheckButton = document.getElementById('rawCheckButton');
+  if(rawCheckButton) rawCheckButton.disabled = isBusy;
+}
+
+function getSelectedRunItems(){
+  const checked = [...document.querySelectorAll('.run-select:checked')].map(input => {
+    const row = lastRunMatches[Number(input.dataset.matchIndex)];
+    return row || null;
+  }).filter(Boolean).filter(isCleanupCandidate);
+  if(checked.length) return checked;
+  if(lastCleanupSuggestion?.run_id && isCleanupCandidate({
+    run_id:lastCleanupSuggestion.run_id,
+    status:lastCleanupSuggestion.status || 'ready',
+    rows_written:lastCleanupSuggestion.rows_written || 1
+  })){
+    return [{
+      game_code:lastCleanupSuggestion.target_game_code,
+      period_key:lastCleanupSuggestion.target_month,
+      run_id:lastCleanupSuggestion.run_id,
+      data_hash_after:lastCleanupSuggestion.hash || '',
+      rows_written:lastCleanupSuggestion.rows_written || 0
+    }];
+  }
+  return [];
+}
+
+function selectAllRunItems(){
+  const selectable = [...document.querySelectorAll('.run-select:not(:disabled)')];
+  const allChecked = selectable.length && selectable.every(input => input.checked);
+  selectable.forEach(input => input.checked = !allChecked);
+  updateBatchCount();
+}
+
+function updateBatchCount(){
+  const count = document.querySelectorAll('.run-select:checked').length;
+  const enabled = document.querySelectorAll('.run-select:not(:disabled)').length;
+  const label = document.getElementById('batchCount');
+  const toggle = document.querySelector('#batchActions .mini-btn');
+  if(label) label.textContent = count ? `เลือก ${count} จาก ${enabled} รายการสำหรับส่งคำสั่งผ่าน n8n` : 'เลือกรายการที่ต้องจัดการก่อน';
+  if(toggle) toggle.textContent = count === enabled && enabled ? 'Clear selection' : 'Select all';
+}
+
+function renderPipelineActionResult(label, result){
+  const payload = result.n8n_result || result.result || {};
+  document.getElementById('pipelineActionResult').classList.remove('warn');
+  const lines = [
+    `${label}: ส่งคำสั่งสำเร็จ`,
+    `Game: ${result.game || '-'}`,
+    `Month: ${result.month || '-'}`,
+    `Status: ${payload.status || result.status || 'sent'}`,
+    `Rows: ${payload.rows_deleted || payload.rows_written || payload.delete_request_count || '-'}`,
+    result.execution_url ? `Execution: ${result.execution_url}` : '',
+    payload.message ? `Message: ${payload.message}` : ''
+  ].filter(Boolean);
+  document.getElementById('pipelineActionResult').textContent = lines.join('\n');
+  recordAdminActionLog(label, result, payload);
+}
+
+function getAdminActionLogs(){
+  try{
+    return JSON.parse(localStorage.getItem('cqr_admin_action_logs') || '[]');
+  }catch(error){
+    return [];
+  }
+}
+
+function recordAdminActionLog(label, result, payload){
+  const session = getSavedSession() || {};
+  const selected = getSelectedRunItems();
+  const rows = payload?.rows_deleted || payload?.rows_written || payload?.delete_request_count || result.rows || '-';
+  const entry = {
+    at: new Date().toISOString(),
+    action: label,
+    actor: session.email || session.name || 'CQR Preview',
+    game: result.game || selected.map(item => item.game_code).filter(Boolean).join(', ') || document.getElementById('toolGame')?.value || '-',
+    month: result.month || document.getElementById('toolMonth')?.value || '-',
+    status: payload?.status || result.status || 'sent',
+    rows,
+    run_ids: selected.map(item => item.run_id).filter(Boolean)
+  };
+  const logs = [entry, ...getAdminActionLogs()].slice(0, 20);
+  localStorage.setItem('cqr_admin_action_logs', JSON.stringify(logs));
+  renderAdminActionLogs();
+}
+
+function renderAdminActionLogs(){
+  const list = document.getElementById('adminActionLogList');
+  if(!list) return;
+  const logs = getAdminActionLogs();
+  list.innerHTML = logs.length ? logs.slice(0, 6).map(log => `
+    <div class="log-item">
+      <div>
+        <b>${escapeHtml(log.action)} · ${escapeHtml(log.game || '-')}</b><br>
+        <span>${escapeHtml(log.month || '-')} · ${escapeHtml(log.actor || '-')} · ${escapeHtml(formatDateTime(log.at))}</span><br>
+        <span>Status: ${escapeHtml(log.status || '-')} · Rows: ${escapeHtml(log.rows || '-')}</span>
+        ${log.run_ids?.length ? `<br><code>${escapeHtml(log.run_ids.join(', '))}</code>` : ''}
+      </div>
+      <span class="health-badge ok">Log</span>
+    </div>
+  `).join('') : '<div class="log-empty">ยังไม่มีประวัติจากหน้านี้ หลังจากกด Preview, Clear หรือ Build แล้วรายการล่าสุดจะแสดงตรงนี้</div>';
+}
+
+function formatDateTime(value){
+  if(!value) return '-';
+  const date = new Date(value);
+  if(Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('th-TH', {
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit',
+    hour:'2-digit',
+    minute:'2-digit'
+  });
+}
+
+function getScopeGames(game){
+  const value = String(game || 'ALL').trim();
+  return value === 'ALL' || !value ? CQR_GAMES : [value];
+}
+
+function getScopeMonths(month){
+  const value = String(month || 'ALL').trim();
+  return value === 'ALL' || !value ? CQR_MONTHS : [value];
+}
+
+function normalizePeriodKey(value, fallback){
+  const text = String(value || '').trim();
+  const direct = text.match(/20\d{2}-\d{2}/);
+  if(direct) return direct[0];
+  if(String(fallback || '').trim() === 'ALL') return '';
+  return fallback || '';
+}
+
+function getIssueMonth(issue, fallback){
+  return normalizePeriodKey(
+    issue?.period_key || issue?.month || issue?.target_month || issue?.cleanup?.target_month || issue?.title || issue?.detail,
+    fallback
+  );
+}
+
+function getGameMonthKey(game, month){
+  return `${String(game || '-').trim()}|${String(month || '-').trim()}`;
+}
+
+function compactRunLookupMatches(rawMatches){
+  const matches = Array.isArray(rawMatches) ? rawMatches : [];
+  const actionable = matches.filter(isCleanupCandidate);
+  if(actionable.length){
+    const byGameMonth = new Map();
+    actionable.forEach(run => {
+      const key = getGameMonthKey(run.game_code, run.period_key);
+      if(!byGameMonth.has(key)) byGameMonth.set(key, run);
+    });
+    return [...byGameMonth.values()];
+  }
+  const byRun = new Map();
+  matches.forEach(run => {
+    const key = run.run_id || `${run.game_code || '-'}|${run.period_key || '-'}|${run.status || '-'}|${run.data_hash_before || ''}|${run.data_hash_after || ''}`;
+    if(!byRun.has(key)) byRun.set(key, run);
+  });
+  return [...byRun.values()].slice(0, 12);
+}
+
+function buildRunLookupScopeRows(rawMatches, matches){
+  const selectedGame = document.getElementById('toolGame')?.value || 'ALL';
+  const selectedMonth = document.getElementById('toolMonth')?.value || 'ALL';
+  const games = getScopeGames(selectedGame);
+  const months = getScopeMonths(selectedMonth);
+  const actionableBySlot = new Map();
+  matches.forEach(run => {
+    actionableBySlot.set(getGameMonthKey(run.game_code, run.period_key), run);
+  });
+  const rawBySlot = new Map();
+  rawMatches.forEach(run => {
+    const key = getGameMonthKey(run.game_code, run.period_key);
+    if(!rawBySlot.has(key)) rawBySlot.set(key, []);
+    rawBySlot.get(key).push(run);
+  });
+  return games.flatMap(game => months.map(month => {
+    const key = getGameMonthKey(game, month);
+    const actionable = actionableBySlot.get(key);
+    const raw = rawBySlot.get(key) || [];
+    if(actionable){
+      return {
+        game,
+        month,
+        log: `${actionable.status || 'ready'} · ${actionable.data_hash_after || actionable.data_hash_before || '-'}`,
+        logLevel: 'ok',
+        action: 'มี run ให้เลือกซ่อม',
+        actionLevel: 'ok'
+      };
+    }
+    if(raw.length){
+      const latest = raw[0] || {};
+      return {
+        game,
+        month,
+        log: `${latest.status || 'มี log'} · ${latest.data_hash_after || latest.data_hash_before || '-'}`,
+        logLevel: 'warn',
+        action: 'มี log แต่ยังไม่ใช่ run สำหรับซ่อม',
+        actionLevel: 'warn'
+      };
+    }
+    return {
+      game,
+      month,
+      log: 'ยังไม่พบ log',
+      logLevel: 'danger',
+      action: 'รอ Auto Pipeline หรือ Build รอบนี้ก่อน',
+      actionLevel: 'warn'
+    };
+  }));
+}
+
+function renderRunLookupScopeTable(rows, usableCount){
+  if(!rows.length) return '';
+  const missingCount = rows.filter(row => row.logLevel === 'danger').length;
+  return `
+    <div class="health-overview run-scope-table">
+      <div class="scope-summary">
+        <b>ขอบเขตที่กำลังค้นหา: ${escapeHtml(rows.length)} ช่อง</b>
+        <span>พบ run ที่ใช้ซ่อมได้ ${escapeHtml(usableCount)} ช่อง · ยังไม่พบ log ${escapeHtml(missingCount)} ช่อง</span>
+      </div>
+      <table>
+        <thead><tr><th>Game</th><th>Month</th><th>Pipeline Log ล่าสุด</th><th>ควรทำอะไร</th></tr></thead>
+        <tbody>
+          ${rows.map(row => `
+            <tr>
+              <td><b>${escapeHtml(row.game)}</b></td>
+              <td>${escapeHtml(row.month)}</td>
+              <td><span class="health-status-pill ${escapeHtml(row.logLevel)}">${escapeHtml(row.log)}</span></td>
+              <td><span class="health-status-pill ${escapeHtml(row.actionLevel)}">${escapeHtml(row.action)}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function filterMatchesByHealthTasks(matches){
+  if(!healthHandoffActive || !lastHealthRepairTasks.length) return matches;
+  const tasks = lastHealthRepairTasks.filter(task => task.game && task.game !== 'ALL');
+  if(!tasks.length) return matches;
+  const scoped = matches.filter(run => tasks.some(task => {
+    const sameGame = run.game_code === task.game;
+    const sameMonth = !task.month || task.month === 'ALL' || run.period_key === task.month;
+    const wanted = String(task.hash || task.runId || '').trim().toLowerCase();
+    if(!sameGame || !sameMonth) return false;
+    if(!wanted) return true;
+    return [
+      run.run_id,
+      run.data_hash_before,
+      run.data_hash_after
+    ].join(' ').toLowerCase().includes(wanted);
+  }));
+  return scoped.length ? scoped : matches;
+}
+
+function renderRunInspector(result){
+  const rawMatches = result.matches || [];
+  const matches = compactRunLookupMatches(filterMatchesByHealthTasks(rawMatches));
+  const selectedGame = document.getElementById('toolGame')?.value || 'ALL';
+  const selectedMonth = document.getElementById('toolMonth')?.value || 'ALL';
+  const scopeRows = buildRunLookupScopeRows(rawMatches, matches);
+  const showScope = selectedGame === 'ALL' || selectedMonth === 'ALL';
+  const scopeCount = scopeRows.length || matches.length;
+  const target = result.cleanup_suggestion || {};
+  lastCleanupSuggestion = target && target.run_id ? target : null;
+  lastRunMatches = matches;
+  if(!matches.length){
+    const debug = result.debug || {};
+    const diagnostics = debug.total_pipeline_logs !== undefined ? `
+      <div class="run-debug">
+        <div><span>PipelineLogs ที่อ่านได้</span><b>${escapeHtml(debug.total_pipeline_logs ?? 0)} แถว</b></div>
+        <div><span>ตรงเกมที่เลือก</span><b>${escapeHtml(debug.matching_game ?? 0)} แถว</b></div>
+        <div><span>ตรงเดือนที่เลือก</span><b>${escapeHtml(debug.matching_game_month ?? 0)} แถว</b></div>
+        ${debug.query ? `<div><span>คำค้น</span><b>${escapeHtml(debug.query)}</b></div>` : ''}
+      </div>
+      <p class="soft-note">ถ้า “ตรงเกม” หรือ “ตรงเดือน” เป็น 0 แปลว่า log ที่ Apps Script อ่านอยู่ยังไม่มีรายการนี้ หรือ n8n อาจเขียนคนละ Central DB. ถ้ามีแถวตรงเกม/เดือน แต่ยัง 0 match ให้ล้างช่อง Run ID / Hash แล้วกด FIND อีกครั้ง.</p>
+    ` : '';
+    document.getElementById('runInspectorResult').innerHTML = `
+      <div class="health-item warn">
+        <div><b>ยังไม่พบ run ที่ใช้ซ่อมได้</b><p>${escapeHtml(showScope ? `ค้นหาแล้ว ${scopeCount} ช่องตาม Game/Month ที่เลือก แต่ยังไม่มี run ที่ใช้ซ่อมได้` : (result.summary || 'ลองเลือก Game ให้ตรงกับเกมที่ Data Health แจ้งไว้ แล้วกด FIND อีกครั้ง'))}</p>${diagnostics}</div>
+        <span class="health-badge warn">0 match</span>
+      </div>
+      ${showScope ? renderRunLookupScopeTable(scopeRows, 0) : ''}
+    `;
+    document.getElementById('batchActions').classList.remove('active');
+    updateBatchCount();
+    return;
+  }
+  const hiddenCount = Math.max(0, rawMatches.length - matches.length);
+  const cards = matches.length ? matches.map((run, index) => {
+    const canCleanup = isCleanupCandidate(run);
+    const statusHint = canCleanup ? '' : '<p class="soft-note">รายการนี้เป็น log ประวัติ จึงแสดงไว้ให้อ้างอิง แต่ไม่เลือกสำหรับ Clear/Build</p>';
+    const hashText = run.data_hash_before && run.data_hash_after && run.data_hash_before !== run.data_hash_after
+      ? `${run.data_hash_before} → ${run.data_hash_after}`
+      : (run.data_hash_after || run.data_hash_before || '-');
+    return `
+    <div class="run-item">
+      <input class="run-select" type="checkbox" data-match-index="${index}" value="${escapeAttr(run.run_id || run.data_hash_before || run.data_hash_after || index)}" onchange="updateBatchCount()" ${canCleanup ? 'checked' : ''} ${canCleanup ? '' : 'disabled'}>
+      <div>
+        <b>${escapeHtml(run.game_code)} · ${escapeHtml(run.period_key)}</b>
+        <p>Status: ${escapeHtml(run.status)} · Rows: ${escapeHtml(run.rows_written || run.rows_read || 0)} · Hash: ${escapeHtml(hashText)}</p>
+        <p><b>Run ID:</b> ${escapeHtml(run.run_id || '-')}</p>
+        ${statusHint}
+      </div>
+      <div class="run-actions">
+        <button class="mini-btn" type="button" onclick="copyText('${escapeAttr(run.run_id || '')}', this)">Copy Run ID</button>
+        <button class="mini-btn" type="button" onclick="fillRunForSingleAction('${escapeAttr(run.game_code)}','${escapeAttr(run.period_key)}','${escapeAttr(run.run_id || '')}')">Use</button>
+      </div>
+    </div>
+  `}).join('') : '';
+  const suggestion = target.run_id ? `
+    <div class="copy-box">
+      <b>ข้อมูลสำหรับขั้นตอนถัดไป</b>
+      <div class="copy-line"><span>target_game_code</span><code>${escapeHtml(target.target_game_code)}</code></div>
+      <div class="copy-line"><span>target_month</span><code>${escapeHtml(target.target_month)}</code></div>
+      <div class="copy-line"><span>run_id</span><code>${escapeHtml(target.run_id)}</code></div>
+      <div class="copy-line"><span>confirm_delete</span><code>NO ก่อน แล้วค่อย YES</code></div>
+      <div class="soft-note">ขั้นตอนแนะนำ: กด Preview ก่อน ถ้าจำนวนแถวถูกต้องค่อย Clear แล้วตามด้วย Build</div>
+    </div>
+  ` : '';
+  document.getElementById('runInspectorResult').innerHTML = `
+    <div class="health-item ${result.risk_level || 'ok'}">
+      <div><b>${escapeHtml(showScope ? 'พบ run ที่ใช้ซ่อมได้' : (result.title || 'FIND'))}</b><p>${escapeHtml(showScope ? `ขอบเขตนี้มี ${scopeCount} ช่องตาม Game/Month ที่เลือก ระบบเลือกเฉพาะ run ล่าสุดที่ใช้ซ่อมได้ ${matches.length} ช่อง` : (hiddenCount ? 'แสดงเฉพาะ run ที่ใช้ซ่อมได้ล่าสุดต่อเกม/เดือน รายการประวัติ cleanup ถูกซ่อนไว้เพื่อไม่ให้เลือกผิด' : (result.summary || 'ตรวจพบข้อมูลตามเงื่อนไข')))}</p></div>
+      <span class="health-badge ${result.risk_level || 'ok'}">${escapeHtml(showScope ? `${matches.length}/${scopeCount} ซ่อมได้` : (hiddenCount ? `${matches.length}/${rawMatches.length} ใช้ได้` : (result.badge || 'Result')))}</span>
+    </div>
+    ${showScope ? renderRunLookupScopeTable(scopeRows, matches.length) : ''}
+    <div class="run-list">${cards}</div>
+    ${matches.length === 1 ? suggestion : ''}
+  `;
+  document.getElementById('batchActions').classList.toggle('active', matches.length > 0);
+  updateBatchCount();
+}
+
+function isCleanupCandidate(run){
+  const status = String(run?.status || '').toLowerCase();
+  const runId = String(run?.run_id || '');
+  const hasReference = !!(runId || run?.data_hash_before || run?.data_hash_after);
+  if(!hasReference || /^CLEANUP/i.test(runId)) return false;
+  if(status.includes('cleanup') || status.includes('deleted')) return false;
+  return status === 'ready';
+}
+
+function getIssueGame(issue){
+  const direct = String(issue.game_code || '').trim();
+  if(direct) return direct;
+  const title = String(issue.title || '').trim();
+  return CQR_GAMES.find(game => title.includes(game)) || '';
+}
+
+function getIssueBadge(issue){
+  return String(issue?.badge || issue?.type || '').trim();
+}
+
+function isRepairHealthIssue(issue){
+  const badge = getIssueBadge(issue).toLowerCase();
+  const title = String(issue?.title || '').toLowerCase();
+  return badge.includes('hash mismatch') || title.includes('hash mismatch');
+}
+
+function buildHealthOverviewRows(result, issues, recommendations){
+  const selectedGame = document.getElementById('healthGame')?.value || result.game || 'ALL';
+  const selectedMonth = document.getElementById('healthMonth')?.value || result.month || '2026-06';
+  const backendRows = Array.isArray(result.scope_rows) ? result.scope_rows : (Array.isArray(result.overview_rows) ? result.overview_rows : []);
+  if(backendRows.length){
+    backendRows.forEach(row => registerKnownMonth(row.period_key || row.month));
+    populateAllMonthSelects();
+    return backendRows.map(row => ({
+      game: String(row.game_code || row.game || '').trim(),
+      month: normalizePeriodKey(row.period_key || row.month || ''),
+      raw: String(row.raw || row.raw_label || 'รอตรวจ').trim(),
+      rawLevel: String(row.raw_level || row.rawLevel || 'warn').trim(),
+      master: String(row.master || row.master_label || 'รอตรวจ').trim(),
+      masterLevel: String(row.master_level || row.masterLevel || 'warn').trim(),
+      action: String(row.action || row.action_label || 'ตรวจต่อ').trim(),
+      actionLevel: String(row.action_level || row.actionLevel || 'warn').trim(),
+      actionStatus: String(row.action_status || '').trim(),
+      rawHash: String(row.raw_hash || '').trim(),
+      masterHash: String(row.master_hash || '').trim(),
+      previousHash: String(row.previous_hash || '').trim(),
+      readyRunId: String(row.ready_run_id || '').trim(),
+      latestRunId: String(row.latest_run_id || '').trim()
+    })).filter(row => row.game && row.game !== 'ALL');
+  }
+  const issueFallbackMonth = result.month && result.month !== 'ALL' ? result.month : selectedMonth;
+  const expectedGames = getScopeGames(selectedGame);
+  const expectedMonths = getScopeMonths(selectedMonth);
+  const bySlot = {};
+  expectedGames.forEach(game => expectedMonths.forEach(month => {
+    bySlot[getGameMonthKey(game, month)] = {
+      game,
+      month,
+      raw: 'ยังไม่มี Raw Check',
+      rawLevel: 'warn',
+      master: 'ยังไม่ยืนยัน',
+      masterLevel: 'warn',
+      action: 'รัน Raw Check รอบนี้ก่อน',
+      actionLevel: 'warn'
+    };
+  }));
+
+  issues.forEach(issue => {
+    const game = getIssueGame(issue);
+    if(!game) return;
+    const issueMonth = getIssueMonth(issue, issueFallbackMonth);
+    const months = selectedMonth === 'ALL'
+      ? (issueMonth ? [issueMonth] : expectedMonths)
+      : [selectedMonth];
+    months.forEach(month => {
+      const key = getGameMonthKey(game, month);
+      if(!bySlot[key]){
+        bySlot[key] = {
+        game,
+        month,
+        raw: 'มีข้อมูล',
+        rawLevel: 'ok',
+        master: 'ต้องตรวจ',
+        masterLevel: 'warn',
+        action: 'ตรวจต่อ',
+        actionLevel: 'warn'
+      };
+      }
+      const badge = getIssueBadge(issue);
+      if(isRepairHealthIssue(issue)){
+        bySlot[key].raw = 'มีรอบใหม่แล้ว';
+        bySlot[key].rawLevel = 'ok';
+        bySlot[key].master = 'ยังเป็นข้อมูลเก่า';
+        bySlot[key].masterLevel = 'danger';
+        bySlot[key].action = 'ไป Data Control';
+        bySlot[key].actionLevel = 'danger';
+      }else if(badge === 'Raw check'){
+        bySlot[key].raw = 'ยังไม่พร้อม';
+        bySlot[key].rawLevel = 'danger';
+        bySlot[key].master = 'ยังไม่ควร Build';
+        bySlot[key].masterLevel = 'warn';
+        bySlot[key].action = 'ตรวจ Raw file ก่อน';
+        bySlot[key].actionLevel = 'warn';
+      }else if(badge === 'Missing ready run'){
+        bySlot[key].raw = 'รอตรวจจาก log';
+        bySlot[key].rawLevel = 'warn';
+        bySlot[key].master = 'ยังไม่มีข้อมูลพร้อมใช้';
+        bySlot[key].masterLevel = 'danger';
+        bySlot[key].action = 'หา run หรือ Build ใหม่';
+        bySlot[key].actionLevel = 'warn';
+      }else if(badge === 'Missing index'){
+        bySlot[key].master = 'ยังไม่อยู่ใน DataIndex';
+        bySlot[key].masterLevel = 'warn';
+        bySlot[key].action = 'ตรวจ Central DB';
+        bySlot[key].actionLevel = 'warn';
+      }
+    });
+  });
+
+  recommendations.forEach(item => {
+    const game = String(item.cleanup?.target_game_code || '').trim();
+    const month = String(item.cleanup?.target_month || selectedMonth || '').trim();
+    const key = getGameMonthKey(game, month);
+    if(game && bySlot[key] && bySlot[key].action === 'กด CHECKUP เพื่อดูรายละเอียด'){
+      bySlot[key].action = 'ตรวจต่อใน Data Control';
+      bySlot[key].actionLevel = 'warn';
+    }
+  });
+
+  if(!issues.length){
+    expectedGames.forEach(game => expectedMonths.forEach(month => {
+      bySlot[getGameMonthKey(game, month)] = {
+        game,
+        month,
+        raw: 'พร้อม',
+        rawLevel: 'ok',
+        master: 'พร้อมใช้',
+        masterLevel: 'ok',
+        action: 'ไม่ต้องทำอะไร',
+        actionLevel: 'ok'
+      };
+    }));
+  }
+
+  return Object.values(bySlot).filter(row => row.game && row.game !== 'ALL');
+}
+
+function renderHealthOverviewTable(rows){
+  if(!rows.length) return '';
+  return `
+    <div class="health-overview">
+      <table>
+        <thead><tr><th>Game</th><th>Month</th><th>Raw Data</th><th>Master / Central DB</th><th>ควรทำอะไร</th></tr></thead>
+        <tbody>
+          ${rows.map(row => `
+            <tr>
+              <td><b>${escapeHtml(row.game)}</b></td>
+              <td>${escapeHtml(row.month)}</td>
+              <td><span class="health-status-pill ${escapeHtml(row.rawLevel)}">${escapeHtml(row.raw)}</span></td>
+              <td><span class="health-status-pill ${escapeHtml(row.masterLevel)}">${escapeHtml(row.master)}</span></td>
+              <td><span class="health-status-pill ${escapeHtml(row.actionLevel)}">${escapeHtml(row.action)}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderPipelineHealth(result){
+  const summary = result.summary || {};
+  const selectedGame = document.getElementById('healthGame')?.value || result.game || 'ALL';
+  const selectedMonth = document.getElementById('healthMonth')?.value || result.month || 'ALL';
+  registerKnownMonth(selectedMonth);
+  const scopeGames = getScopeGames(selectedGame);
+  const scopeMonths = getScopeMonths(selectedMonth);
+  const scopeCount = scopeGames.length * scopeMonths.length;
+  lastHealthRecommendations = result.recommendations || [];
+  const issues = result.issues || [];
+  const rawRepairTasks = lastHealthRecommendations
+    .map(item => item.cleanup || {})
+    .map(cleanup => ({
+      game: String(cleanup.target_game_code || '').trim(),
+      month: String(cleanup.target_month || result.month || document.getElementById('healthMonth')?.value || '').trim(),
+      hash: String(cleanup.search_hash || cleanup.previous_hash || cleanup.hash || '').trim(),
+      runId: String(cleanup.run_id || '').trim()
+    }))
+    .filter(task => task.game && task.game !== 'ALL' && (task.hash || task.runId));
+  const overviewRepairTasks = buildHealthOverviewRows(result, issues, lastHealthRecommendations)
+    .filter(row => row.actionStatus === 'repair' || row.action === 'ไป Data Control')
+    .map(row => ({
+      game: row.game,
+      month: row.month,
+      hash: row.previousHash || row.masterHash || '',
+      runId: row.readyRunId || row.latestRunId || ''
+    }))
+    .filter(task => task.game && task.game !== 'ALL' && (task.hash || task.runId));
+  lastHealthRepairTasks = [...[...rawRepairTasks, ...overviewRepairTasks].reduce((map, task) => {
+    const key = `${task.game}|${task.month || 'ALL'}`;
+    if(!map.has(key)) map.set(key, task);
+    return map;
+  }, new Map()).values()];
+  lastHealthRepairGames = [...new Set(lastHealthRepairTasks.map(task => task.game))];
+  const sourceLabel = result.source === 'n8n_health'
+    ? 'เช็กผ่าน n8n Health workflow'
+    : result.source === 'n8n_health_error'
+      ? 'พยายามเช็กผ่าน n8n แล้ว แต่ workflow ยังตอบไม่สำเร็จ'
+      : 'เช็กจาก Central DB ผ่าน Apps Script';
+  const autoNote = result.auto_pipeline_note || 'Auto Pipeline ทำงานวันอาทิตย์ตามเวลา ส่วนหน้านี้ใช้ตรวจและซ่อมเฉพาะเคส';
+  const repairIssueGames = [...new Set(issues.filter(isRepairHealthIssue).map(getIssueGame).filter(game => game && game !== 'ALL'))];
+  lastHealthRepairGames = [...new Set([...lastHealthRepairGames, ...repairIssueGames])];
+  repairIssueGames.forEach(game => {
+    if(!lastHealthRepairTasks.some(task => task.game === game)){
+      lastHealthRepairTasks.push({
+        game,
+        month: result.month || document.getElementById('healthMonth')?.value || '',
+        hash: '',
+        runId: ''
+      });
+    }
+  });
+  const actionableRepairCount = lastHealthRepairTasks.filter(task => task.hash || task.runId).length;
+  const hasIssues = issues.length > 0 || Number(summary.needs_review || 0) > 0 || actionableRepairCount > 0;
+  const hasActionableRepair = actionableRepairCount > 0;
+  const overviewRows = buildHealthOverviewRows(result, issues, lastHealthRecommendations);
+  document.getElementById('healthScoreCards').innerHTML = `
+    <div class="status-card health"><span>สถานะรวม</span><strong>${escapeHtml(summary.health_score || '-')}</strong></div>
+    <div class="status-card ready"><span>Raw พร้อม</span><strong>${escapeHtml(summary.raw_ready ?? summary.ready_runs ?? '-')}</strong></div>
+    <div class="status-card review"><span>ต้องตรวจ</span><strong>${escapeHtml(summary.needs_review ?? '-')}</strong></div>
+    <div class="status-card cleanup"><span>ซ่อมได้ตอนนี้</span><strong>${escapeHtml(actionableRepairCount || '-')}</strong></div>
+  `;
+  const mainTitle = hasActionableRepair
+    ? 'บางเกมยังใช้ข้อมูลเก่าอยู่'
+    : hasIssues
+      ? 'ยังมีข้อมูลที่ควรตรวจเพิ่ม'
+      : 'ข้อมูลพร้อมใช้งาน';
+  const mainDetail = hasActionableRepair
+    ? `รอบนี้ตรวจ ${scopeCount} ช่อง (${scopeGames.length} เกม x ${scopeMonths.length} เดือน) และพบว่าบางช่องมี Raw Data ใหม่ แต่ข้อมูลที่ Dashboard ใช้ยังตามไม่ทัน ให้ส่งต่อไป Data Control เพื่อเลือก run แล้วซ่อมเฉพาะเกม/เดือนนั้น`
+    : hasIssues
+      ? `รอบนี้ตรวจ ${scopeCount} ช่อง (${scopeGames.length} เกม x ${scopeMonths.length} เดือน) แต่ยังไม่พบรายการที่ซ่อมได้ทันที อาจเป็นเพราะยังไม่มี log ของบางเดือน หรือ Auto Pipeline ยังไม่ได้เขียนสถานะล่าสุด`
+      : `ตรวจครบ ${scopeCount} ช่องตาม Game/Month ที่เลือกแล้ว ยังไม่พบปัญหาหลัก สามารถใช้ Dashboard และ AI CHAT ต่อได้ตามปกติ`;
+  const issueGroups = issues.reduce((acc, issue) => {
+    const badge = String(issue.badge || 'Check');
+    if(!acc[badge]) acc[badge] = [];
+    acc[badge].push(issue);
+    return acc;
+  }, {});
+  const issuePreview = Object.entries(issueGroups).slice(0, 4).map(([badge, group]) => {
+    const games = [...new Set(group.map(getIssueGame).filter(Boolean))];
+    const repairBadge = group.some(isRepairHealthIssue);
+    const title = repairBadge
+      ? (games.length === 1 ? `${games[0]} ต้องซ่อมข้อมูล` : `เกมที่ต้องซ่อม ${games.length} เกม`)
+      : badge.toLowerCase().includes('no log') || group.some(issue => String(issue.title || '').includes('ยังไม่พบ'))
+        ? 'ยังไม่พบ log ของรอบที่เลือก'
+        : `${badge || 'รายการที่ควรตรวจ'}: ${games.join(', ') || group.length + ' รายการ'}`;
+    const detail = repairBadge
+      ? `Raw Data มีรอบใหม่แล้ว แต่ Master/Central DB ยังเป็นข้อมูลเก่าอยู่ ให้กด SEND TO DATA CONTROL แล้วทำตามขั้นตอนในหน้า Data Control`
+      : badge.toLowerCase().includes('no log') || group.some(issue => String(issue.title || '').includes('ยังไม่พบ'))
+        ? 'ถ้าเป็นเดือนที่ยังไม่เคย Build ให้รอ Auto Pipeline หรือรัน Build รอบนั้นก่อน ยังไม่ต้อง Clear ข้อมูล'
+        : group[0]?.detail || 'มีรายการที่ควรตรวจเพิ่ม';
+    const level = group.some(issue => issue.level === 'danger') ? 'danger' : group.some(issue => issue.level === 'warn') ? 'warn' : 'ok';
+    const gameChips = games.length ? `<div class="health-game-list">${games.map(game => `<span class="health-game-chip">${escapeHtml(game)}</span>`).join('')}</div>` : '';
+    const countLabel = repairBadge ? `${games.length} เกม` : `${group.length} รายการ`;
+    return `
+    <div class="health-mini">
+      <div><b>${escapeHtml(title)}</b><p>${escapeHtml(detail)}</p>${gameChips}</div>
+      <span class="health-badge ${escapeHtml(level)}">${escapeHtml(countLabel)}</span>
+    </div>
+  `}).join('');
+  const extraCount = Object.keys(issueGroups).length > 4 ? `<p>ยังมีประเภทปัญหาอื่นเพิ่มเติม ระบบจะส่งรายละเอียดไป Data Control ให้จัดการต่อ</p>` : '';
+  const nextText = hasIssues
+    ? hasActionableRepair ? 'ขั้นตอนถัดไป: กด SEND TO DATA CONTROL' : 'ขั้นตอนถัดไป: ตรวจ log หรือรอ Auto Pipeline'
+    : 'ขั้นตอนถัดไป: ไม่ต้องทำอะไรเพิ่ม รอ Auto Pipeline รอบถัดไปหรือใช้งาน Dashboard ได้เลย';
+  document.getElementById('healthIssueList').innerHTML = `
+    <div class="health-summary ${hasIssues ? 'warn' : 'ok'}">
+      <h3>${escapeHtml(mainTitle)}</h3>
+      <p>${escapeHtml(mainDetail)}</p>
+      ${renderHealthOverviewTable(overviewRows)}
+      ${issuePreview ? `<div class="health-mini-list">${issuePreview}</div>${extraCount}` : ''}
+      <div class="health-next">
+        <div><b>${escapeHtml(nextText)}</b><br><span>${escapeHtml(hasActionableRepair ? 'ระบบจะส่งรายชื่อเกมและ Hash ที่ต้องใช้ไปหน้า Data Control เพื่อหา Run ID และซ่อมตามลำดับ' : sourceLabel + ' · ' + autoNote)}</span></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('healthHandoff')?.classList.toggle('active', hasActionableRepair);
+}
+
+function copyText(value, button){
+  const text = String(value || '');
+  if(!text) return;
+  navigator.clipboard?.writeText(text).then(() => {
+    if(button){
+      const old = button.textContent;
+      button.textContent = 'Copied';
+      setTimeout(() => button.textContent = old, 1200);
+    }
+  }).catch(() => {
+    window.prompt('Copy this value', text);
+  });
+}
+
+function sendHealthToDataControl(){
+  const healthGame = document.getElementById('healthGame').value || 'ALL';
+  const healthMonth = document.getElementById('healthMonth').value || 'ALL';
+  const repairGames = [...new Set(lastHealthRepairGames.filter(game => game && game !== 'ALL'))];
+  const targetGame = healthGame === 'ALL' ? 'ALL' : healthGame;
+  const targetTask = targetGame === 'ALL' ? {} : (lastHealthRepairTasks.find(task => task.game === targetGame) || {});
+  const targetMonth = targetGame === 'ALL' ? healthMonth : (targetTask.month || healthMonth);
+  const targetQuery = targetGame === 'ALL' ? '' : (targetTask.hash || targetTask.runId || '');
+  const handoffOptions = [...new Set(['ALL', ...repairGames])];
+  document.getElementById('toolGame').value = targetGame;
+  document.getElementById('toolMonth').value = targetMonth || 'ALL';
+  document.getElementById('toolRunQuery').value = targetQuery;
+  toolQueryAutoFilled = true;
+  healthHandoffActive = true;
+  const resultBox = document.getElementById('pipelineActionResult');
+  resultBox.classList.add('warn');
+  resultBox.innerHTML = `
+    <b>ส่งรายการจาก Data Health มาแล้ว</b><br>
+    ${repairGames.length > 1
+      ? `พบ ${repairGames.length} เกมที่ควรซ่อม ระบบเปิดเป็น ALL ให้ก่อนเพื่อดูรายการรวม กดเกมด้านล่างได้ถ้าต้องการดูทีละเกม`
+      : `ระบบเลือก ${escapeHtml(targetGame)} และ ${escapeHtml(targetMonth || healthMonth)} ให้แล้ว`}
+    ${targetQuery ? `<br><small>ใช้ Hash/Run ID สำหรับค้นหา: <b>${escapeHtml(targetQuery)}</b></small>` : ''}
+    ${handoffOptions.length > 1 ? `<div class="handoff-games">${handoffOptions.map(game => `<button class="handoff-game-btn ${game === targetGame ? 'active' : ''}" type="button" onclick="useHealthRepairGame('${escapeAttr(game)}','${escapeAttr(healthMonth)}')">${escapeHtml(game)}</button>`).join('')}</div>` : ''}
+  `;
+  switchAdminTool('pipeline');
+  document.getElementById('runInspectorResult').innerHTML = `
+    <div class="health-item warn">
+      <div><b>กำลังค้นหา run สำหรับ ${escapeHtml(targetGame)}</b><p>ระบบจะค้นจาก Game + Month ก่อน เพื่อให้เลือก run ได้ถูกเกม</p></div>
+      <span class="health-badge warn">Next</span>
+    </div>
+  `;
+  document.getElementById('batchActions').classList.remove('active');
+  inspectRun();
+}
+
+function useHealthRepairGame(game, month){
+  const task = lastHealthRepairTasks.find(item => item.game === game) || {};
+  document.getElementById('toolGame').value = game || 'ALL';
+  document.getElementById('toolMonth').value = game === 'ALL' ? (month || document.getElementById('healthMonth')?.value || 'ALL') : (task.month || month || document.getElementById('healthMonth')?.value || 'ALL');
+  document.getElementById('toolRunQuery').value = game === 'ALL' ? '' : (task.hash || task.runId || '');
+  toolQueryAutoFilled = true;
+  healthHandoffActive = true;
+  document.querySelectorAll('.handoff-game-btn').forEach(button => button.classList.toggle('active', button.textContent.trim() === game));
+  inspectRun();
+}
+
+function fillRunForSingleAction(game, month, runId){
+  document.getElementById('toolGame').value = game || 'ALL';
+  document.getElementById('toolMonth').value = month || '2026-06';
+  document.getElementById('toolRunQuery').value = runId || '';
+  toolQueryAutoFilled = !!runId;
+  document.querySelectorAll('.run-select').forEach(input => {
+    const row = lastRunMatches[Number(input.dataset.matchIndex)];
+    input.checked = row?.run_id === runId;
+  });
+  updateBatchCount();
+}
+
+function showDataHealthSample(){
+  const game = document.getElementById('healthGame')?.value || 'ALL';
+  const month = document.getElementById('healthMonth')?.value || '2026-06';
+  renderPipelineHealth(buildMockPipelineHealth({game, month}));
+}
+
+function showDataControlSample(){
+  const game = document.getElementById('toolGame')?.value || 'ALL';
+  const month = document.getElementById('toolMonth')?.value || '2026-06';
+  renderRunInspector(buildMockRunLookup({game, month, query:''}));
+  document.getElementById('pipelineActionResult').textContent = 'ตัวอย่างรายการสำหรับทดสอบหน้าจอ ยังไม่ได้ส่งคำสั่งไป n8n';
+}
+
+function buildMockPipelineHealth(params){
+  const game = params.game || 'ALL';
+  const month = params.month || '2026-06';
+  const issueMap = [
+    {game_code:'CBM_TH', previous_hash:'ew6tt', current_hash:'mhbptw', status:'ready', run_id:'RUN-2026-07-28T09:37:52.900Z', rows_written:4848},
+    {game_code:'CBM_SEA', previous_hash:'oa960n', current_hash:'en8sni', status:'needs_review', run_id:'RUN-2026-07-28T09:40:47.356Z', rows_written:0},
+    {game_code:'CBPC_TH', previous_hash:'a1oxij', current_hash:'xk5zzy', status:'needs_review', run_id:'RUN-2026-07-28T09:42:43.796Z', rows_written:0},
+    {game_code:'CBPC_SEA', previous_hash:'je7lw', current_hash:'im795', status:'needs_review', run_id:'RUN-2026-07-28T09:41:58.695Z', rows_written:0}
+  ].filter(row => game === 'ALL' || row.game_code === game);
+  const needs = issueMap.filter(row => row.status === 'needs_review');
+  return {
+    ok:true,
+    summary:{
+      health_score: needs.length ? 'Needs Review' : 'Healthy',
+      raw_ready: issueMap.length,
+      ready_runs: issueMap.filter(row => row.status === 'ready').length,
+      needs_review: needs.length,
+      cleanup_needed: needs.length
+    },
+    issues: needs.map(row => ({
+      level:'warn',
+      badge:'Hash mismatch',
+      title:`${row.game_code} มี hash เก่าค้างอยู่`,
+      detail:`เดือน ${month} เจอ previous=${row.previous_hash} แต่ข้อมูลรอบใหม่เป็น ${row.current_hash} จึงยังไม่เขียนข้อมูลใหม่`
+    })),
+    recommendations: needs.map(row => ({
+      title:`ล้างข้อมูลเก่าของ ${row.game_code} ก่อนรัน Master Data Update ใหม่`,
+      detail:'ไปที่ Data Control แล้วใส่ hash เพื่อหา Run ID จากนั้นกด Preview ก่อน ถ้าจำนวนแถวถูกต้องค่อย Clear และ Build',
+      cleanup:{target_game_code:row.game_code,target_month:month,search_hash:row.previous_hash}
+    }))
+  };
+}
+
+function buildMockRunLookup(params){
+  const query = String(params.query || '').trim();
+  const health = buildMockPipelineHealth(params);
+  let rows = [
+    {game_code:'CBM_SEA',period_key:'2026-06',status:'ready',data_hash_after:'oa960n',rows_written:50352,run_id:'RUN-2026-07-26T09:18:11.123Z'},
+    {game_code:'CBPC_TH',period_key:'2026-06',status:'ready',data_hash_after:'a1oxij',rows_written:19348,run_id:'RUN-2026-07-26T09:20:31.456Z'},
+    {game_code:'CBPC_SEA',period_key:'2026-06',status:'ready',data_hash_after:'je7lw',rows_written:14427,run_id:'RUN-2026-07-26T09:22:44.789Z'},
+    {game_code:'CBM_TH',period_key:'2026-06',status:'ready',data_hash_after:'mhbptw',rows_written:4848,run_id:'RUN-2026-07-28T09:37:52.900Z'}
+  ].filter(row => (!params.game || params.game === 'ALL' || row.game_code === params.game) && (!query || JSON.stringify(row).toLowerCase().includes(query.toLowerCase())));
+  if(!query && (!params.game || params.game === 'ALL')){
+    rows = rows.filter(row => row.game_code !== 'CBM_TH');
+  }
+  return {
+    ok:true,
+    title: rows.length ? 'พบ run ที่เกี่ยวข้อง' : 'ไม่พบ run ที่ตรงเงื่อนไข',
+    summary: rows.length ? 'ใช้ Run ID จากตารางนี้เพื่อ Preview หรือเช็กว่ารอบล่าสุดเขียนสำเร็จแล้ว' : 'ลองค้นด้วย hash เก่า เช่น oa960n, a1oxij, je7lw หรือใส่ Run ID เต็ม',
+    risk_level: rows.some(row => row.status === 'ready' && query && row.data_hash_after === query) ? 'warn' : 'ok',
+    badge: rows.length ? `${rows.length} match` : 'No match',
+    matches: rows,
+    cleanup_suggestion: rows[0] ? {
+      target_game_code: rows[0].game_code,
+      target_month: params.month || rows[0].period_key,
+      run_id: rows[0].run_id
+    } : null,
+    health
+  };
+}
+
+function buildMockN8nCommand(type, params){
+  const isCleanupRun = type === 'cleanup_run';
+  return {
+    ok:true,
+    game: params.game || 'CBM_TH',
+    month: params.month || '2026-06',
+    status:'mock_sent',
+    n8n_result:{
+      status: isCleanupRun ? 'cleanup_requested' : type === 'cleanup_preview' ? 'preview_requested' : 'update_requested',
+      delete_request_count: type === 'cleanup_preview' ? 4 : undefined,
+      rows_deleted: isCleanupRun ? 4 : undefined,
+      message:'Preview mode เท่านั้นใน local file. หลังตั้งค่า n8n webhook ใน Apps Script production ปุ่มนี้จะส่งคำสั่งจริง'
+    }
+  };
+}
+
+function buildMockRawCheck(params){
+  const game = params.game || params.target_game_code || 'CBM_TH';
+  const month = params.month || params.target_month || '2026-06';
+  return {
+    ok:true,
+    game,
+    month,
+    status:'mock_sent',
+    request_id:'ADMIN-RAW-CHECK-MOCK',
+    n8n_result:{
+      status:'raw_updated',
+      game_code:game,
+      period_key:month,
+      tab_count_found:5,
+      tab_count_expected:5,
+      raw_data_hash:'mockraw',
+      message:'Mock: พบ Raw ครบ 5 Tab และข้อมูลเปลี่ยนจากรอบก่อน'
+    }
+  };
+}
+
+function showError(msg){
+  const error = document.getElementById('errorBox');
+  const ok = document.getElementById('okBox');
+  error.textContent = msg;
+  error.style.display = 'block';
+  ok.style.display = 'none';
+}
+
+function showOk(msg){
+  const error = document.getElementById('errorBox');
+  const ok = document.getElementById('okBox');
+  ok.textContent = msg;
+  ok.style.display = 'block';
+  error.style.display = 'none';
+}
+
+function escapeHtml(value){
+  return String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+
+function escapeAttr(value){
+  return escapeHtml(value).replace(/`/g,'&#96;');
+}
+
+function applyQueryContext(){
+  const query = new URLSearchParams(location.search);
+  ['game','channel','view'].forEach(key => {
+    const value = query.get(key);
+    if(!value) return;
+    if(key === 'game' && document.getElementById('f-game')) document.getElementById('f-game').value = value;
+    if(key === 'channel' && document.getElementById('f-channel')) document.getElementById('f-channel').value = value === 'ALL' ? 'all' : value;
+    if(key === 'view' && document.getElementById('f-period-type')) document.getElementById('f-period-type').value = value === 'weekly' ? 'week' : 'month';
+  });
+  const period = query.get('period');
+  if(period && period.includes('-W')) document.getElementById('f-week').value = period;
+  else if(period) document.getElementById('f-month').value = period;
+  getAiAskFilters();
+  if(query.get('panel') === 'admin') switchPanel('adminPanel');
+}
+
+document.getElementById('aiAskInput').addEventListener('keydown', event => {
+  if(event.key === 'Enter' && !event.shiftKey){
+    event.preventDefault();
+    sendAiAsk();
+  }
+});
+['f-game','f-channel','f-month','f-period-type','f-week'].forEach(id => {
+  document.getElementById(id).addEventListener('change', getAiAskFilters);
+});
+
+populateAllMonthSelects();
+applyQueryContext();
+initAuth();
+</script>
+</body>
+</html>
