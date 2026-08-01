@@ -42,16 +42,54 @@ export async function runFunctionalSelfTest() {
     if (!Array.isArray(users)) throw new Error("users is not an array");
     return `${users.length} users`;
   }, rows);
-  await test("User Access · upsert and delete", async () => {
-    assertSuccessfulPayload(await callAuthorized("admin.users.upsert", { email: testEmail, display_name: "CQR Self Test", role_id: "viewer", status: "active", allowed_games: "ALL", allowed_regions: "ALL" }), "User upsert");
+  await test("User Access · role and scope integrity", async () => {
+    const requested = { email: testEmail, display_name: "CQR Self Test", role_id: "super_admin", status: "active", allowed_games: "CBM_TH,CBPC_TH", allowed_regions: "TH" };
+    const savedResult = await callAuthorized("admin.users.upsert", requested);
+    const savedPayload = assertSuccessfulPayload(savedResult, "User upsert");
+    const saved = savedResult.user || savedPayload.user || savedPayload;
+    if (saved.role_id !== "super_admin") throw new Error(`saved role=${saved.role_id}`);
+    if (saved.allowed_games !== requested.allowed_games || saved.allowed_regions !== requested.allowed_regions) throw new Error("saved scope mismatch");
+    const listResult = await callAuthorized("admin.users.list");
+    assertSuccessfulPayload(listResult, "Users list after save");
+    const listPayload = normalizePayload(listResult);
+    const list = listResult.users || listPayload.users || [];
+    const reloaded = list.find((user) => user.email === testEmail);
+    if (!reloaded || reloaded.role_id !== "super_admin") throw new Error("role did not persist after reload");
     assertSuccessfulPayload(await callAuthorized("admin.users.delete", { email: testEmail }), "User delete");
-    return "preview user lifecycle completed";
+    return "super_admin and checkbox scopes persisted";
+  }, rows);
+
+  await test("User Access · audit and login history", async () => {
+    const audit = assertSuccessfulPayload(await callAuthorized("admin.users.audit", { email: testEmail, limit: 10 }), "Audit history");
+    const login = assertSuccessfulPayload(await callAuthorized("admin.users.login_history", { email: "bwm.workco@gmail.com", limit: 10 }), "Login history");
+    if (!Array.isArray(audit.logs || [])) throw new Error("audit logs missing");
+    if (!Array.isArray(login.logs || [])) throw new Error("login logs missing");
+    return `${(audit.logs || []).length} audit / ${(login.logs || []).length} login`;
   }, rows);
 
   await test("Data Health / Pipeline", async () => {
     const payload = assertSuccessfulPayload(await callAuthorized("admin.pipeline.health", { game: "CBM_TH", month: "2026-06" }), "Health");
     if (!Array.isArray(payload.scope_rows || payload.rows)) throw new Error("health rows missing");
     return `${(payload.scope_rows || payload.rows).length} scope row(s)`;
+  }, rows);
+
+  await test("Data Control · first build contract", async () => {
+    const health = assertSuccessfulPayload(await callAuthorized("admin.pipeline.health", { game: "CBM_TH", month: "2026-02" }), "First build health");
+    const scopeRows = health.scope_rows || health.rows || [];
+    const row = scopeRows.find((item) => item.game_code === "CBM_TH" && item.period_key === "2026-02");
+    if (!row || row.raw_status !== "raw_ready" || row.action_status !== "build_required" || !row.raw_hash) {
+      throw new Error("first build health contract missing");
+    }
+    const result = await callAuthorized("admin.n8n.master.run", {
+      game: row.game_code,
+      month: row.period_key,
+      build_mode: "first_build",
+      raw_data_hash: row.raw_hash,
+      raw_check_id: row.raw_check_id || "",
+      expected_action_status: "build_required",
+    });
+    const payload = assertSuccessfulPayload(result, "First build");
+    return payload.build_mode || "first_build completed";
   }, rows);
 
   let requestId = "";
@@ -90,7 +128,7 @@ export async function runFunctionalSelfTest() {
     const params = { game: "CBM_TH", month: "2026-06", run_id: run.run_id, run_ids: JSON.stringify([run.run_id]), run_items: JSON.stringify([{ run_id: run.run_id, game_code: "CBM_TH", period_key: "2026-06" }]), cleanup_hash: run.data_hash_after || run.data_hash_before || "", hash: run.data_hash_after || run.data_hash_before || "" };
     await test("Data Control · preview", async () => { const payload = assertSuccessfulPayload(await callAuthorized("admin.n8n.cleanup.preview", params), "Preview"); return payload.status || "preview success"; }, rows);
     await test("Data Control · clear preview backend", async () => { const payload = assertSuccessfulPayload(await callAuthorized("admin.n8n.cleanup.run", params), "Clear"); return payload.status || "clear success"; }, rows);
-    await test("Data Control · build preview backend", async () => { const payload = assertSuccessfulPayload(await callAuthorized("admin.n8n.master.run", { game: "CBM_TH", month: "2026-06", run_id: run.run_id }), "Build"); return payload.status || "build success"; }, rows);
+    await test("Data Control · repair build preview backend", async () => { const payload = assertSuccessfulPayload(await callAuthorized("admin.n8n.master.run", { game: "CBM_TH", month: "2026-06", build_mode: "repair", run_id: run.run_id, preview_receipt: "PREVIEW-SELFTEST" }), "Build"); return payload.status || "build success"; }, rows);
   }
 
   await test("Profile / Preferences storage", async () => {

@@ -55,6 +55,8 @@ const initialState = {
     previewToken: "", previewAt: "", selectedRuns: [], lookupRuns: [], lookupResult: null,
     lookupQuery: "", lookupPerformed: false, previewResult: null, previewScope: null,
     lastClearAt: "", clearResult: null, lastBuildAt: "", buildResult: null,
+    buildMode: "", buildScope: null, buildRawHash: "", buildRawCheckId: "",
+    buildActionStatus: "", buildHealthStatus: "",
     buildProgress: 0, error: "",
   },
   aiMessages: Array.isArray(SAVED_AI_MESSAGES) && SAVED_AI_MESSAGES.length ? SAVED_AI_MESSAGES.slice(-40) : [DEFAULT_AI_MESSAGE],

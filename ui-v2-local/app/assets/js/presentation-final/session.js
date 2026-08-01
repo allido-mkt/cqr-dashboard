@@ -22,6 +22,15 @@ export function getSavedSession() {
   }
 }
 
+export function updateSavedSession(patch = {}) {
+  const current = getSavedSession();
+  if (!current) return null;
+  const next = { ...current, ...patch };
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("cqr-session-changed"));
+  return next;
+}
+
 function normalizedPermissions(value) {
   if (Array.isArray(value)) return value.filter(Boolean);
   if (typeof value === "string") return value.split(",").map((item) => item.trim()).filter(Boolean);
