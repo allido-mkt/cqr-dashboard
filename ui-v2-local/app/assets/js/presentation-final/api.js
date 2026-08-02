@@ -6,46 +6,79 @@ const previewUsers = [
   { email: "bwm.workco@gmail.com", display_name: "Bew WM", role_id: "super_admin", status: "active", allowed_games: "ALL", allowed_regions: "ALL", last_login_at: new Date().toISOString() },
   { email: "viewer@example.com", display_name: "CQR Viewer", role_id: "viewer", status: "active", allowed_games: "ALL", allowed_regions: "ALL", last_login_at: "" },
 ];
+const previewUserAuditLogs = [];
+const previewUserLoginLogs = [
+  { login_id: "PREVIEW-LOGIN-1", email: "bwm.workco@gmail.com", login_at: new Date().toISOString(), result: "success", role_id: "super_admin", user_agent: "Preview Browser" },
+];
 
 function wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
 function previewHealth(params = {}) {
   const games = params.game && params.game !== "ALL" ? [params.game] : ["CBM_TH", "CBM_SEA", "CBPC_TH", "CBPC_SEA"];
   const month = params.month && params.month !== "ALL" ? params.month : "2026-06";
-  const scope_rows = games.map((game, index) => ({
-    game_code: game, period_key: month,
-    raw: index === 2 ? "Raw updated" : "Raw ready",
-    raw_level: index === 2 ? "warn" : "ok",
-    raw_status: index === 2 ? "raw_updated" : "raw_ready",
-    raw_hash: `${game.toLowerCase()}-${month}-new`,
-    master: index === 2 ? "Master behind" : "Master ready",
-    master_level: index === 2 ? "warn" : "ok",
-    master_hash: index === 2 ? `${game.toLowerCase()}-${month}-old` : `${game.toLowerCase()}-${month}-new`,
-    action: index === 2 ? "Preview, Clear, Build" : "No action",
-    action_level: index === 2 ? "warn" : "ok",
-    action_status: index === 2 ? "repair" : "ready",
-    ready_run_id: index === 2 ? `RUN-${game}-${month}-OLD` : `RUN-${game}-${month}-READY`,
-    latest_run_id: `RUN-${game}-${month}-LATEST`,
-  }));
+  const scope_rows = games.map((game, index) => {
+    const firstBuild = game === "CBM_TH" && month === "2026-02";
+    const repair = !firstBuild && index === 2;
+    return {
+      game_code: game,
+      period_key: month,
+      raw: repair ? "Raw updated" : "Raw ready",
+      raw_level: repair ? "warn" : "ok",
+      raw_status: repair ? "raw_updated" : "raw_ready",
+      raw_hash: `${game.toLowerCase()}-${month}-new`,
+      raw_check_id: `PREVIEW-RAW-${game}-${month}`,
+      master: firstBuild ? "Not built" : repair ? "Master behind" : "Master ready",
+      master_level: firstBuild || repair ? "warn" : "ok",
+      master_hash: firstBuild ? "" : repair ? `${game.toLowerCase()}-${month}-old` : `${game.toLowerCase()}-${month}-new`,
+      action: firstBuild ? "Build this scope" : repair ? "Preview, Clear, Build" : "No action",
+      action_level: firstBuild || repair ? "warn" : "ok",
+      action_status: firstBuild ? "build_required" : repair ? "repair" : "ready",
+      ready_run_id: firstBuild ? "" : repair ? `RUN-${game}-${month}-OLD` : `RUN-${game}-${month}-READY`,
+      latest_run_id: firstBuild ? "" : `RUN-${game}-${month}-LATEST`,
+    };
+  });
+  const buildRows = scope_rows.filter((row) => row.action_status === "build_required");
+  const repairRows = scope_rows.filter((row) => row.action_status === "repair");
+  const issues = [];
+  const recommendations = [];
+  buildRows.forEach((row) => {
+    issues.push({ level: "warn", badge: "Build required", game_code: row.game_code, period_key: row.period_key, title: `${row.game_code} ยังไม่ได้ Build Master`, detail: "Raw พร้อมแล้วและไม่มี Master เดิม" });
+    recommendations.push({ title: `Build Master ${row.game_code} รอบ ${row.period_key}`, detail: "First Build ไม่ต้อง Preview หรือ Clear", build: { mode: "first_build", target_game_code: row.game_code, target_month: row.period_key, raw_hash: row.raw_hash, raw_check_id: row.raw_check_id, raw_status: row.raw_status, action_status: row.action_status } });
+  });
+  repairRows.forEach((row) => {
+    issues.push({ level: "warn", badge: "Hash mismatch", game_code: row.game_code, period_key: row.period_key, title: `${row.game_code} ยังใช้ข้อมูลเก่าอยู่`, detail: "Raw hash ใหม่กว่า Master hash" });
+    recommendations.push({ title: `ซ่อมข้อมูล ${row.game_code} รอบ ${row.period_key}`, detail: "Preview ก่อน แล้วค่อย Clear และ Build", cleanup: { target_game_code: row.game_code, target_month: row.period_key, run_id: row.ready_run_id, search_hash: row.master_hash } });
+  });
   return {
-    ok: true, source: "preview", game: params.game || "ALL", month: params.month || "ALL",
+    ok: true,
+    source: "preview",
+    game: params.game || "ALL",
+    month: params.month || "ALL",
     summary: {
-      health_score: "Needs Review",
-      raw_ready: scope_rows.filter((r) => r.raw_status === "raw_ready").length,
-      raw_updated: scope_rows.filter((r) => r.raw_status === "raw_updated").length,
-      needs_review: 1, cleanup_needed: 1, data_index_rows: scope_rows.length,
+      health_score: issues.length ? "Needs Review" : "Healthy",
+      raw_ready: scope_rows.filter((row) => row.raw_status === "raw_ready").length,
+      build_required: buildRows.length,
+      needs_review: repairRows.length,
+      cleanup_needed: repairRows.length,
+      data_index_rows: scope_rows.filter((row) => row.master_hash).length,
     },
     scope_rows,
-    issues: [{ level: "warn", badge: "Hash mismatch", game_code: "CBPC_TH", period_key: month, title: "CBPC_TH ยังใช้ข้อมูลเก่าอยู่", detail: "Raw hash ใหม่กว่า Master hash" }],
-    recommendations: [{ title: `ซ่อมข้อมูล CBPC_TH รอบ ${month}`, detail: "Preview ก่อน แล้วค่อย Clear และ Build", cleanup: { target_game_code: "CBPC_TH", target_month: month, run_id: `RUN-CBPC_TH-${month}-OLD`, search_hash: `cbpc_th-${month}-old` } }],
+    issues,
+    recommendations,
   };
 }
 
 function previewLookup(params = {}) {
   const game = params.game || "CBM_TH";
   const month = params.month || "2026-06";
+  if (game === "CBM_TH" && month === "2026-02") {
+    return { ok: true, game, month, query: params.query || "", runs: [], matches: [], title: "No Master run yet" };
+  }
   return {
-    ok: true, game, month, query: params.query || "",
+    ok: true,
+    game,
+    month,
+    query: params.query || "",
     runs: [
       { run_id: `RUN-${game}-${month}-001`, game_code: game, period_key: month, status: "ready", data_hash_before: `${game}-${month}-old`, data_hash_after: `${game}-${month}-new`, created_at: new Date(Date.now() - 86400000).toISOString() },
       { run_id: `RUN-${game}-${month}-002`, game_code: game, period_key: month, status: "needs_review", data_hash_before: `${game}-${month}-new`, data_hash_after: `${game}-${month}-newer`, created_at: new Date().toISOString() },
@@ -81,18 +114,27 @@ function previewRawStatus(requestId, includeJobs) {
 async function previewBackend(action, params = {}) {
   await wait(120);
   if (action === "ai.ask") return { ok: true, answer: `จากข้อมูลตัวอย่างของ ${params.game || "ALL"} ช่วง ${params.period || "ALL"} ภาพรวมยังแข็งแรง แต่ควรติดตามการลดลงระหว่าง D1 → D3 ของกลุ่มที่ได้จากแคมเปญแบบติดตั้ง\n\nสิ่งที่ควรตรวจต่อ\n• เทียบ D1, D3 และ D7 แยกตาม Channel\n• ดูขนาดตัวอย่างก่อนปรับงบ\n• ตรวจว่าแนวโน้มเกิดซ้ำในสัปดาห์ล่าสุดหรือไม่`, source: "preview", used_ai_model: "preview-evaluator", grounded: true };
-  if (action === "admin.users.list") return { ok: true, users: previewUsers };
+  if (action === "session.me") return { ok: true, user: { ...previewUsers[0] } };
+  if (action === "admin.users.list") return { ok: true, users: previewUsers, current_user_email: "bwm.workco@gmail.com", configured_super_admins: ["bwm.workco@gmail.com"] };
   if (action === "admin.users.upsert") {
-    const next = { email: String(params.email || "").toLowerCase(), display_name: params.display_name || "", role_id: params.role_id || "viewer", status: params.status || "active", allowed_games: params.allowed_games || "ALL", allowed_regions: params.allowed_regions || "ALL", last_login_at: "" };
+    const now = new Date().toISOString();
+    const next = { email: String(params.email || "").toLowerCase(), display_name: params.display_name || "", role_id: params.role_id || "viewer", status: params.status || "active", allowed_games: params.allowed_games || "ALL", allowed_regions: params.allowed_regions || "ALL", last_login_at: "", created_at: now, created_by: "preview@cqr.local", updated_at: now, updated_by: "preview@cqr.local" };
     const index = previewUsers.findIndex((user) => user.email === next.email);
-    if (index >= 0) previewUsers[index] = { ...previewUsers[index], ...next }; else previewUsers.push(next);
-    return { ok: true, user: next };
+    const before = index >= 0 ? { ...previewUsers[index] } : null;
+    if (index >= 0) { next.last_login_at = previewUsers[index].last_login_at || ""; next.created_at = previewUsers[index].created_at || now; next.created_by = previewUsers[index].created_by || "preview@cqr.local"; previewUsers[index] = { ...previewUsers[index], ...next }; }
+    else previewUsers.push(next);
+    previewUserAuditLogs.unshift({ log_id: `PREVIEW-AUDIT-${Date.now()}`, target_email: next.email, action: before ? "update" : "create", performed_by: "bwm.workco@gmail.com", result: "completed", created_at: now });
+    return { ok: true, user: { ...next } };
   }
   if (action === "admin.users.delete") {
-    const index = previewUsers.findIndex((user) => user.email === String(params.email || "").toLowerCase());
+    const email = String(params.email || "").toLowerCase();
+    const index = previewUsers.findIndex((user) => user.email === email);
     if (index >= 0) previewUsers.splice(index, 1);
-    return { ok: true, deleted_email: params.email };
+    previewUserAuditLogs.unshift({ log_id: `PREVIEW-AUDIT-${Date.now()}`, target_email: email, action: "delete", performed_by: "bwm.workco@gmail.com", result: "completed", created_at: new Date().toISOString() });
+    return { ok: true, deleted_email: email };
   }
+  if (action === "admin.users.audit") return { ok: true, logs: previewUserAuditLogs.filter((row) => !params.email || row.target_email === String(params.email).toLowerCase()) };
+  if (action === "admin.users.login_history") return { ok: true, logs: previewUserLoginLogs.filter((row) => !params.email || row.email === String(params.email).toLowerCase()) };
   if (action === "admin.pipeline.health") return previewHealth(params);
   if (action === "admin.pipeline.run.lookup") return previewLookup(params);
   if (action === "admin.n8n.raw.check") {
@@ -103,7 +145,7 @@ async function previewBackend(action, params = {}) {
   if (action === "admin.n8n.raw.status") return previewRawStatus(params.request_id, /^(1|true|yes)$/i.test(String(params.include_jobs || "")));
   if (action === "admin.n8n.cleanup.preview") return { ok: true, command: "cleanup.preview", status: "sent", request_id: `PREVIEW-CLEANUP-${Date.now()}`, n8n_result: { ok: true, status: "preview_ready", matched_rows: 184320, table_count: 6, cross_game_rows: 0, message: "Preview completed" } };
   if (action === "admin.n8n.cleanup.run") return { ok: true, command: "cleanup.run", status: "sent", request_id: `CLEAR-${Date.now()}`, n8n_result: { ok: true, status: "completed", deleted_rows: 184320, message: "Clear completed" } };
-  if (action === "admin.n8n.master.run") return { ok: true, command: "master.run", status: "sent", request_id: `BUILD-${Date.now()}`, n8n_result: { ok: true, status: "completed", registered_rows: 184320, dau_rows: 1024550, returners_rows: 51420, login_rows: 812770, message: "Build completed" } };
+  if (action === "admin.n8n.master.run") return { ok: true, command: "master.run", build_mode: params.build_mode || "repair", status: "sent", request_id: `BUILD-${Date.now()}`, n8n_result: { ok: true, status: "completed", build_mode: params.build_mode || "repair", registered_rows: 184320, dau_rows: 1024550, returners_rows: 51420, login_rows: 812770, data_hash_after: params.raw_data_hash || `${params.game}-${params.month}-built`, message: "Build completed" } };
   throw new Error(`Preview backend does not implement ${action}`);
 }
 

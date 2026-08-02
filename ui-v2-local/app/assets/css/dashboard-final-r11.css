@@ -69,7 +69,7 @@ body.dashboard-r11 .dashboard-retention-grid > .card {
   display: flex !important;
   flex-direction: column !important;
   height: 100% !important;
-  min-height: 470px !important;
+  min-height: 438px !important;
 }
 
 /* OVERVIEW — 3 × 3 compact KPI cards with reference-style composition */
@@ -89,7 +89,7 @@ body.dashboard-r11 #overview-grid .kcard {
   display: grid !important;
   grid-template-columns: 38px minmax(0,1fr) !important;
   grid-template-rows: auto auto 1fr !important;
-  column-gap: 10px !important;
+  column-gap: 8px !important;
   row-gap: 2px !important;
   align-items: center !important;
   text-align: left !important;
@@ -318,17 +318,17 @@ body.dashboard-r11 .section-new-retention,
 body.dashboard-r11 .section-total-retention {
   display: flex !important;
   flex-direction: column !important;
-  min-height: 470px !important;
+  min-height: 438px !important;
 }
 body.dashboard-r11 #funnel.retention-panel,
 body.dashboard-r11 #total-retention-box.retention-panel {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   height: auto !important;
-  margin-top: 9px !important;
+  margin-top: 8px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 10px !important;
+  gap: 8px !important;
 }
 body.dashboard-r11 .retention-kpis {
   display: grid !important;
@@ -374,8 +374,8 @@ body.dashboard-r11 .retention-kpi-sub {
   white-space: nowrap;
 }
 body.dashboard-r11 .retention-callout {
-  min-height: 48px;
-  padding: 9px 11px;
+  min-height: 46px;
+  padding: 8px 10px;
   display: grid;
   grid-template-columns: repeat(2,minmax(0,1fr));
   gap: 10px;
@@ -415,8 +415,8 @@ body.dashboard-r11 .retention-insight strong {
 body.dashboard-r11 .retention-line-chart {
   flex: 1 1 auto !important;
   width: 100% !important;
-  min-height: 242px !important;
-  height: 242px !important;
+  min-height: 276px !important;
+  height: 276px !important;
   overflow: hidden !important;
   border: 1px solid rgba(124,139,161,.09) !important;
   border-radius: 15px !important;
@@ -424,9 +424,7 @@ body.dashboard-r11 .retention-line-chart {
   box-shadow: var(--r11-inset) !important;
 }
 body.dashboard-r11 #total-retention-box .metric-note {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-  font-size: 8.5px !important;
+  display: none !important;
 }
 body.dashboard-r11 .new-retention-panel .retention-kpi.is-last {
   border-color: rgba(40,182,155,.20);
@@ -500,83 +498,679 @@ body.dashboard-r11 .stat3 .statcard { min-height: 96px !important; }
   body.dashboard-r11 #overview-grid .kcard { min-height: 96px !important; }
 }
 
-/* === OVERVIEW_SUBCARDS_FINAL_CENTER_START === */
+
+
+/* CQR_DASHBOARD_CARD_THEME_FINAL_START */
+/* CQR_DASHBOARD_UXUI_CONSOLIDATED_FINAL_START */
 /*
-  Final, scoped adjustment for Overview KPI cards only:
-  - Keep the icon in the left-middle position
-  - Increase icon container size
-  - Add more space between icon and text
-  - Vertically center the complete text group
+  Canonical Dashboard visual layer.
+  Structure:
+  01 Tokens
+  02 Page + Main Cards
+  03 Header Filters (actual DOM selectors)
+  04 Overview KPI Cards
+  05 Plot Surfaces + Data Typography
+  06 Player Type Breakdown
+  07 Retention + Repeated Data Cards
+  08 Responsive
+
+  This block intentionally replaces the previous experimental Theme/Polish layers.
 */
+
+/* 01 — Tokens */
+body.dashboard-r11 {
+  --cqr-page: #e8edf2;
+  --cqr-surface: #edf1f5;
+  --cqr-surface-soft: #e9eef3;
+  --cqr-surface-inset: #e6ebf0;
+  --cqr-ink: #171c25;
+  --cqr-sub: #6d7888;
+  --cqr-border: rgba(255,255,255,.34);
+  --cqr-shadow-dark: rgba(150,165,187,.31);
+  --cqr-shadow-light: rgba(255,255,255,.88);
+  --cqr-raised:
+    12px 12px 24px var(--cqr-shadow-dark),
+    -12px -12px 24px var(--cqr-shadow-light),
+    inset 1px 1px 2px rgba(255,255,255,.55);
+  --cqr-raised-soft:
+    7px 7px 15px rgba(150,165,187,.23),
+    -7px -7px 15px rgba(255,255,255,.82),
+    inset 1px 1px 2px rgba(255,255,255,.48);
+  --cqr-inset:
+    inset 5px 5px 11px rgba(150,165,187,.18),
+    inset -5px -5px 11px rgba(255,255,255,.72);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(246,120,37,.045), transparent 28rem),
+    var(--cqr-page) !important;
+  color: var(--cqr-ink) !important;
+}
+
+/* 02 — Page + Main Cards */
+body.dashboard-r11 .page-title,
+body.dashboard-r11 .dashboard-page-heading .page-title {
+  text-transform: uppercase !important;
+  font-weight: 760 !important;
+  letter-spacing: -.042em !important;
+}
+
+body.dashboard-r11 .wrap .card {
+  border: 1px solid var(--cqr-border) !important;
+  border-radius: 24px !important;
+  background: var(--cqr-surface) !important;
+  box-shadow: var(--cqr-raised) !important;
+  outline: 0 !important;
+}
+
+body.dashboard-r11 .dashboard-top-grid > .colstack > .card:first-child,
+body.dashboard-r11 .section-total-retention,
+body.dashboard-r11 .dau-card {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(255,159,91,.15), transparent 36%),
+    linear-gradient(145deg, #f0ebe7 0%, #e9e7e5 100%) !important;
+  box-shadow:
+    var(--cqr-raised),
+    0 0 24px rgba(246,120,37,.075) !important;
+}
+
+/* 03 — Header Filters: selectors match dashboard-v2.html exactly. */
+body.dashboard-r11 .hfilters {
+  display: grid !important;
+  grid-template-columns:
+    minmax(190px,1.18fr)
+    minmax(165px,1fr)
+    minmax(165px,.95fr)
+    minmax(150px,.88fr)
+    minmax(145px,.85fr)
+    150px !important;
+  gap: 9px !important;
+  align-items: center !important;
+  padding: 11px !important;
+  border: 1px solid rgba(255,255,255,.42) !important;
+  border-radius: 22px !important;
+  background: linear-gradient(145deg,#edf1f5 0%,#e7ecf1 100%) !important;
+  box-shadow:
+    9px 9px 20px rgba(150,165,187,.23),
+    -9px -9px 20px rgba(255,255,255,.84),
+    inset 1px 1px 2px rgba(255,255,255,.52) !important;
+}
+
+body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
+body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
+  grid-template-columns:
+    minmax(200px,1.18fr)
+    minmax(175px,1fr)
+    minmax(175px,.95fr)
+    minmax(160px,.90fr)
+    150px !important;
+}
+
+body.dashboard-r11 #f-week.period-hidden,
+body.dashboard-r11 .dashboard-week-control.is-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Runtime R4 wrappers created by dashboard-shared-shell-r4.js. */
+body.dashboard-r11 .hfilters > .filter-control.dashboard-filter-control {
+  min-width: 0 !important;
+  min-height: 45px !important;
+  padding: 0 11px !important;
+  display: grid !important;
+  grid-template-columns: 22px minmax(0,1fr) !important;
+  gap: 8px !important;
+  align-items: center !important;
+  border: 1px solid rgba(255,255,255,.42) !important;
+  border-radius: 14px !important;
+  background: var(--cqr-surface-inset) !important;
+  box-shadow:
+    inset 3px 3px 7px rgba(150,165,187,.14),
+    inset -3px -3px 7px rgba(255,255,255,.68) !important;
+}
+
+body.dashboard-r11 .dashboard-filter-control > .app-icon {
+  width: 18px !important;
+  height: 18px !important;
+  color: #4e5b6d !important;
+}
+
+body.dashboard-r11 .dashboard-filter-control .filter-copy {
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+}
+
+body.dashboard-r11 .dashboard-filter-control .filter-label {
+  color: #7a8595 !important;
+  font-size: 8.7px !important;
+  font-weight: 720 !important;
+  line-height: 1 !important;
+  letter-spacing: .03em !important;
+}
+
+body.dashboard-r11 .dashboard-filter-control select,
+body.dashboard-r11 .hfilters > select {
+  min-width: 0 !important;
+  width: 100% !important;
+  height: 25px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #283241 !important;
+  font-family: 'Sarabun', sans-serif !important;
+  font-size: 11.5px !important;
+  font-weight: 760 !important;
+  box-shadow: none !important;
+}
+
+body.dashboard-r11 .dashboard-filter-control:focus-within {
+  border-color: rgba(246,120,37,.34) !important;
+  box-shadow:
+    inset 3px 3px 7px rgba(150,165,187,.14),
+    inset -3px -3px 7px rgba(255,255,255,.68),
+    0 0 0 3px rgba(246,120,37,.10) !important;
+}
+
+body.dashboard-r11 .dashboard-period-segment {
+  min-width: 0 !important;
+  min-height: 45px !important;
+  padding: 4px !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 3px !important;
+  border: 1px solid rgba(255,255,255,.40) !important;
+  border-radius: 14px !important;
+  background: var(--cqr-surface-inset) !important;
+  box-shadow:
+    inset 3px 3px 7px rgba(150,165,187,.14),
+    inset -3px -3px 7px rgba(255,255,255,.68) !important;
+}
+
+body.dashboard-r11 .dashboard-period-segment .segment-button {
+  min-width: 0 !important;
+  height: 35px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #596678 !important;
+  font-family: 'Sarabun', sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 740 !important;
+  box-shadow: none !important;
+}
+
+body.dashboard-r11 .dashboard-period-segment .segment-button.active {
+  background: linear-gradient(145deg,#292d35,#171a20) !important;
+  color: #fff !important;
+  box-shadow:
+    4px 4px 9px rgba(112,126,148,.22),
+    -3px -3px 8px rgba(255,255,255,.35),
+    inset 1px 1px 1px rgba(255,255,255,.08) !important;
+}
+
+body.dashboard-r11 .dashboard-native-view {
+  display: none !important;
+}
+
+body.dashboard-r11 .hfilters > .export-menu {
+  width: 150px !important;
+  min-width: 150px !important;
+  justify-self: end !important;
+}
+
+body.dashboard-r11 .hfilters > .export-menu > summary {
+  width: 150px !important;
+  height: 42px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-radius: 12px !important;
+  background: linear-gradient(145deg,#171a21,#292e38) !important;
+  color: #fff !important;
+  box-shadow:
+    6px 6px 13px rgba(112,126,148,.25),
+    -5px -5px 12px rgba(255,255,255,.48),
+    inset 1px 1px 1px rgba(255,255,255,.08) !important;
+}
+
+body.dashboard-r11 .hfilters > .export-menu[open] > summary {
+  transform: translateY(1px) !important;
+  box-shadow:
+    3px 3px 8px rgba(112,126,148,.22),
+    -3px -3px 8px rgba(255,255,255,.38),
+    inset 2px 2px 5px rgba(0,0,0,.12) !important;
+}
+
+body.dashboard-r11 .export-options {
+  border-color: rgba(117,132,155,.14) !important;
+  background: #f4f6f8 !important;
+  box-shadow: 0 18px 42px -24px rgba(31,41,55,.42) !important;
+}
+
+/* 04 — Overview KPI Cards
+   Icon stays left; the copy block sits to its right and is left-aligned.
+   This is the visually balanced interpretation of “content on the right”. */
 body.dashboard-r11 #overview-grid .kcard {
-  grid-template-columns: 50px minmax(0, 1fr) !important;
-  grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr) !important;
-  column-gap: 16px !important;
+  min-width: 0 !important;
+  min-height: 108px !important;
+  padding: 13px 14px !important;
+  display: grid !important;
+  grid-template-columns: 46px minmax(0,1fr) !important;
+  grid-template-rows: auto auto auto !important;
+  column-gap: 13px !important;
   row-gap: 3px !important;
-  align-items: stretch !important;
+  align-content: center !important;
+  align-items: center !important;
+  text-align: left !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255,255,255,.32) !important;
+  border-radius: 16px !important;
+  background: var(--cqr-surface-soft) !important;
+  box-shadow: var(--cqr-raised-soft) !important;
+  transform: none !important;
+}
+
+body.dashboard-r11 #overview-grid .kcard:hover {
+  border-color: rgba(255,255,255,.46) !important;
+  box-shadow:
+    9px 9px 19px rgba(150,165,187,.27),
+    -9px -9px 19px rgba(255,255,255,.86),
+    inset 1px 1px 2px rgba(255,255,255,.50) !important;
+  transform: translateY(-1px) !important;
 }
 
 body.dashboard-r11 #overview-grid .badge,
 body.dashboard-r11 #overview-grid .badge-circle {
   grid-column: 1 !important;
-  grid-row: 1 / 6 !important;
+  grid-row: 1 / 4 !important;
   align-self: center !important;
   justify-self: center !important;
-  width: 46px !important;
-  height: 46px !important;
-  min-width: 46px !important;
-  min-height: 46px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
   margin: 0 !important;
-  border-radius: 15px !important;
+  border: 1px solid rgba(255,255,255,.34) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--cqr-raised-soft) !important;
 }
 
 body.dashboard-r11 #overview-grid .badge-circle {
   border-radius: 50% !important;
-  font-size: 11px !important;
+  font-size: 10.8px !important;
 }
 
 body.dashboard-r11 #overview-grid .badge svg,
 body.dashboard-r11 #overview-grid .badge img,
 body.dashboard-r11 #overview-grid .badge i {
-  width: 20px !important;
-  height: 20px !important;
-  font-size: 20px !important;
+  width: 19px !important;
+  height: 19px !important;
+  font-size: 19px !important;
 }
 
 body.dashboard-r11 #overview-grid .klbl {
   grid-column: 2 !important;
-  grid-row: 2 !important;
+  grid-row: 1 !important;
   align-self: end !important;
+  justify-self: stretch !important;
+  min-width: 0 !important;
   margin: 0 !important;
+  overflow: hidden !important;
+  color: #6d7888 !important;
+  font-size: 10.2px !important;
+  font-weight: 790 !important;
+  line-height: 1.16 !important;
+  letter-spacing: .025em !important;
+  text-align: left !important;
+  text-overflow: ellipsis !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
 }
 
 body.dashboard-r11 #overview-grid .kval {
   grid-column: 2 !important;
-  grid-row: 3 !important;
+  grid-row: 2 !important;
   align-self: center !important;
-  margin: 2px 0 0 !important;
+  justify-self: stretch !important;
+  min-width: 0 !important;
+  margin: 1px 0 0 !important;
+  overflow: hidden !important;
+  color: var(--cqr-ink) !important;
+  font-size: clamp(22px,1.72vw,29px) !important;
+  font-weight: 835 !important;
+  line-height: 1 !important;
+  letter-spacing: -.044em !important;
+  text-align: left !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+body.dashboard-r11 #overview-grid .kval small {
+  display: inline-block !important;
+  margin-left: 3px !important;
+  color: #6d7888 !important;
+  font-size: 10px !important;
+  font-weight: 720 !important;
+  letter-spacing: 0 !important;
 }
 
 body.dashboard-r11 #overview-grid .ksub {
   grid-column: 2 !important;
-  grid-row: 4 !important;
+  grid-row: 3 !important;
   align-self: start !important;
-  margin: 4px 0 0 !important;
+  justify-self: stretch !important;
+  min-width: 0 !important;
+  min-height: 2.45em !important;
+  margin: 3px 0 0 !important;
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  color: #7c8796 !important;
+  font-size: 9.5px !important;
+  font-weight: 550 !important;
+  line-height: 1.25 !important;
+  text-align: left !important;
+  white-space: normal !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
 }
 
-/* Keep the compact layout usable on narrower screens. */
-@media (max-width: 1180px) {
-  body.dashboard-r11 #overview-grid .kcard {
-    grid-template-columns: 44px minmax(0, 1fr) !important;
-    column-gap: 13px !important;
-  }
+/* 05 — Plot Surfaces + Data Typography */
+body.dashboard-r11 #curve,
+body.dashboard-r11 #ret,
+body.dashboard-r11 #new-retention-line,
+body.dashboard-r11 #dau,
+body.dashboard-r11 #heat,
+body.dashboard-r11 .retention-line-chart {
+  border: 1px solid rgba(255,255,255,.27) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(145deg,#e5eaf0 0%,#f0f3f6 100%) !important;
+  box-shadow: var(--cqr-inset) !important;
+  outline: 0 !important;
+  overflow: hidden !important;
+}
 
+body.dashboard-r11 .js-plotly-plot .plotly .main-svg,
+body.dashboard-r11 .js-plotly-plot .svg-container {
+  background: transparent !important;
+}
+
+body.dashboard-r11 .wrap table {
+  font-size: 11px !important;
+}
+body.dashboard-r11 .wrap th {
+  color: #707c8c !important;
+  font-size: 9.2px !important;
+  font-weight: 760 !important;
+}
+body.dashboard-r11 .gm-table {
+  font-size: 10.2px !important;
+}
+body.dashboard-r11 .gm-table th {
+  font-size: 8.9px !important;
+}
+body.dashboard-r11 .metric-note,
+body.dashboard-r11 .footnote {
+  color: #738092 !important;
+  font-size: 9.5px !important;
+  line-height: 1.55 !important;
+}
+
+/* 06 — Player Type Breakdown
+   Restore the proven rectangular inset host. Plotly owns the circular donut. */
+body.dashboard-r11 #player-type-box {
+  display: grid !important;
+  grid-template-columns: minmax(232px,.92fr) minmax(255px,1.08fr) !important;
+  gap: 16px !important;
+  align-items: center !important;
+  min-height: 330px !important;
+}
+
+body.dashboard-r11 .ptype-chart-wrap {
+  position: relative !important;
+  width: 100% !important;
+  min-height: 318px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  aspect-ratio: auto !important;
+  border: 1px solid rgba(255,255,255,.28) !important;
+  border-radius: 18px !important;
+  background: linear-gradient(145deg,#e5eaf0 0%,#f0f3f6 100%) !important;
+  box-shadow: var(--cqr-inset) !important;
+  overflow: hidden !important;
+}
+
+body.dashboard-r11 #pie {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 300px !important;
+  min-height: 300px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  aspect-ratio: auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+body.dashboard-r11 .ptype-center {
+  width: 102px !important;
+  height: 102px !important;
+  border: 1px solid rgba(255,255,255,.40) !important;
+  background: linear-gradient(145deg,#f2f5f8,#e6ebf0) !important;
+  box-shadow:
+    6px 6px 14px rgba(150,165,187,.21),
+    -6px -6px 14px rgba(255,255,255,.80),
+    inset 1px 1px 2px rgba(255,255,255,.52) !important;
+}
+
+body.dashboard-r11 .ptype-item,
+body.dashboard-r11 #ai-summary .ai-line,
+body.dashboard-r11 .retention-kpi,
+body.dashboard-r11 #sm-grid .gm-card,
+body.dashboard-r11 .stat3 .statcard {
+  border-color: rgba(255,255,255,.30) !important;
+  background: var(--cqr-surface-soft) !important;
+  box-shadow: var(--cqr-raised-soft) !important;
+}
+
+/* 07 — Retention + Accent discipline */
+body.dashboard-r11 #overview-grid .kcard:hover,
+body.dashboard-r11 .ret-chip.is-highlight,
+body.dashboard-r11 .ret-insight,
+body.dashboard-r11 .total-retention-panel .retention-callout,
+body.dashboard-r11 .total-retention-panel .retention-kpi.is-last {
+  border-color: rgba(255,255,255,.31) !important;
+}
+
+body.dashboard-r11 .ret-chip.is-highlight,
+body.dashboard-r11 .ret-insight,
+body.dashboard-r11 .total-retention-panel .retention-callout,
+body.dashboard-r11 .total-retention-panel .retention-kpi.is-last {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(255,159,91,.14), transparent 43%),
+    linear-gradient(145deg,#eee9e5 0%,#e7e5e4 100%) !important;
+  box-shadow:
+    var(--cqr-inset),
+    0 0 18px rgba(246,120,37,.065) !important;
+}
+
+/* 08 — Responsive */
+@media (max-width: 1260px) {
+  body.dashboard-r11 .hfilters,
+  body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
+  body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
+    grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+  }
+  body.dashboard-r11 .hfilters > .export-menu,
+  body.dashboard-r11 .hfilters > .export-menu > summary {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body.dashboard-r11 .hfilters,
+  body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
+  body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
+    grid-template-columns: 1fr !important;
+  }
+  body.dashboard-r11 #overview-grid .kcard {
+    grid-template-columns: 42px minmax(0,1fr) !important;
+    min-height: 102px !important;
+  }
   body.dashboard-r11 #overview-grid .badge,
   body.dashboard-r11 #overview-grid .badge-circle {
-    width: 42px !important;
-    height: 42px !important;
-    min-width: 42px !important;
-    min-height: 42px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
   }
 }
-/* === OVERVIEW_SUBCARDS_FINAL_CENTER_END === */
+
+@media (max-width: 520px) {
+  body.dashboard-r11 #overview-grid .kval {
+    font-size: clamp(21px,8vw,27px) !important;
+  }
+}
+
+/* CQR_EXPORT_ROW_POSITION_HOTFIX_START */
+/* Keep the Export control in the same row as Game / Channel / Month / View.
+   The runtime Week wrapper may remain in the DOM while its select is hidden,
+   so hide the wrapper itself as a defensive fallback. */
+body.dashboard-r11 .dashboard-week-control.is-hidden,
+body.dashboard-r11 .dashboard-week-control:has(#f-week.period-hidden),
+body.dashboard-r11 .dashboard-filter-control[data-dashboard-filter="f-week"]:has(#f-week.period-hidden) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Use one non-wrapping toolbar row on desktop instead of a rigid grid whose
+   invisible Week wrapper could push Export into a second row. */
+body.dashboard-r11 .hfilters,
+body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
+body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
+  width: min(100%, 970px) !important;
+  min-width: 0 !important;
+  margin-left: auto !important;
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 9px !important;
+}
+
+body.dashboard-r11 .hfilters > .filter-control.dashboard-filter-control {
+  min-width: 0 !important;
+  flex: 1 1 150px !important;
+}
+
+body.dashboard-r11 .hfilters > .filter-control.dashboard-filter-control[data-dashboard-filter="f-game"] {
+  flex-grow: 1.18 !important;
+}
+
+body.dashboard-r11 .hfilters > .dashboard-period-segment {
+  flex: 0 0 160px !important;
+}
+
+body.dashboard-r11 .hfilters > .dashboard-week-control:not(.is-hidden) {
+  flex: 0 1 145px !important;
+}
+
+body.dashboard-r11 .hfilters > .export-menu {
+  order: 99 !important;
+  flex: 0 0 150px !important;
+  width: 150px !important;
+  min-width: 150px !important;
+  margin: 0 !important;
+  align-self: center !important;
+  justify-self: auto !important;
+}
+
+body.dashboard-r11 .hfilters > .export-menu > summary {
+  width: 150px !important;
+  min-width: 150px !important;
+}
+
+/* Give the toolbar its own line before controls become too compressed. */
+@media (max-width: 1320px) {
+  body.shared-dashboard-shell .hbar {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
+  body.dashboard-r11 .hfilters,
+  body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
+  body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 860px) {
+  body.dashboard-r11 .hfilters,
+  body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
+  body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    flex-flow: initial !important;
+  }
+
+  body.dashboard-r11 .hfilters > .export-menu,
+  body.dashboard-r11 .hfilters > .export-menu > summary {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 560px) {
+  body.dashboard-r11 .hfilters,
+  body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
+  body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
+    grid-template-columns: 1fr !important;
+  }
+}
+/* CQR_EXPORT_ROW_POSITION_HOTFIX_END */
+/* CQR_DASHBOARD_UXUI_CONSOLIDATED_FINAL_END */
+/* CQR_DASHBOARD_CARD_THEME_FINAL_END */
+
+/* CQR_RETENTION_PAIR_BALANCE_HOTFIX_START */
+body.dashboard-r11 .dashboard-retention-grid > .card,
+body.dashboard-r11 .section-new-retention,
+body.dashboard-r11 .section-total-retention {
+  min-height: 438px !important;
+}
+
+body.dashboard-r11 #funnel.retention-panel,
+body.dashboard-r11 #total-retention-box.retention-panel {
+  gap: 8px !important;
+}
+
+body.dashboard-r11 .retention-kpis {
+  gap: 8px !important;
+}
+
+body.dashboard-r11 .retention-callout {
+  min-height: 46px !important;
+  padding: 8px 10px !important;
+}
+
+body.dashboard-r11 .retention-line-chart,
+body.dashboard-r11 #new-retention-line,
+body.dashboard-r11 #ret {
+  min-height: 276px !important;
+  height: 276px !important;
+}
+
+body.dashboard-r11 #total-retention-box + .metric-note,
+body.dashboard-r11 #total-retention-box .metric-note {
+  display: none !important;
+}
+/* CQR_RETENTION_PAIR_BALANCE_HOTFIX_END */

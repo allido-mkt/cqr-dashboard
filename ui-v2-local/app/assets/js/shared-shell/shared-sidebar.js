@@ -44,7 +44,7 @@
       label: "Main Menu",
       items: [
         { id: "dashboard", label: "Dashboard", icon: "dashboard" },
-        { id: "ai-insight", label: "AI Insight", icon: "sparkles" },
+        { id: "ai-insight", label: "AI Chat Bot", icon: "sparkles" },
       ],
     },
     {
@@ -157,14 +157,23 @@
     .chevron { transition:transform .18s ease; }
     .parent[aria-expanded="true"] .chevron { transform:rotate(180deg); }
     .footer { position:relative;padding:11px; }
+    /* CQR_SHARED_SIDEBAR_AUTH_PROFILE_FIX_V1 */
     .profile {
-      width:100%;min-height:54px;display:grid;grid-template-columns:36px minmax(0,1fr) 20px;gap:8px;align-items:center;
-      padding:8px 9px;border-radius:15px;color:var(--ink);background:rgba(255,255,255,.55);box-shadow:var(--shadow-sm);cursor:pointer;text-align:left;
+      width:100%;min-height:62px;display:grid;grid-template-columns:36px minmax(0,1fr) 20px;gap:10px;align-items:center;
+      padding:9px;border-radius:15px;color:var(--ink);background:rgba(255,255,255,.55);box-shadow:var(--shadow-sm);cursor:pointer;text-align:left;
     }
     .avatar { width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,#fff0df,#f2cfa8);color:#8a4707;font-size:11.5px;font-weight:800; }
-    .profile-copy { min-width:0; }
-    .profile-name { font-size:12px;font-weight:720;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-    .profile-meta { margin-top:2px;color:var(--sub);font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .profile-copy {
+      min-width:0;overflow:hidden;display:grid;gap:3px;align-content:center;line-height:1.2;
+    }
+    .profile-name {
+      display:block;min-width:0;color:var(--ink);font-size:12px;font-weight:720;line-height:1.25;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .profile-meta {
+      display:block;min-width:0;margin:0;color:var(--sub);font-size:8.6px;line-height:1.25;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
     .popover {
       display:none;position:absolute;z-index:30;left:11px;right:11px;bottom:72px;padding:8px;border:1px solid rgba(255,255,255,.80);border-radius:15px;
       background:rgba(246,248,251,.98);box-shadow:0 22px 45px rgba(79,92,112,.22);
@@ -291,6 +300,7 @@
       super();
       this.attachShadow({ mode: "open" });
       this._onHashChange = () => this.render();
+      this._onSessionChange = () => this.render();
       this._onDocumentClick = (event) => {
         if (!this.contains(event.target) && !this.shadowRoot?.contains(event.target)) this.closePopover();
       };
@@ -300,11 +310,17 @@
       this.applyCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1", false);
       this.render();
       window.addEventListener("hashchange", this._onHashChange);
+      window.addEventListener("cqr-dashboard-auth", this._onSessionChange);
+      window.addEventListener("cqr-session-changed", this._onSessionChange);
+      window.addEventListener("pageshow", this._onSessionChange);
       document.addEventListener("click", this._onDocumentClick);
     }
 
     disconnectedCallback() {
       window.removeEventListener("hashchange", this._onHashChange);
+      window.removeEventListener("cqr-dashboard-auth", this._onSessionChange);
+      window.removeEventListener("cqr-session-changed", this._onSessionChange);
+      window.removeEventListener("pageshow", this._onSessionChange);
       document.removeEventListener("click", this._onDocumentClick);
     }
 
@@ -364,7 +380,7 @@
         <aside class="shell" aria-label="CQR navigation">
           <div class="brand">
             <div class="brand-mark">${icon("logo", "icon logo-icon")}</div>
-            <div class="brand-copy"><div class="brand-name">CQR Report</div><div class="brand-sub">Channel Quality</div></div>
+            <div class="brand-copy"><div class="brand-name">CQR REPORT</div><div class="brand-sub">Channel Quality</div></div>
             <button class="toggle" id="toggle" type="button" aria-label="ย่อหรือขยาย Sidebar" title="ย่อหรือขยาย Sidebar">${icon("collapse")}</button>
           </div>
           <div class="scroll">${groups}</div>

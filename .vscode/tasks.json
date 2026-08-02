@@ -1,0 +1,52 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CQR: Start Local Preview",
+      "type": "process",
+      "command": "python3",
+      "args": [
+        "-m",
+        "http.server",
+        "8086"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false,
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CQR: Open Copilot Preview",
+      "type": "process",
+      "command": "open",
+      "args": [
+        "http://localhost:8086/ui-v2-local/app/copilot-v2.html?preview=1#/user-access"
+      ],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CQR: Open Dashboard Preview",
+      "type": "process",
+      "command": "open",
+      "args": [
+        "http://localhost:8086/ui-v2-local/app/dashboard-v2.html?preview=1"
+      ],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

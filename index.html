@@ -1,6 +1,4 @@
 <!DOCTYPE html>
-<!-- CQR UI V2 PRODUCTION ENTRY: dashboard | generated from ui-v2-local/app on 2026-07-31T15:54:55 -->
-
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -350,7 +348,7 @@ td{vertical-align:middle;}
       <div id="total-retention-box" style="margin-top:10px;">
         <div id="ret" class="chartbox"></div>
       </div>
-      <div class="metric-note">นิยาม: ใช้ cohort เดียวกัน และนับว่ายัง active หากมี login ใน/หลัง milestone นั้น โดย D0 = First Login</div>
+
     </div>
   </div>
 
@@ -481,7 +479,7 @@ function unlockDashboard(profile, authToken){
   window.dispatchEvent(new CustomEvent('cqr-dashboard-auth',{detail:session}));
   const returnRoute = new URLSearchParams(location.search).get('return');
   if(returnRoute && returnRoute !== 'dashboard') {
-    location.replace(`./copilot.html#/${encodeURIComponent(returnRoute)}`);
+    location.replace(`./ui-v2-local/app/copilot-v2.html#/${encodeURIComponent(returnRoute)}`);
     return;
   }
   loadSecureData(authToken);
@@ -992,7 +990,7 @@ function renderTotalRetention(game,month){
   const efficiency = first ? Math.round((last/first)*1000)/10 : 0;
 
   box.className = 'retention-panel total-retention-panel';
-  box.innerHTML = `<div class="retention-kpis">${chipKeys.map((k,index)=>`<div class="retention-kpi ${index===chipKeys.length-1?'is-last':''}"><span class="retention-kpi-key">${k.toUpperCase()}</span><strong class="retention-kpi-value num">${r[k]}%</strong><span class="retention-kpi-sub">${(r.retained?.[k]||0).toLocaleString()} retained</span></div>`).join('')}</div><div class="retention-callout"><div class="retention-insight"><span class="retention-insight-label">Retention Drop</span><strong>${chartKeys[0].toUpperCase()} → ${chartKeys[chartKeys.length-1].toUpperCase()} ลดลง ${drop} จุด</strong></div><div class="retention-insight"><span class="retention-insight-label">Long-term Efficiency</span><strong>${efficiency}% ของ ${chartKeys[0].toUpperCase()}</strong></div></div><div id="ret" class="retention-line-chart"></div><div class="metric-note">นิยาม: ใช้ cohort เดียวกัน และนับว่ายัง active หากมี login ใน/หลัง milestone นั้น โดย D0 = First Login</div>`;
+  box.innerHTML = `<div class="retention-kpis">${chipKeys.map((k,index)=>`<div class="retention-kpi ${index===chipKeys.length-1?'is-last':''}"><span class="retention-kpi-key">${k.toUpperCase()}</span><strong class="retention-kpi-value num">${r[k]}%</strong><span class="retention-kpi-sub">${(r.retained?.[k]||0).toLocaleString()} retained</span></div>`).join('')}</div><div class="retention-callout"><div class="retention-insight"><span class="retention-insight-label">Retention Drop</span><strong>${chartKeys[0].toUpperCase()} → ${chartKeys[chartKeys.length-1].toUpperCase()} ลดลง ${drop} จุด</strong></div><div class="retention-insight"><span class="retention-insight-label">Long-term Efficiency</span><strong>${efficiency}% ของ ${chartKeys[0].toUpperCase()}</strong></div></div><div id="ret" class="retention-line-chart"></div>`;
 
   loadPlotly(function(){
     const x = chartKeys.map(k=>k.toUpperCase());
@@ -1012,8 +1010,8 @@ function renderTotalRetention(game,month){
       fillcolor:'rgba(246,120,37,.13)',
       hovertemplate:'%{x}: %{y}%<extra></extra>'
     }], Object.assign({},BASE,{
-      height:242,
-      margin:{t:34,r:18,b:42,l:46},
+      height:276,
+      margin:{t:28,r:18,b:36,l:48},
       hoverlabel:{bgcolor:'#171a21',bordercolor:'#171a21',font:{color:'#ffffff',family:'Sarabun'}},
       yaxis:{gridcolor:'#f3f4f6',ticksuffix:'%',range:[0,Math.ceil(ymax*1.28)],zeroline:false},
       xaxis:{gridcolor:'#ffffff',zeroline:false,tickfont:{size:9}}
@@ -1090,8 +1088,8 @@ function renderNewUserRetentionFlow(values){
       fillcolor:'rgba(63,124,244,.12)',
       hovertemplate:'%{x}<br>%{y:,} users<extra></extra>'
     }], Object.assign({},BASE,{
-      height:242,
-      margin:{t:34,r:18,b:42,l:56},
+      height:276,
+      margin:{t:28,r:18,b:36,l:56},
       hoverlabel:{bgcolor:'#171a21',bordercolor:'#171a21',font:{color:'#ffffff',family:'Sarabun'}},
       yaxis:{gridcolor:'#eef2f7',rangemode:'tozero',range:[0,Math.ceil(ymax*1.22)],zeroline:false,separatethousands:true},
       xaxis:{gridcolor:'#ffffff',zeroline:false,tickfont:{size:9}}

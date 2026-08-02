@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Local backups created by patch/install scripts
+ui-v2-local.backup-before-r5-*/
+ui-v2-local/backups/
+
+# Local audit output
+ui-v2-local/audit-reports/
+
+# Generated deployment candidates and patch output
+ui-v2-local/generated/

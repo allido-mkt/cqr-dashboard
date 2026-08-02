@@ -240,21 +240,9 @@ td{vertical-align:middle;}
 .data-loading{border:1.5px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--sub);font-size:12px;line-height:1.65;background:#fbfaf8;}
 
 </style>
-
-<link rel="stylesheet" href="./assets/css/tokens.css">
-<link rel="stylesheet" href="./assets/css/base.css">
-<link rel="stylesheet" href="./assets/css/layout.css">
-<link rel="stylesheet" href="./assets/css/components.css">
-<link rel="stylesheet" href="./assets/css/responsive.css">
-<link rel="stylesheet" href="./assets/css/shell-r3.css">
-  <link rel="stylesheet" href="./assets/css/shell-r4.css">
-<link rel="stylesheet" href="./assets/css/dashboard-final-r11.css">
-  <!-- CQR SHARED SIDEBAR START -->
-  <link rel="stylesheet" href="./assets/css/shared-shell/shared-sidebar-host.css">
-  <!-- CQR SHARED SIDEBAR END -->
 </head>
-<body class="auth-locked shared-dashboard-shell">
-  <cqr-shared-sidebar id="sidebar" aria-label="Main navigation"></cqr-shared-sidebar>
+<body class="auth-locked">
+
 <div class="auth-screen" id="authScreen">
   <div class="auth-card">
     <div class="auth-badge">CQR</div>
@@ -292,12 +280,14 @@ td{vertical-align:middle;}
           <button type="button" onclick="exportDashboardFile('json')">Export JSON</button>
         </div>
       </details>
-</div>
+      <a class="admin-panel-link" id="adminPanelLink" href="copilot.html?panel=admin">ADMIN PANEL</a>
+      <button class="auth-logout" id="authLogout" type="button" onclick="signOutUser()">SIGN OUT</button>
+    </div>
   </div>
 </header>
 
 <div class="wrap">
-  <div class="grid g-top dashboard-top-grid">
+  <div class="grid g-top">
     <div class="card">
       <div class="title">OVERVIEW</div>
       <div class="desc" id="ov-desc">ตัวเลขสรุปประจำเดือน</div>
@@ -320,13 +310,13 @@ td{vertical-align:middle;}
     </div>
   </div>
 
-  <div class="grid g-2 dashboard-quality-grid" style="margin-top:16px;">
-    <div class="card section-curve">
+  <div class="grid g-2" style="margin-top:16px;">
+    <div class="card">
       <div class="title">CHANNEL RETENTION CURVE</div>
       <div class="desc" id="curve-desc"></div>
       <div id="curve" style="height:300px;margin-top:8px;"></div>
     </div>
-    <div class="card section-player-type">
+    <div class="card">
       <div class="title">PLAYER TYPE BREAKDOWN</div>
       <div class="desc">แบ่งผู้เล่น Active ตามประเภทจากข้อมูล Login รายเดือน</div>
       <div id="player-type-box" class="ptype-grid" style="margin-top:12px;">
@@ -336,29 +326,29 @@ td{vertical-align:middle;}
     </div>
   </div>
 
-  <div class="grid g-2 dashboard-retention-grid" style="margin-top:16px;">
-    <div class="card section-new-retention">
+  <div class="grid g-2" style="margin-top:16px;">
+    <div class="card">
       <div class="title">NEW USER RETENTION</div>
       <div class="desc">Flow: Registered → Active ≥1 วัน → Active ≥2 วัน → Retained &gt;3 วัน</div>
       <div id="funnel" style="height:280px;margin-top:8px;"></div>
     </div>
-    <div class="card section-total-retention">
+    <div class="card">
       <div class="title">TOTAL USER RETENTION</div>
       <div class="desc">User Retention (Total Players) · Same cohort cumulative retention</div>
       <div id="total-retention-box" style="margin-top:10px;">
         <div id="ret" class="chartbox"></div>
       </div>
-
+      <div class="metric-note">นิยาม: ใช้ cohort เดียวกัน และนับว่ายัง active หากมี login ใน/หลัง milestone นั้น โดย D0 = First Login</div>
     </div>
   </div>
 
-  <div class="card dashboard-full-chart-card dau-card" style="margin-top:16px;">
+  <div class="card" style="margin-top:16px;">
     <div class="title">DAILY ACTIVE USERS (DAU) TREND</div>
     <div class="desc">ช่วยวิเคราะห์ผลกระทบของกิจกรรม/วันหยุด (Spikes) · จุดสูงสุดถูก Mark ไว้อัตโนมัติ</div>
     <div id="dau" style="height:300px;margin-top:8px;"></div>
   </div>
 
-  <div class="card dashboard-full-chart-card heat-card" style="margin-top:16px;">
+  <div class="card" style="margin-top:16px;">
     <div class="title">LOGIN ACTIVITY HEATMAP</div>
     <div class="desc">สีไล่ระดับ (Gradient) · สีเข้ม = ช่วงที่ผู้เล่นหนาแน่น (Peak)</div>
     <div id="heat" style="height:300px;margin-top:8px;"></div>
@@ -391,8 +381,27 @@ td{vertical-align:middle;}
   </div>
 </div>
 
+<div class="fab" id="fab" onclick="openAiChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z"/></svg><span>AI CHAT</span></div>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-head">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z"/></svg></div>
+    <div class="txt"><div class="t1">AI CHAT</div><div class="t2">Quick dashboard questions</div></div>
+    <div class="close" onclick="toggleChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+  </div>
+  <div class="chat-body">
+    <div class="chat-msg">เลือกคำถามสั้น ๆ หรือพิมพ์โจทย์ที่อยากให้ช่วยอ่านจาก dashboard นี้</div>
+    <div class="chat-suggest">
+      <span class="chat-chip">Google Ads D1 ต่ำเพราะอะไร</span>
+      <span class="chat-chip">เกมไหนคุณภาพดีที่สุด</span>
+      <span class="chat-chip">เทียบ Monthly / Weekly</span>
+      <span class="chat-chip">สรุป Weekly Alert ล่าสุด</span>
+    </div>
+  </div>
+  <div class="chat-foot"><input id="aiAskInput" placeholder="Ask about this dashboard..." maxlength="500">
+    <button id="aiAskSend" class="chat-send-btn" type="button" onclick="sendAiAsk()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+  <div class="chat-note" id="aiAskNote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none"/></svg><span>Gemini 2.5 · grounded by summary cache + weekly alert log</span></div>
+</div>
 
-<script src="./assets/js/dashboard-preview-data.js"></script>
 <script>
 const AUTH_CONFIG = {
   clientId: '496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com',
@@ -406,8 +415,6 @@ const AUTH_CONFIG = {
     'tipchareon.t@gmail.com'
   ]
 };
-const LOCAL_PREVIEW_HOSTS = new Set(["localhost","127.0.0.1","::1"]);
-const LOCAL_PREVIEW_MODE = LOCAL_PREVIEW_HOSTS.has(location.hostname) && new URLSearchParams(location.search).get("preview") === "1";
 
 function decodeJwtPayload(token){
   try{
@@ -476,12 +483,6 @@ function unlockDashboard(profile, authToken){
   document.body.classList.remove('auth-locked');
   document.body.classList.add('auth-ready');
   updateAdminPanelAccess(session);
-  window.dispatchEvent(new CustomEvent('cqr-dashboard-auth',{detail:session}));
-  const returnRoute = new URLSearchParams(location.search).get('return');
-  if(returnRoute && returnRoute !== 'dashboard') {
-    location.replace(`./copilot-v2.html#/${encodeURIComponent(returnRoute)}`);
-    return;
-  }
   loadSecureData(authToken);
 }
 
@@ -570,20 +571,6 @@ async function handleCredentialResponse(response){
 }
 
 function initAuth(){
-  if(LOCAL_PREVIEW_MODE){
-    const previewSession={email:'local.preview@cqr.local',name:'CQR Local Preview',display_name:'CQR Local Preview',exp:Math.floor(Date.now()/1000)+43200,sessionToken:'preview-session',role_id:'super_admin',role:'super_admin',is_super_admin:true};
-    sessionStorage.setItem('cqr_auth',JSON.stringify(previewSession));
-    document.body.classList.remove('auth-locked');
-    document.body.classList.add('auth-ready','local-preview');
-    updateAdminPanelAccess(previewSession);
-    window.dispatchEvent(new CustomEvent('cqr-dashboard-auth',{detail:previewSession}));
-    D=window.CQR_PREVIEW_DATA;
-    refreshDashboardMonths();
-    renderAll();
-    let banner=document.getElementById('local-preview-banner');
-    if(!banner){banner=document.createElement('div');banner.id='local-preview-banner';banner.textContent='LOCAL PREVIEW DATA · ไม่ใช่ข้อมูล Production';document.body.appendChild(banner);}
-    return;
-  }
   const saved = getSavedSession();
   if(saved){
     unlockDashboard(saved, saved.sessionToken);
@@ -618,9 +605,9 @@ function signOutUser(){
   initAuth();
 }
 
+initAuth();
 
 const ICONS = {"userPlus": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"10\" cy=\"8\" r=\"3.2\"/><path d=\"M3.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5\"/><path d=\"M18.5 5.5v6M15.5 8.5h6\"/></svg>", "star": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M12 3.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6L12 3.5Z\"/></svg>", "recall": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3\"/><path d=\"M18 3v4h-4M6 21v-4h4\"/></svg>", "streak": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M3.5 9.5h17\"/><path d=\"M12 12.5c1.8 1 2.4 2.3 1.6 3.6-.5.8-1.6.9-2.1.1-.5.9-.2 2 .8 2.3 1.7.5 3.1-1 2.7-2.7-.3-1.5-1.4-2.6-3-3.3Z\"/></svg>", "megaphone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 11v3a1 1 0 0 0 1 1h1l3 5V6l-3 5H4a1 1 0 0 0-1 1Z\"/><path d=\"M9 6l10-3v17l-10-3\"/><path d=\"M19 10a3 3 0 0 1 0 5\"/></svg>", "gap": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"2\" stroke-dasharray=\"3 2.5\"/><path d=\"M9 12h6M12 9v6\"/></svg>", "info": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v5.5\"/><circle cx=\"12\" cy=\"8\" r=\"0.8\" fill=\"currentColor\" stroke=\"none\"/></svg>", "sparkle": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z\"/><path d=\"M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z\"/></svg>", "close": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "arrowUp": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 19V5M5 12l7-7 7 7\"/></svg>"};
-ICONS.activeUser = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2.8 20c0-3.7 2.3-6.2 5.2-6.2s5.2 2.5 5.2 6.2"/><path d="M13 14.2c.8-.5 1.7-.8 2.7-.8 3 0 5.3 2.4 5.3 5.7"/></svg>';
 let D = window.CQR_DATA || (typeof CQR_DATA !== 'undefined' ? CQR_DATA : null);
 const CH_COLOR = {'Facebook Ads':'#2563eb','Google Ads':'#d97706','In-App Register':'#94a3b8','Organic / Unknown':'#cbd5e1'};
 const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
@@ -700,8 +687,8 @@ function toggleChat(){
 
 function openAiChat(){
   const filters = getAiAskFilters();
-  localStorage.setItem('cqr_ai_context', JSON.stringify(filters));
-  toggleChat();
+  const query = new URLSearchParams(filters);
+  window.location.href = `copilot.html?${query.toString()}`;
 }
 
 function getAiAskFilters(){
@@ -829,11 +816,6 @@ async function sendAiAsk(questionOverride){
 
   try{
     const filters = getAiAskFilters();
-    if(LOCAL_PREVIEW_MODE){
-      await new Promise(resolve => setTimeout(resolve, 250));
-      appendAiMessage(`จากข้อมูลตัวอย่างของ ${filters.game} ช่วง ${filters.period} ภาพรวมยังปกติ แต่ควรเทียบ D1 → D3 แยกตาม Channel และตรวจขนาดตัวอย่างก่อนปรับงบ`, 'assistant');
-      return;
-    }
     const json = await callAppsScript('ai.ask', {
       session_token: session.sessionToken,
       question,
@@ -919,56 +901,32 @@ function renderPlayerType(game,month){
   const p = D.player_type_breakdown[key];
   const status = D.data_status[key];
   const box = document.getElementById('player-type-box');
-  if(!box) return;
-
+  const stats = document.getElementById('pie-stats');
   if(!p || !p.has_login){
-    box.innerHTML = `<div class="ptype-chart-wrap"><div id="pie" class="chartbox">${renderPending(status?.message || 'Waiting for Login data')}</div></div><div id="pie-stats" class="ptype-stats"></div>`;
-    const fallback = [
-      {label:'New Register',value:p?.new_register||0,color:'#4f86ff'},
-      {label:'Returners',value:p?.returners||0,color:'#28b69b'},
-      {label:'Late Starters',value:p?.late_starters||0,color:'#8b5cf6'}
-    ];
-    const total = fallback.reduce((sum,item)=>sum+(item.value||0),0);
-    document.getElementById('pie-stats').innerHTML = fallback.map(item=>{
-      const share = total ? Math.round(item.value/total*1000)/10 : 0;
-      return `<div class="ptype-item"><span class="ptype-dot" style="background:${item.color}"></span><span class="ptype-copy"><span class="ptype-name">${item.label}</span><span class="ptype-share">${share}% ของกลุ่มที่มีข้อมูล</span></span><span class="ptype-val num">${item.value.toLocaleString()}</span><div class="ptype-progress"><span style="width:${share}%;background:${item.color}"></span></div></div>`;
-    }).join('');
+    box.innerHTML = `<div id="pie" class="chartbox"></div><div id="pie-stats" class="ptype-stats"></div>`;
+    document.getElementById('pie').innerHTML = renderPending(status?.message || 'Waiting for Login data');
+    document.getElementById('pie-stats').innerHTML = renderMetricRows([
+      {label:'New Register',value:p?.new_register||0,color:'#4338ca'},
+      {label:'Returners',value:p?.returners||0,color:'#0d9488'},
+      {label:'Late Starters',value:p?.late_starters||0,color:'#d97706'},
+    ], (p?.new_register||0)+(p?.returners||0)+(p?.late_starters||0)) + `<div class="metric-note">Basic view จาก 3 tabs ที่มีอยู่</div>`;
     return;
   }
-
-  const items = [
-    {label:'New Register Active',value:p.new_register,color:'#4f86ff'},
-    {label:'Returners',value:p.returners,color:'#28b69b'},
-    {label:'Late Starters',value:p.late_starters,color:'#8b5cf6'},
-    {label:'Other Active Users',value:p.other_active,color:'#f4b340'}
+  box.innerHTML = `<div id="pie" class="chartbox"></div><div id="pie-stats" class="ptype-stats"></div>`;
+  const items=[
+    {label:'New Register Active',value:p.new_register,color:'#4338ca'},
+    {label:'Returners',value:p.returners,color:'#0d9488'},
+    {label:'Late Starters',value:p.late_starters,color:'#d97706'},
+    {label:'Other Active Users',value:p.other_active,color:'#64748b'},
   ];
-
-  box.innerHTML = `<div class="ptype-chart-wrap"><div id="pie" class="chartbox"></div><div class="ptype-center"><span class="ptype-center-label">Active Users</span><strong class="ptype-center-value num">${p.total_active.toLocaleString()}</strong><span class="ptype-center-sub">Total</span></div></div><div id="pie-stats" class="ptype-stats"></div>`;
   document.getElementById('pie-stats').innerHTML = items.map(item=>{
     const share = p.total_active ? Math.round(item.value/p.total_active*1000)/10 : 0;
-    return `<div class="ptype-item"><span class="ptype-dot" style="background:${item.color}"></span><span class="ptype-copy"><span class="ptype-name">${item.label}</span><span class="ptype-share">${share}% of Active Users</span></span><span class="ptype-val num">${item.value.toLocaleString()}</span><div class="ptype-progress"><span style="width:${share}%;background:${item.color}"></span></div></div>`;
-  }).join('') + `<div class="metric-note">Total Active Users: <b>${p.total_active.toLocaleString()}</b> · ${month.includes('-W') ? 'Weekly slice จาก Login_' + month.slice(0,7) : 'Full view จาก Login_' + month}</div>`;
-
+    return `<div class="ptype-item"><span class="ptype-dot" style="background:${item.color};"></span><span class="ptype-label">${item.label}<br><small style="color:var(--sub);font-weight:500;">${share}%</small></span><span class="ptype-val num">${item.value.toLocaleString()}</span></div>`;
+  }).join('') + `<div class="metric-note">Total Active Users: <b>${p.total_active.toLocaleString()}</b> · ${month.includes('-W') ? 'Weekly slice จาก Login_' + month.slice(0,7) + ' · Late Starters รายวีครอ field วันที่เริ่มเล่นจริง' : 'Full view จาก Login_' + month}</div>`;
   loadPlotly(function(){
-    Plotly.newPlot('pie',[{
-      labels:items.map(item=>item.label),
-      values:items.map(item=>item.value),
-      type:'pie',
-      hole:.64,
-      sort:false,
-      direction:'clockwise',
-      textinfo:'percent',
-      textposition:'inside',
-      insidetextorientation:'horizontal',
-      textfont:{color:'#ffffff',size:10,family:'Sarabun'},
-      marker:{colors:items.map(item=>item.color),line:{color:'#ffffff',width:3}},
-      hovertemplate:'%{label}<br>%{value:,} users<br>%{percent}<extra></extra>'
-    }], Object.assign({},BASE,{
-      height:300,
-      margin:{t:8,r:8,b:8,l:8},
-      showlegend:false,
-      uniformtext:{minsize:9,mode:'hide'}
-    }), {displayModeBar:false,responsive:true});
+    Plotly.newPlot('pie',[{labels:items.map(i=>i.label),values:items.map(i=>i.value),type:'pie',hole:.58,
+      marker:{colors:items.map(i=>i.color)},textinfo:'percent',textposition:'inside',hovertemplate:'%{label}<br>%{value:,} users<br>%{percent}<extra></extra>'}],
+      Object.assign({},BASE,{height:278,margin:{t:8,r:8,b:8,l:8},showlegend:false}),{displayModeBar:false,responsive:true});
   });
 }
 
@@ -977,45 +935,17 @@ function renderTotalRetention(game,month){
   const r = D.total_user_retention[key];
   const box = document.getElementById('total-retention-box');
   if(!r || !r.has_login){
-    box.className = 'retention-panel total-retention-panel';
     box.innerHTML = renderPending(D.data_status[key]?.message || 'Waiting for Login_YYYY-MM from Martech');
     return;
   }
-
-  const chartKeys = ['d1','d3','d7','d14','d30'].filter(k=>r[k]!==null && r[k]!==undefined);
-  const chipKeys = ['d1','d3','d7','d14'].filter(k=>r[k]!==null && r[k]!==undefined);
-  const first = Number(r[chartKeys[0]] || 0);
-  const last = Number(r[chartKeys[chartKeys.length-1]] || 0);
-  const drop = Math.round((first-last)*10)/10;
-  const efficiency = first ? Math.round((last/first)*1000)/10 : 0;
-
-  box.className = 'retention-panel total-retention-panel';
-  box.innerHTML = `<div class="retention-kpis">${chipKeys.map((k,index)=>`<div class="retention-kpi ${index===chipKeys.length-1?'is-last':''}"><span class="retention-kpi-key">${k.toUpperCase()}</span><strong class="retention-kpi-value num">${r[k]}%</strong><span class="retention-kpi-sub">${(r.retained?.[k]||0).toLocaleString()} retained</span></div>`).join('')}</div><div class="retention-callout"><div class="retention-insight"><span class="retention-insight-label">Retention Drop</span><strong>${chartKeys[0].toUpperCase()} → ${chartKeys[chartKeys.length-1].toUpperCase()} ลดลง ${drop} จุด</strong></div><div class="retention-insight"><span class="retention-insight-label">Long-term Efficiency</span><strong>${efficiency}% ของ ${chartKeys[0].toUpperCase()}</strong></div></div><div id="ret" class="retention-line-chart"></div>`;
-
+  box.innerHTML = `<div id="ret" class="chartbox"></div>`;
+  const keys=['d1','d3','d7','d14','d30'];
   loadPlotly(function(){
-    const x = chartKeys.map(k=>k.toUpperCase());
-    const y = chartKeys.map(k=>Number(r[k]));
-    const ymax = Math.max(...y.filter(value=>Number.isFinite(value)),10);
-    Plotly.newPlot('ret',[{
-      x,
-      y,
-      type:'scatter',
-      mode:'lines+markers+text',
-      fill:'tozeroy',
-      text:y.map(v=>`${v}%`),
-      textposition:'top center',
-      textfont:{size:9,color:'#9a4310',family:'Sarabun'},
-      line:{color:'#f67825',width:3.2,shape:'spline'},
-      marker:{size:8,color:'#ffffff',line:{color:'#f67825',width:3}},
-      fillcolor:'rgba(246,120,37,.13)',
-      hovertemplate:'%{x}: %{y}%<extra></extra>'
-    }], Object.assign({},BASE,{
-      height:276,
-      margin:{t:28,r:18,b:36,l:48},
-      hoverlabel:{bgcolor:'#171a21',bordercolor:'#171a21',font:{color:'#ffffff',family:'Sarabun'}},
-      yaxis:{gridcolor:'#f3f4f6',ticksuffix:'%',range:[0,Math.ceil(ymax*1.28)],zeroline:false},
-      xaxis:{gridcolor:'#ffffff',zeroline:false,tickfont:{size:9}}
-    }), {displayModeBar:false,responsive:true});
+    Plotly.newPlot('ret',[{x:keys.map(k=>k.toUpperCase()),y:keys.map(k=>r[k] ?? null),type:'bar',
+      text:keys.map(k=>r[k] == null ? `รอข้อมูล` : `${r[k]}%<br>${(r.retained?.[k]||0).toLocaleString()} / ${(r.eligible?.[k]||0).toLocaleString()}`),
+      textposition:'outside',cliponaxis:false,marker:{color:['#064e3b','#047857','#10b981','#6ee7b7','#bbf7d0']}}],
+      Object.assign({},BASE,{height:278,margin:{t:22,r:12,b:36,l:42},yaxis:{gridcolor:'#f1f5f9',ticksuffix:'%',range:[0,100],zeroline:false},xaxis:{gridcolor:'#fff'}}),
+      {displayModeBar:false,responsive:true});
   });
 }
 
@@ -1050,54 +980,6 @@ function activePeriod(){
   return {key:month, label:monthLabel(month, true), mode:'เดือน'};
 }
 
-function renderNewUserRetentionFlow(values){
-  const mount = document.getElementById('funnel');
-  if(!mount || !Array.isArray(values) || !values.length) return;
-
-  const labels = ['Registered','Active ≥1','Active ≥2','Retained >3'];
-  const shortLabels = ['REGISTER','ACTIVE ≥1','ACTIVE ≥2','RETAINED'];
-  const normalized = values.slice(0,4).map(value=>Number(value || 0));
-  const base = Number(normalized[0] || 1);
-  const last = Number(normalized[normalized.length-1] || 0);
-  const shares = normalized.map(value=>Math.round((value/base)*1000)/10);
-  const drops = normalized.slice(1).map((value,index)=>({
-    from:index,
-    to:index+1,
-    value:Math.max(0,normalized[index]-value),
-    pct:normalized[index] ? Math.round((Math.max(0,normalized[index]-value)/normalized[index])*1000)/10 : 0
-  }));
-  const largestDrop = [...drops].sort((a,b)=>b.value-a.value)[0] || {from:0,to:1,value:0,pct:0};
-  const overall = Math.round((last/base)*1000)/10;
-
-  mount.className = 'retention-panel new-retention-panel';
-  mount.innerHTML = `<div class="retention-kpis">${normalized.map((value,index)=>`<div class="retention-kpi ${index===normalized.length-1?'is-last':''}"><span class="retention-kpi-key">${shortLabels[index]}</span><strong class="retention-kpi-value num">${value.toLocaleString()}</strong><span class="retention-kpi-sub">${shares[index]}% of Registered</span></div>`).join('')}</div><div class="retention-callout"><div class="retention-insight"><span class="retention-insight-label">Overall Conversion</span><strong>${overall}% Registered → Retained</strong></div><div class="retention-insight"><span class="retention-insight-label">Largest Drop-Off</span><strong>${labels[largestDrop.from]} → ${labels[largestDrop.to]} · ${largestDrop.value.toLocaleString()} users (${largestDrop.pct}%)</strong></div></div><div id="new-retention-line" class="retention-line-chart"></div>`;
-
-  const draw = function(){
-    const ymax = Math.max(...normalized,10);
-    Plotly.newPlot('new-retention-line',[{
-      x:labels,
-      y:normalized,
-      type:'scatter',
-      mode:'lines+markers+text',
-      fill:'tozeroy',
-      text:normalized.map((value,index)=>`${value.toLocaleString()}<br>${shares[index]}%`),
-      textposition:'top center',
-      textfont:{size:9,color:'#225aa8',family:'Sarabun'},
-      line:{color:'#3f7cf4',width:3.2,shape:'spline'},
-      marker:{size:8,color:'#ffffff',line:{color:'#3f7cf4',width:3}},
-      fillcolor:'rgba(63,124,244,.12)',
-      hovertemplate:'%{x}<br>%{y:,} users<extra></extra>'
-    }], Object.assign({},BASE,{
-      height:276,
-      margin:{t:28,r:18,b:36,l:56},
-      hoverlabel:{bgcolor:'#171a21',bordercolor:'#171a21',font:{color:'#ffffff',family:'Sarabun'}},
-      yaxis:{gridcolor:'#eef2f7',rangemode:'tozero',range:[0,Math.ceil(ymax*1.22)],zeroline:false,separatethousands:true},
-      xaxis:{gridcolor:'#ffffff',zeroline:false,tickfont:{size:9}}
-    }), {displayModeBar:false,responsive:true});
-  };
-  if(window.Plotly) draw(); else loadPlotly(draw);
-}
-
 function renderAll(){
   if(!D){
     showDashboardLoading('กรุณา Login เพื่อโหลดข้อมูลจากระบบหลังบ้าน');
@@ -1109,29 +991,25 @@ function renderAll(){
   const period = activePeriod();
   const periodKey = period.key;
   const chData = D.channel_data[`${game}|${periodKey}`] || [];
-  const ov = D.overview_data?.[`${game}|${periodKey}`];
-  const L = D.legacy?.[`${game}|${periodKey}`];
-  if(!ov || !L || !Array.isArray(chData) || !chData.length){
-    showDashboardUnavailable(`ยังไม่มีข้อมูลสำหรับ ${game} / ${periodKey}`);
-    return;
-  }
+  const ov = D.overview_data[`${game}|${periodKey}`];
+  const L = D.legacy[`${game}|${periodKey}`];
 
   /* ---- OVERVIEW (ผูกกับเกมแล้ว) ---- */
   document.getElementById('ov-desc').textContent = `ตัวเลขสรุปตาม${period.mode} ${period.label} · ${GAME_LABEL[game]}`;
-  const playerType = D.player_type_breakdown?.[`${game}|${periodKey}`] || null;
-  const activeUser = playerType && Number.isFinite(Number(playerType.total_active)) ? Number(playerType.total_active) : null;
   const cards = [
-    {key:'new_register',icon:'userPlus',bg:'c1',val:ov.new_register.toLocaleString(),lbl:'New Register',sub:'ทุก Channel รวมกัน'},
-    {key:'paid_register',icon:'megaphone',bg:'c6',val:ov.paid_register.toLocaleString(),lbl:'Paid Ads Register',sub:`${Math.round(1000*ov.paid_register/ov.new_register)/10}% ของทั้งหมด`},
-    {key:'first_login',icon:'star',bg:'c3',val:(ov.first_login ?? ov.new_register).toLocaleString(),lbl:'First Login',sub:'Register cohort ที่เข้าเกมครั้งแรกแล้ว'},
-    {key:'recall_user',icon:'recall',bg:'c4',val:ov.recall_user.toLocaleString(),lbl:'Recall User',sub:'กลับมาหลังหายไป (Returners)'},
-    {key:'active_user',icon:'activeUser',bg:'c7',val:activeUser===null?'-':activeUser.toLocaleString(),lbl:'Active User',sub:period.mode==='สัปดาห์'?'ผู้เล่นที่มี Login ในสัปดาห์นี้':'ผู้เล่นที่มี Login ในเดือนนี้'},
-    {key:'avg_days_active',icon:'streak',bg:'c5',val:ov.avg_days_active,unit:' วัน',lbl:'Avg. Days Active',sub:'จาก Register Cohort'},
-    {key:'d3',circle:'D3',bg:'c7',val:ov.d3,unit:'%',lbl:'Day 3 Retention',sub:'% ที่ยังกลับมาใช้งาน'},
-    {key:'d7',circle:'D7',bg:'c8',val:ov.d7,unit:'%',lbl:'Day 7 Retention',sub:'% ที่ยังกลับมาใช้งาน'},
-    {key:'d14',circle:'D14',bg:'c9',val:ov.d14,unit:'%',lbl:'Day 14 Retention',sub:'% ที่ยังกลับมาใช้งาน'}
+    {icon:'userPlus',bg:'c1',val:ov.new_register.toLocaleString(),lbl:'New Register',sub:'ทุก Channel รวมกัน'},
+    {icon:'star',bg:'c3',val:(ov.first_login ?? ov.new_register).toLocaleString(),lbl:'First Login',sub:'Register cohort ที่เข้าเกมครั้งแรกแล้ว'},
+    {icon:'recall',bg:'c4',val:ov.recall_user.toLocaleString(),lbl:'Recall User',sub:'กลับมาหลังหายไป (Returners)'},
+    {icon:'streak',bg:'c5',val:ov.avg_days_active,unit:' วัน',lbl:'Avg. Days Active',sub:'จาก Register Cohort'},
+    {icon:'megaphone',bg:'c6',val:ov.paid_register.toLocaleString(),lbl:'Paid Ads Register',sub:`${Math.round(1000*ov.paid_register/ov.new_register)/10}% ของทั้งหมด`},
   ];
-  document.getElementById('overview-grid').innerHTML = cards.map(card=>`<div class="kcard" data-overview-key="${card.key}">${card.circle?`<div class="badge-circle" style="background:var(--${card.bg}-bg);color:var(--${card.bg});">${card.circle}</div>`:`<div class="badge" style="background:var(--${card.bg}-bg);color:var(--${card.bg});">${ICONS[card.icon]}</div>`}<div class="kval num">${card.val}${card.unit?`<small>${card.unit}</small>`:''}</div><div class="klbl">${card.lbl}</div><div class="ksub">${card.sub}</div></div>`).join('');
+  let g_html = cards.map(c=>`<div class="kcard"><div class="badge" style="background:var(--${c.bg}-bg);color:var(--${c.bg});">${ICONS[c.icon]}</div>
+    <div class="kval num">${c.val}${c.unit?`<small>${c.unit}</small>`:''}</div><div class="klbl">${c.lbl}</div><div class="ksub">${c.sub}</div></div>`).join('');
+  [['D3',ov.d3,'c7'],['D7',ov.d7,'c8'],['D14',ov.d14,'c9']].forEach(([lbl,val,bg])=>{
+    g_html += `<div class="kcard"><div class="badge-circle" style="background:var(--${bg}-bg);color:var(--${bg});">${lbl}</div>
+      <div class="kval num">${val}<small>%</small></div><div class="klbl">Day ${lbl.slice(1)} Retention</div><div class="ksub">% ที่ยังกลับมาใช้งาน</div></div>`;
+  });
+  document.getElementById('overview-grid').innerHTML = g_html;
 
   /* ---- CHANNEL QUALITY SUMMARY (ผูกทั้งเกม+เดือน) ---- */
   document.getElementById('channel-tbody').innerHTML = chData.map(r=>{
@@ -1179,12 +1057,17 @@ function renderAll(){
     const ymax = Math.max(...chData.map(r=>r.d1||0))*1.25;
     Plotly.newPlot('curve', traces, Object.assign({},BASE,{yaxis:{gridcolor:'#f1f5f9',range:[0,ymax],ticksuffix:'%',zeroline:false},
       xaxis:{gridcolor:'#fff'},legend:{orientation:'h',y:-.2,x:.5,xanchor:'center',font:{size:9}}}),{displayModeBar:false,responsive:true});
-    renderNewUserRetentionFlow(L.funnel);
+
+    const fl=['Registered','Active ≥1','Active ≥2','Retained >3'];
+    const fv=L.funnel, base=fv[0]||1;
+    Plotly.newPlot('funnel',[{x:fl,y:fv,type:'bar',text:fv.map(v=>(100*v/base).toFixed(1)+'%<br>'+v.toLocaleString()),
+      textposition:'inside',textfont:{color:'#fff',size:9,family:'Sarabun'},marker:{color:['#064e3b','#047857','#10b981','#6ee7b7']}}],
+      Object.assign({},BASE,{yaxis:{title:'Users',gridcolor:'#f1f5f9'},xaxis:{gridcolor:'#fff'}}),{displayModeBar:false,responsive:true});
 
     const maxY=Math.max(...L.dau_y), maxIdx=L.dau_y.indexOf(maxY), maxX=L.dau_x[maxIdx];
     Plotly.newPlot('dau',[{x:L.dau_x,y:L.dau_y,type:'scatter',mode:'lines+markers',fill:'tozeroy',
-      line:{color:'#f67825',width:2.8,shape:'spline'},marker:{size:4,color:'#fff',line:{color:'#f67825',width:1.6}},fillcolor:'rgba(246,120,37,.10)'}],
-      Object.assign({},BASE,{height:320,margin:{t:38,r:22,b:46,l:56},yaxis:{gridcolor:'#f1f5f9',zeroline:false},xaxis:{gridcolor:'#fff',nticks:8,zeroline:false},
+      line:{color:'#ef4444',width:2,shape:'spline'},marker:{size:3},fillcolor:'rgba(239,68,68,.08)'}],
+      Object.assign({},BASE,{yaxis:{gridcolor:'#f1f5f9'},xaxis:{gridcolor:'#fff',nticks:8},
       annotations:[{x:maxX,y:maxY,text:`<b>${maxY.toLocaleString()} User</b><br>${maxX}`,showarrow:true,arrowhead:2,
         arrowsize:1,arrowwidth:1.3,arrowcolor:'#f59e0b',ax:0,ay:-38,bgcolor:'#fff',bordercolor:'#f59e0b',
         borderwidth:1,borderpad:5,font:{size:10,color:'#92400e',family:'Sarabun'}}]}),{displayModeBar:false,responsive:true});
@@ -1196,8 +1079,8 @@ function renderAll(){
       y:['Week 1','Week 2','Week 3','Week 4','Week 5'],type:'heatmap',zmin:0,zmax:hmax,
       colorscale:[[0,'#10b981'],[mid*0.55,'#a3e635'],[mid,'#fbbf24'],[1,'#ef4444']],
       text:L.heatmap.map(r=>r.map(v=>v?v.toLocaleString():'–')),texttemplate:'%{text}',
-      textfont:{size:10,family:'Sarabun',color:'#1e293b'},showscale:true,colorbar:{thickness:10,len:.80,x:1.02},xgap:2,ygap:2}],
-      Object.assign({},BASE,{height:280,yaxis:{autorange:'reversed'},margin:{t:20,r:48,b:42,l:62}}),{displayModeBar:false,responsive:true});
+      textfont:{size:10,family:'Sarabun',color:'#1e293b'},showscale:true,colorbar:{thickness:8,len:.85},xgap:2,ygap:2}],
+      Object.assign({},BASE,{yaxis:{autorange:'reversed'},margin:{t:10,r:10,b:30,l:55}}),{displayModeBar:false,responsive:true});
   });
 
   document.getElementById('v-dau').textContent = L.avg_dau.toLocaleString();
@@ -1223,20 +1106,12 @@ function renderAll(){
           <td class="num">${r.d7}%</td><td><span class="pill ${t}">${r.d14}%</span></td></tr>`;
       }).join('')}</tbody></table></div>`;
   }).join('');
-  window.CQR_DASHBOARD_R11?.publishAuditSnapshot?.();
 }
 
 initAiAskBox();
+
 refreshDashboardMonths();
 renderAll();
-initAuth();
 </script>
-<script type="module" src="./assets/js/dashboard-shared-shell-r4.js"></script>
-
-
-<script src="./assets/js/dashboard-final-r11.js"></script>
-  <!-- CQR SHARED SIDEBAR START -->
-  <script src="./assets/js/shared-shell/shared-sidebar.js"></script>
-  <!-- CQR SHARED SIDEBAR END -->
 </body>
 </html>
