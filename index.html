@@ -241,16 +241,16 @@ td{vertical-align:middle;}
 
 </style>
 
-<link rel="stylesheet" href="./assets/css/tokens.css">
-<link rel="stylesheet" href="./assets/css/base.css">
-<link rel="stylesheet" href="./assets/css/layout.css">
-<link rel="stylesheet" href="./assets/css/components.css">
-<link rel="stylesheet" href="./assets/css/responsive.css">
-<link rel="stylesheet" href="./assets/css/shell-r3.css">
-  <link rel="stylesheet" href="./assets/css/shell-r4.css">
-<link rel="stylesheet" href="./assets/css/dashboard-final-r11.css">
+<link rel="stylesheet" href="./ui-v2-local/app/assets/css/tokens.css">
+<link rel="stylesheet" href="./ui-v2-local/app/assets/css/base.css">
+<link rel="stylesheet" href="./ui-v2-local/app/assets/css/layout.css">
+<link rel="stylesheet" href="./ui-v2-local/app/assets/css/components.css">
+<link rel="stylesheet" href="./ui-v2-local/app/assets/css/responsive.css">
+<link rel="stylesheet" href="./ui-v2-local/app/assets/css/shell-r3.css">
+  <link rel="stylesheet" href="./ui-v2-local/app/assets/css/shell-r4.css">
+<link rel="stylesheet" href="./ui-v2-local/app/assets/css/dashboard-final-r11.css">
   <!-- CQR SHARED SIDEBAR START -->
-  <link rel="stylesheet" href="./assets/css/shared-shell/shared-sidebar-host.css">
+  <link rel="stylesheet" href="./ui-v2-local/app/assets/css/shared-shell/shared-sidebar-host.css">
   <!-- CQR SHARED SIDEBAR END -->
 </head>
 <body class="auth-locked shared-dashboard-shell">
@@ -392,7 +392,7 @@ td{vertical-align:middle;}
 </div>
 
 
-<script src="./assets/js/dashboard-preview-data.js"></script>
+<script src="./ui-v2-local/app/assets/js/dashboard-preview-data.js"></script>
 <script>
 const AUTH_CONFIG = {
   clientId: '496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com',
@@ -479,7 +479,7 @@ function unlockDashboard(profile, authToken){
   window.dispatchEvent(new CustomEvent('cqr-dashboard-auth',{detail:session}));
   const returnRoute = new URLSearchParams(location.search).get('return');
   if(returnRoute && returnRoute !== 'dashboard') {
-    location.replace(`./copilot-v2.html#/${encodeURIComponent(returnRoute)}`);
+    location.replace(`./ui-v2-local/app/copilot-v2.html#/${encodeURIComponent(returnRoute)}`);
     return;
   }
   loadSecureData(authToken);
@@ -1231,12 +1231,12 @@ refreshDashboardMonths();
 renderAll();
 initAuth();
 </script>
-<script type="module" src="./assets/js/dashboard-shared-shell-r4.js"></script>
+<script type="module" src="./ui-v2-local/app/assets/js/dashboard-shared-shell-r4.js"></script>
 
 
-<script src="./assets/js/dashboard-final-r11.js"></script>
+<script src="./ui-v2-local/app/assets/js/dashboard-final-r11.js"></script>
   <!-- CQR SHARED SIDEBAR START -->
-  <script src="./assets/js/shared-shell/shared-sidebar.js"></script>
+  <script src="./ui-v2-local/app/assets/js/shared-shell/shared-sidebar.js"></script>
   <!-- CQR SHARED SIDEBAR END -->
 </body>
 </html>
