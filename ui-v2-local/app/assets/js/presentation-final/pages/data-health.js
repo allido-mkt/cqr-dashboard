@@ -1,7 +1,7 @@
 import { APP_CONFIG } from "../config.js";
 import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js";
 import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../api.js";
-import { escapeHtml, icon, optionMarkup, statusPill } from "../ui.js";
+import { escapeHtml, icon, optionMarkup, statusPill, showToast } from "../ui.js";
 
 const HANDOFF_KEY = "cqr_data_control_handoff";
 
@@ -48,24 +48,43 @@ function summaryCards(data) {
   </div>`;
 }
 
+function healthActionLabel(action, row) {
+  const value = String(action || "").toLowerCase();
+  if (value === "build_required") return "Build Master";
+  if (value === "repair") return "Repair in Data Control";
+  if (["raw_missing", "raw_not_ready", "raw_check_required", "check_raw"].includes(value)) return "Check Raw First";
+  if (["ready", "healthy", "ok", "none", "no_action"].includes(value)) return "No action required";
+  return String(row.action || row.action_status || "-")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function actionControl(row, index) {
   const action = String(row.action_status || "").toLowerCase();
+
   if (action === "build_required") {
     return `<button class="button small warm" type="button" data-health-action="first_build" data-row-index="${index}">Build Master</button>`;
   }
+
   if (action === "repair") {
     return `<button class="button small danger" type="button" data-health-action="repair" data-row-index="${index}">Open Data Control</button>`;
   }
-  if (["raw_missing", "raw_not_ready"].includes(action)) {
+
+  if (["raw_missing", "raw_not_ready", "raw_check_required", "check_raw"].includes(action)) {
     return `<button class="button small" type="button" data-health-action="check_raw" data-row-index="${index}">Check Raw</button>`;
   }
-  return statusPill(tone(row.action_level || row.action_status), escapeHtml(row.action || row.action_status || "-"));
+
+  if (["ready", "healthy", "ok", "none", "no_action"].includes(action)) {
+    return statusPill("ready", "No action required");
+  }
+
+  return statusPill(tone(row.action_level || row.action_status), escapeHtml(healthActionLabel(action, row)));
 }
 
 function healthTable(data) {
   return data.rows.length
     ? `<div class="table-wrap"><table>
-        <thead><tr><th>Game</th><th>Month</th><th>Raw</th><th>Master / Central</th><th>Raw Hash</th><th>Master Hash</th><th>Action</th></tr></thead>
+        <thead><tr><th>Game</th><th>Month</th><th>Raw</th><th>Master / Central</th><th>Raw Hash</th><th>Master Hash</th><th>Next Step</th></tr></thead>
         <tbody>${data.rows.map((row, index) => `<tr>
           <td>${escapeHtml(row.game_code)}</td>
           <td>${escapeHtml(row.period_key)}</td>
@@ -144,37 +163,70 @@ function handoffFromRow(row, mode) {
 }
 
 function bindHealthActions(kind) {
-  document.querySelectorAll("[data-health-action]").forEach((button) => button.addEventListener("click", () => {
-    const source = kind === "pipeline" ? getState().pipeline.result : getState().health.result;
-    const row = normalize(source).rows[Number(button.dataset.rowIndex)];
-    if (!row) return;
-    const action = button.dataset.healthAction;
-    setFilters({ game: row.game_code, month: row.period_key });
-    if (action === "check_raw") {
-      setRoute("check-raw");
-      return;
-    }
-    const mode = action === "first_build" ? "first_build" : "repair";
-    sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(handoffFromRow(row, mode)));
-    setRoute(mode === "first_build" ? "data-control-build" : "data-control-preview");
-  }));
+  document.querySelectorAll("[data-health-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const source = kind === "pipeline" ? getState().pipeline.result : getState().health.result;
+      const row = normalize(source).rows[Number(button.dataset.rowIndex)];
+
+      if (!row) {
+        showToast("ไม่พบข้อมูลรายการนี้ กรุณารัน Health Check ใหม่");
+        return;
+      }
+
+      const action = button.dataset.healthAction;
+      const game = row.game_code || "-";
+      const month = row.period_key || "-";
+      setFilters({ game: row.game_code, month: row.period_key });
+
+      if (action === "check_raw") {
+        showToast(`เปิด Check Raw สำหรับ ${game} / ${month}`);
+        setRoute("check-raw");
+        return;
+      }
+
+      const mode = action === "first_build" ? "first_build" : "repair";
+      sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(handoffFromRow(row, mode)));
+
+      if (mode === "first_build") {
+        showToast(`เตรียม Build Master สำหรับ ${game} / ${month}`);
+        setRoute("data-control-build");
+      } else {
+        showToast(`เปิด Data Control สำหรับ ${game} / ${month}`);
+        setRoute("data-control-preview");
+      }
+    });
+  });
 }
 
 export function bindDataHealthOverviewPage() {
   document.getElementById("health-run")?.addEventListener("click", () => run("health"));
   bindHealthActions("health");
-  document.querySelectorAll("[data-recommendation-index]").forEach((button) => button.addEventListener("click", () => {
-    const recommendation = normalize(getState().health.result).recommendations[Number(button.dataset.recommendationIndex)];
-    const mode = button.dataset.recommendationMode;
-    const payload = mode === "first_build" ? recommendation?.build : recommendation?.cleanup;
-    if (!payload) return;
-    sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({ ...payload, mode }));
-    setFilters({
-      game: payload.target_game_code || getState().filters.game,
-      month: payload.target_month || getState().filters.month,
+
+  document.querySelectorAll("[data-recommendation-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const recommendation = normalize(getState().health.result).recommendations[Number(button.dataset.recommendationIndex)];
+      const mode = button.dataset.recommendationMode;
+      const payload = mode === "first_build" ? recommendation?.build : recommendation?.cleanup;
+
+      if (!payload) {
+        showToast("ไม่พบรายละเอียด Recommendation กรุณารัน Health Check ใหม่");
+        return;
+      }
+
+      sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({ ...payload, mode }));
+      const game = payload.target_game_code || getState().filters.game;
+      const month = payload.target_month || getState().filters.month;
+      setFilters({ game, month });
+
+      if (mode === "first_build") {
+        showToast(`เตรียม Build Master สำหรับ ${game} / ${month}`);
+        setRoute("data-control-build");
+      } else {
+        showToast(`ส่ง ${game} / ${month} ไป Data Control`);
+        setRoute("data-control-preview");
+      }
     });
-    setRoute(mode === "first_build" ? "data-control-build" : "data-control-preview");
-  }));
+  });
 }
 
 export function renderPipelineCheckPage() {

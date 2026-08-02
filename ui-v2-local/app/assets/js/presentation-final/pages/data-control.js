@@ -53,10 +53,33 @@ function controlFilters() {
 }
 
 function guide(active, mode = "") {
-  const steps = mode === "first_build"
-    ? [["health", "1", "Raw Ready"], ["build", "2", "First Build"], ["verify", "3", "Verify"]]
-    : [["history", "1", "History"], ["preview", "2", "Preview"], ["clear", "3", "Clear"], ["build", "4", "Build"]];
-  return `<div class="workflow-steps">${steps.map(([id, number, label]) => `<div class="workflow-step${id === active ? " active" : ""}"><span>${number}</span><b>${label}</b></div>`).join("")}</div>`;
+  const control = getState().control || {};
+  const firstBuild = mode === "first_build" || control.buildMode === "first_build";
+  const errorStep = control.error ? active : "";
+  const repairSteps = [
+    { id: "history", number: "1", label: "History", state: logs().length ? "complete" : "available" },
+    { id: "preview", number: "2", label: "Preview", state: control.previewToken ? "complete" : "available" },
+    { id: "clear", number: "3", label: "Clear", state: control.lastClearAt ? "complete" : control.previewToken ? "available" : "locked" },
+    { id: "build", number: "4", label: "Build", state: control.lastBuildAt ? "complete" : control.lastClearAt ? "available" : "locked" },
+    { id: "verify", number: "5", label: "Verify", state: control.lastBuildAt ? "ready" : "locked" },
+  ];
+  const scope = control.buildScope || readFirstBuild();
+  const rawReady = Boolean(scope?.rawStatus === "raw_ready" && scope?.actionStatus === "build_required" && scope?.rawHash);
+  const firstSteps = [
+    { id: "health", number: "1", label: "Raw Ready", state: rawReady ? "complete" : "locked" },
+    { id: "build", number: "2", label: "First Build", state: control.lastBuildAt ? "complete" : rawReady ? "available" : "locked" },
+    { id: "verify", number: "3", label: "Verify", state: control.lastBuildAt ? "ready" : "locked" },
+  ];
+  const steps = firstBuild ? firstSteps : repairSteps;
+  return `<nav class="workflow-steps dc-workflow" style="--dc-step-count:${steps.length}" aria-label="${firstBuild ? "First Build workflow" : "Repair workflow"}">
+    ${steps.map((step) => {
+      let state = step.state;
+      if (step.id === active && state !== "complete") state = errorStep === step.id ? "failed" : "current";
+      const current = state === "current" || state === "failed" ? ' aria-current="step"' : "";
+      const stateLabel = state === "complete" ? "Completed" : state === "current" ? "Current" : state === "ready" ? "Ready" : state === "failed" ? "Failed" : state === "locked" ? "Locked" : "Available";
+      return `<div class="workflow-step is-${state}"${current}><span>${step.number}</span><b>${step.label}</b><small>${stateLabel}</small></div>`;
+    }).join("")}
+  </nav>`;
 }
 
 function selectedRun() {

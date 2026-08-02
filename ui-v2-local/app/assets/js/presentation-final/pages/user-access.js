@@ -35,7 +35,7 @@ function selected(value, current) { return value === current ? " selected" : "";
 function choice(group, item, checked, all = false) {
   const code = String(item?.value || "").trim().toUpperCase();
   return `<label class="ua-scope-item${all ? " is-all" : ""}">
-    <input type="checkbox" name="user-${group}" value="${escapeHtml(code)}" ${checked ? "checked" : ""} ${busy ? "disabled" : ""}>
+    <input type="checkbox" name="ua-${group}" value="${escapeHtml(code)}" ${checked ? "checked" : ""} ${busy ? "disabled" : ""}>
     <span class="ua-scope-checkbox" aria-hidden="true"></span>
     <span class="ua-scope-code">${escapeHtml(code)}</span>
   </label>`;
@@ -65,7 +65,7 @@ function picker(group, title, value, options) {
 function form(user = {}) {
   const email = String(user.email || "").toLowerCase();
   const configured = configuredSuperAdmins.includes(email);
-  return `<div class="ua-form"><div class="form-grid two"><label class="form-field"><span class="form-label">Email</span><input id="user-email" class="form-control" value="${escapeHtml(user.email || "")}" placeholder="email@example.com" ${busy || selectedEmail ? "disabled" : ""}></label><label class="form-field"><span class="form-label">Display Name</span><input id="user-name" class="form-control" value="${escapeHtml(user.display_name || "")}" ${busy ? "disabled" : ""}></label><label class="form-field"><span class="form-label">Role</span><select id="user-role" class="form-control" ${busy || configured ? "disabled" : ""}>${ROLES.map((role) => `<option value="${role}"${selected(role, user.role_id || "viewer")}>${role.replace("_", " ")}</option>`).join("")}</select></label><label class="form-field"><span class="form-label">Status</span><select id="user-status" class="form-control" ${busy || configured ? "disabled" : ""}>${STATUSES.map((status) => `<option${selected(status, user.status || "active")}>${status}</option>`).join("")}</select></label></div><div class="ua-picker-grid">${picker("games", "Allowed Games", user.allowed_games || "ALL", GAMES)}${picker("regions", "Allowed Regions", user.allowed_regions || "ALL", REGIONS)}</div><div id="ua-scope-preview" class="ua-scope-preview"></div>${configured ? '<div class="ua-protection-note"><span>Protected account</span><b>Role, status and deletion are locked.</b></div>' : ""}</div>`;
+  return `<div class="ua-form"><div class="form-grid two"><label class="form-field"><span class="form-label">Email</span><input id="user-email" class="form-control" value="${escapeHtml(user.email || "")}" placeholder="email@example.com" ${busy || selectedEmail ? "disabled" : ""}></label><label class="form-field"><span class="form-label">Display Name</span><input id="user-name" class="form-control" value="${escapeHtml(user.display_name || "")}" ${busy ? "disabled" : ""}></label><label class="form-field"><span class="form-label">Role</span><select id="user-role" class="form-control" ${busy || configured ? "disabled" : ""}>${ROLES.map((role) => `<option value="${role}"${selected(role, user.role_id || "viewer")}>${role.replace("_", " ")}</option>`).join("")}</select></label><label class="form-field"><span class="form-label">Status</span><select id="user-status" class="form-control" ${busy || configured ? "disabled" : ""}>${STATUSES.map((status) => `<option${selected(status, user.status || "active")}>${status}</option>`).join("")}</select></label></div><div class="ua-picker-grid">${picker("games", "Games", user.allowed_games || "ALL", GAMES)}${picker("regions", "Regions", user.allowed_regions || "ALL", REGIONS)}</div><div id="ua-scope-preview" class="ua-scope-preview"></div>${configured ? '<div class="ua-protection-note"><span>Protected account</span><b>Role, status and deletion are locked.</b></div>' : ""}</div>`;
 }
 
 function extractUsers(result) {
@@ -119,8 +119,47 @@ function bindPicker(group) {
   }));
 }
 
+function normalizeScopeParts(value) {
+  const text = String(value || "").trim();
+  if (!text) return [];
+  if (text.toUpperCase() === "ALL") return ["ALL"];
+  return text.split(",").map((part) => part.trim()).filter(Boolean);
+}
+
+function scopeTagClass(value, kind) {
+  const normalized = String(value || "").trim().toUpperCase();
+
+  if (normalized === "ALL") return "scope-tag--all";
+
+  if (kind === "games") {
+    if (normalized === "CBM_TH") return "scope-tag--cbm-th";
+    if (normalized === "CBPC_TH") return "scope-tag--cbpc-th";
+    if (normalized === "CBM_SEA") return "scope-tag--cbm-sea";
+    if (normalized === "CBPC_SEA") return "scope-tag--cbpc-sea";
+  }
+
+  if (kind === "regions") {
+    if (normalized === "TH") return "scope-tag--th";
+    if (normalized === "SEA") return "scope-tag--sea";
+  }
+
+  return "scope-tag--all";
+}
+
+function renderScopeTags(value, kind) {
+  const parts = normalizeScopeParts(value);
+
+  if (!parts.length) {
+    return '<span class="muted">-</span>';
+  }
+
+  return `<div class="scope-tags">${parts.map((part) => (
+    `<span class="scope-tag ${scopeTagClass(part, kind)}">${escapeHtml(part)}</span>`
+  )).join("")}</div>`;
+}
+
 function row(user) {
-  return `<tr><td><b>${escapeHtml(user.email)}</b></td><td>${escapeHtml(user.display_name || "-")}</td><td>${statusPill(user.role_id === "super_admin" ? "ready" : "warm", escapeHtml(user.role_id || "viewer"))}</td><td>${statusPill(user.status === "active" ? "ready" : user.status === "disabled" ? "danger" : "warning", escapeHtml(user.status || "active"))}</td><td>${escapeHtml(user.allowed_games || "ALL")}</td><td>${escapeHtml(user.allowed_regions || "ALL")}</td><td>${escapeHtml(user.last_login_at || "-")}</td><td class="ua-actions"><button class="button small" data-user="${escapeHtml(user.email)}" type="button">Edit</button></td></tr>`;
+  return `<tr><td><b>${escapeHtml(user.email)}</b></td><td>${escapeHtml(user.display_name || "-")}</td><td>${statusPill(user.role_id === "super_admin" ? "ready" : "warm", escapeHtml(user.role_id || "viewer"))}</td><td>${statusPill(user.status === "active" ? "ready" : user.status === "disabled" ? "danger" : "warning", escapeHtml(user.status || "active"))}</td><td>${renderScopeTags(user.allowed_games || "ALL", "games")}</td><td>${renderScopeTags(user.allowed_regions || "ALL", "regions")}</td><td>${escapeHtml(user.last_login_at || "-")}</td><td class="ua-actions"><button class="button small" data-user="${escapeHtml(user.email)}" type="button">Edit</button></td></tr>`;
 }
 
 function historyTable(rows, type) {

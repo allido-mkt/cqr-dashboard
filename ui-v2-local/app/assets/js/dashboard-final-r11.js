@@ -86,3 +86,202 @@
   window.CQR_DASHBOARD_R11 = { publishAuditSnapshot, buildAuditSnapshot };
   window.addEventListener("load", () => window.setTimeout(publishAuditSnapshot, 1800), { once: true });
 })();
+
+/* CQR_PLOTLY_READABILITY_FINAL_START */
+(() => {
+  "use strict";
+
+  const root = window;
+  const KNOWN_PLOTS = ["curve", "new-retention-line", "ret", "dau", "heat", "pie"];
+  const AXIS_FONT = { family: "Sarabun", size: 11, color: "#5f6d80" };
+  const GRID = "rgba(117,132,155,.17)";
+  const LINE = "rgba(117,132,155,.16)";
+
+  function plotId(target) {
+    return typeof target === "string" ? target : String(target?.id || "");
+  }
+
+  function axis(source = {}, overrides = {}) {
+    return {
+      ...source,
+      automargin: true,
+      showline: false,
+      zeroline: false,
+      gridcolor: GRID,
+      gridwidth: 1,
+      tickcolor: LINE,
+      ticklen: 4,
+      tickfont: { ...(source.tickfont || {}), ...AXIS_FONT },
+      titlefont: { ...(source.titlefont || {}), ...AXIS_FONT },
+      ...overrides,
+    };
+  }
+
+  function margins(current = {}, preferred = {}) {
+    return { ...current, ...preferred, pad: 0 };
+  }
+
+  function tuneTrace(id, trace) {
+    const next = { ...trace };
+
+    if (id === "pie") {
+      next.hole = .64;
+      next.textinfo = "percent";
+      next.textposition = "inside";
+      next.insidetextorientation = "horizontal";
+      next.textfont = { ...(trace.textfont || {}), family: "Sarabun", size: 10, color: "#ffffff" };
+      next.marker = {
+        ...(trace.marker || {}),
+        line: { ...(trace.marker?.line || {}), color: "#ffffff", width: 3 },
+      };
+      return next;
+    }
+
+    if (String(trace.mode || "").includes("text")) {
+      next.textfont = {
+        ...(trace.textfont || {}),
+        family: "Sarabun",
+        size: Math.max(Number(trace.textfont?.size || 0), 10),
+      };
+    }
+
+    if (trace.line) {
+      next.line = {
+        ...trace.line,
+        width: Math.max(Number(trace.line.width || 0), 2.8),
+      };
+    }
+
+    if (trace.marker) {
+      next.marker = {
+        ...trace.marker,
+        size: Array.isArray(trace.marker.size)
+          ? trace.marker.size
+          : Math.max(Number(trace.marker.size || 0), 6),
+      };
+    }
+
+    if (id === "heat") {
+      next.textfont = { ...(trace.textfont || {}), family: "Sarabun", size: 10.5, color: "#1e293b" };
+      next.colorbar = {
+        ...(trace.colorbar || {}),
+        thickness: 11,
+        tickfont: { family: "Sarabun", size: 10, color: "#5f6d80" },
+      };
+    }
+
+    return next;
+  }
+
+  function tuneLayout(id, source = {}) {
+    const layout = {
+      ...source,
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(0,0,0,0)",
+      font: { ...(source.font || {}), family: "Sarabun", size: 11, color: "#5f6d80" },
+      hoverlabel: {
+        ...(source.hoverlabel || {}),
+        font: { ...(source.hoverlabel?.font || {}), family: "Sarabun", size: 11 },
+      },
+    };
+
+    if (id === "pie") {
+      return {
+        ...layout,
+        height: 300,
+        margin: margins(source.margin, { t: 8, r: 8, b: 8, l: 8 }),
+        showlegend: false,
+        uniformtext: { ...(source.uniformtext || {}), minsize: 9, mode: "hide" },
+      };
+    }
+
+    if (id === "curve") {
+      layout.height = Math.max(Number(source.height || 0), 330);
+      layout.margin = margins(source.margin, { t: 42, r: 24, b: 76, l: 58 });
+      layout.xaxis = axis(source.xaxis, { tickangle: 0 });
+      layout.yaxis = axis(source.yaxis);
+      layout.legend = {
+        ...(source.legend || {}),
+        orientation: "h",
+        x: .5,
+        xanchor: "center",
+        y: -.22,
+        font: { ...(source.legend?.font || {}), family: "Sarabun", size: 10.5, color: "#526174" },
+      };
+    } else if (id === "new-retention-line") {
+      layout.height = Math.max(Number(source.height || 0), 276);
+      layout.margin = margins(source.margin, { t: 30, r: 20, b: 38, l: 62 });
+      layout.xaxis = axis(source.xaxis, { tickangle: 0 });
+      layout.yaxis = axis(source.yaxis, { separatethousands: true });
+    } else if (id === "ret") {
+      layout.height = Math.max(Number(source.height || 0), 276);
+      layout.margin = margins(source.margin, { t: 30, r: 20, b: 38, l: 56 });
+      layout.xaxis = axis(source.xaxis, { tickangle: 0 });
+      layout.yaxis = axis(source.yaxis);
+    } else if (id === "dau") {
+      layout.height = Math.max(Number(source.height || 0), 320);
+      layout.margin = margins(source.margin, { t: 42, r: 24, b: 64, l: 64 });
+      layout.xaxis = axis(source.xaxis, { tickangle: -30, nticks: Number(source.xaxis?.nticks || 8) });
+      layout.yaxis = axis(source.yaxis, { separatethousands: true });
+    } else if (id === "heat") {
+      layout.height = Math.max(Number(source.height || 0), 280);
+      layout.margin = margins(source.margin, { t: 24, r: 58, b: 50, l: 68 });
+      layout.xaxis = axis(source.xaxis, { tickangle: 0, showgrid: false });
+      layout.yaxis = axis(source.yaxis, { showgrid: false });
+    }
+
+    if (Array.isArray(source.annotations)) {
+      layout.annotations = source.annotations.map((item) => ({
+        ...item,
+        font: { ...(item.font || {}), family: "Sarabun", size: Math.max(Number(item.font?.size || 0), 10) },
+      }));
+    }
+
+    return layout;
+  }
+
+  function tunedArgs(target, data, layout, config) {
+    const id = plotId(target);
+    const traces = Array.isArray(data) ? data.map((trace) => tuneTrace(id, trace)) : data;
+    const tunedLayout = tuneLayout(id, layout || {});
+    const tunedConfig = { ...(config || {}), displayModeBar: false, responsive: true };
+    return [target, traces, tunedLayout, tunedConfig];
+  }
+
+  function tuneExisting(Plotly) {
+    KNOWN_PLOTS.forEach((id) => {
+      const node = document.getElementById(id);
+      if (!node || !Array.isArray(node.data) || !node.layout) return;
+      const [, data, layout, config] = tunedArgs(node, node.data, node.layout, node._context || {});
+      try {
+        Plotly.react(node, data, layout, config);
+      } catch (_) {
+        /* Runtime review will surface a plot-specific issue without breaking the page. */
+      }
+    });
+  }
+
+  function install(retry = 0) {
+    const Plotly = root.Plotly;
+    if (!Plotly) {
+      if (retry < 160) root.setTimeout(() => install(retry + 1), 100);
+      return;
+    }
+
+    if (!Plotly.__cqrReadabilityPatched) {
+      Plotly.__cqrReadabilityPatched = true;
+      const originalNewPlot = Plotly.newPlot.bind(Plotly);
+      Plotly.newPlot = function(target, data, layout, config) {
+        return originalNewPlot(...tunedArgs(target, data, layout, config));
+      };
+    }
+
+    root.setTimeout(() => tuneExisting(Plotly), 0);
+    root.setTimeout(() => tuneExisting(Plotly), 500);
+    root.setTimeout(() => tuneExisting(Plotly), 1500);
+  }
+
+  install();
+  root.addEventListener("load", () => install(), { once: true });
+})();
+/* CQR_PLOTLY_READABILITY_FINAL_END */

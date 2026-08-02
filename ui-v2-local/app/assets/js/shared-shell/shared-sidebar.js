@@ -44,7 +44,7 @@
       label: "Main Menu",
       items: [
         { id: "dashboard", label: "Dashboard", icon: "dashboard" },
-        { id: "ai-insight", label: "AI Insight", icon: "sparkles" },
+        { id: "ai-insight", label: "AI Chat Bot", icon: "sparkles" },
       ],
     },
     {
@@ -380,7 +380,7 @@
         <aside class="shell" aria-label="CQR navigation">
           <div class="brand">
             <div class="brand-mark">${icon("logo", "icon logo-icon")}</div>
-            <div class="brand-copy"><div class="brand-name">CQR Report</div><div class="brand-sub">Channel Quality</div></div>
+            <div class="brand-copy"><div class="brand-name">CQR REPORT</div><div class="brand-sub">Channel Quality</div></div>
             <button class="toggle" id="toggle" type="button" aria-label="ย่อหรือขยาย Sidebar" title="ย่อหรือขยาย Sidebar">${icon("collapse")}</button>
           </div>
           <div class="scroll">${groups}</div>

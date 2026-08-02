@@ -5,6 +5,7 @@ const SPECIFIC_SCOPE_ROUTES = new Set(["check-raw", "data-control-preview", "dat
 const DEFAULT_GAME = APP_CONFIG.games.find((item) => item.value !== "ALL")?.value || "CBM_TH";
 const DEFAULT_MONTH = APP_CONFIG.months[0]?.value || "2026-06";
 const AI_MESSAGES_KEY = "cqr_ai_messages";
+const CONTROL_STATE_KEY = "cqr_data_control_state_v2";
 
 function readJsonStorage(storage, key, fallback) {
   try {
@@ -18,6 +19,7 @@ function readJsonStorage(storage, key, fallback) {
 const INITIAL_CONTEXT = readJsonStorage(localStorage, "cqr_ai_context", {});
 const INITIAL_PREFERENCES = readJsonStorage(localStorage, "cqr_user_preferences", {});
 const SAVED_AI_MESSAGES = readJsonStorage(sessionStorage, AI_MESSAGES_KEY, []);
+const SAVED_CONTROL_STATE = readJsonStorage(sessionStorage, CONTROL_STATE_KEY, {});
 const DEFAULT_AI_MESSAGE = {
   role: "assistant",
   text: "พร้อมช่วยอ่าน CQR ครับ เลือก Game และ Period แล้วถามเรื่อง Retention, Channel Quality หรือ Weekly Alert ได้เลย",
@@ -52,6 +54,7 @@ const initialState = {
   health: { status: "idle", score: null, checkedAt: "", result: null, error: "" },
   pipeline: { status: "idle", checkedAt: "", result: null, error: "" },
   control: {
+    ...SAVED_CONTROL_STATE,
     previewToken: "", previewAt: "", selectedRuns: [], lookupRuns: [], lookupResult: null,
     lookupQuery: "", lookupPerformed: false, previewResult: null, previewScope: null,
     lastClearAt: "", clearResult: null, lastBuildAt: "", buildResult: null,
@@ -79,6 +82,16 @@ function normalizedFilters(route, current) {
 
 function persistAiMessages(messages) {
   try { sessionStorage.setItem(AI_MESSAGES_KEY, JSON.stringify(messages.slice(-40))); } catch {}
+}
+
+function persistControlState(control) {
+  const keys = [
+    "buildMode", "buildScope", "buildRawHash", "buildRawCheckId", "buildActionStatus", "buildHealthStatus",
+    "previewToken", "previewAt", "previewScope", "lastClearAt", "lastBuildAt", "buildProgress",
+    "selectedRuns", "lookupQuery",
+  ];
+  const value = Object.fromEntries(keys.map((key) => [key, control?.[key] ?? null]));
+  try { sessionStorage.setItem(CONTROL_STATE_KEY, JSON.stringify(value)); } catch {}
 }
 
 export function getState() { return state; }
@@ -109,7 +122,11 @@ export function setUser(user) { setState({ user: { ...state.user, ...user } }); 
 export function setRawCheck(patch) { setState({ rawCheck: { ...state.rawCheck, ...patch } }); }
 export function setHealth(patch) { setState({ health: { ...state.health, ...patch } }); }
 export function setPipeline(patch) { setState({ pipeline: { ...state.pipeline, ...patch } }); }
-export function setControl(patch) { setState({ control: { ...state.control, ...patch } }); }
+export function setControl(patch) {
+  const control = { ...state.control, ...patch };
+  persistControlState(control);
+  setState({ control });
+}
 export function setAiStatus(patch) { setState({ aiStatus: { ...state.aiStatus, ...patch } }); }
 export function addAiMessage(role, text) {
   const aiMessages = [...state.aiMessages, { role, text: String(text || "") }].slice(-40);
