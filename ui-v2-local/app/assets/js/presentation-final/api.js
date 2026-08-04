@@ -149,21 +149,117 @@ async function previewBackend(action, params = {}) {
   throw new Error(`Preview backend does not implement ${action}`);
 }
 
-export function callAppsScript(action, params = {}, timeoutMs = 25000) {
+const appsScriptInFlight = new Map();
+
+function appsScriptRequestKey(action, params) {
+  const entries = Object.entries(params || {})
+    .filter(([key]) => key !== "_timeout_ms")
+    .map(([key, value]) => [key, typeof value === "string" ? value : JSON.stringify(value)])
+    .sort(([left], [right]) => left.localeCompare(right));
+
+  return `${String(action || "")}|${JSON.stringify(entries)}`;
+}
+
+function callAppsScriptOnce(action, params = {}, timeoutMs = 25000, attempt = 1) {
   return new Promise((resolve, reject) => {
     const callback = `cqrApi_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script = document.createElement("script");
-    const timer = setTimeout(() => { cleanup(); reject(new Error("Apps Script ไม่ตอบกลับภายในเวลาที่กำหนด")); }, timeoutMs);
-    function cleanup() { clearTimeout(timer); delete window[callback]; script.remove(); }
-    window[callback] = (payload) => { cleanup(); resolve(payload || {}); };
-    script.onerror = () => { cleanup(); reject(new Error("เรียก Apps Script ไม่สำเร็จ")); };
-    const query = new URLSearchParams({ action, callback, t: String(Date.now()), user_agent: navigator.userAgent });
-    Object.entries(params || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && key !== "_timeout_ms") query.set(key, typeof value === "string" ? value : JSON.stringify(value));
+    let settled = false;
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      delete window[callback];
+      script.remove();
+    };
+
+    const finish = (handler, value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      handler(value);
+    };
+
+    const timer = setTimeout(() => {
+      finish(
+        reject,
+        new Error(`Apps Script ไม่ตอบกลับภายในเวลาที่กำหนด (ครั้งที่ ${attempt})`)
+      );
+    }, timeoutMs);
+
+    window[callback] = (payload) => finish(resolve, payload || {});
+
+    script.async = true;
+    script.referrerPolicy = "no-referrer";
+    script.onerror = () => {
+      finish(
+        reject,
+        new Error(`เรียก Apps Script ไม่สำเร็จ (ครั้งที่ ${attempt})`)
+      );
+    };
+
+    const query = new URLSearchParams({
+      action,
+      callback,
+      t: String(Date.now()),
+      attempt: String(attempt),
+      user_agent: navigator.userAgent,
     });
+
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && key !== "_timeout_ms") {
+        query.set(key, typeof value === "string" ? value : JSON.stringify(value));
+      }
+    });
+
     script.src = `${APP_CONFIG.appsScriptUrl}?${query.toString()}`;
     document.head.appendChild(script);
   });
+}
+
+export function callAppsScript(action, params = {}, timeoutMs = 25000) {
+  const safeAction = String(action || "");
+  const retryable = new Set([
+    "dashboard.data",
+    "session.me",
+    "admin.users.list",
+    "admin.pipeline.health",
+    "admin.pipeline.run.lookup",
+  ]).has(safeAction);
+
+  const key = retryable ? appsScriptRequestKey(safeAction, params) : "";
+  if (key && appsScriptInFlight.has(key)) return appsScriptInFlight.get(key);
+
+  const task = (async () => {
+    const attempts = retryable ? 2 : 1;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      if (attempt > 1) await wait(1800);
+
+      try {
+        return await callAppsScriptOnce(
+          safeAction,
+          params,
+          timeoutMs,
+          attempt
+        );
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error("เรียก Apps Script ไม่สำเร็จ");
+  })();
+
+  if (!key) return task;
+
+  appsScriptInFlight.set(key, task);
+  const clearInFlight = () => {
+    if (appsScriptInFlight.get(key) === task) appsScriptInFlight.delete(key);
+  };
+  task.then(clearInFlight, clearInFlight);
+
+  return task;
 }
 
 function parseJsonString(value) {

@@ -63,17 +63,10 @@ const AI_CHAT_UX_STYLE = `<style>
   }
 
   .ai-answer-content strong {
-    font-weight: 800;
+    color: inherit;
+    font-weight: 760;
   }
 
-  .ai-answer-content .ai-entity {
-    color: rgb(15, 23, 42);
-    font-weight: 850;
-    text-decoration: underline;
-    text-decoration-color: rgba(249, 115, 22, 0.32);
-    text-decoration-thickness: 0.16em;
-    text-underline-offset: 0.16em;
-  }
 
   .ai-answer-content code {
     padding: 0.08rem 0.3rem;
@@ -310,59 +303,13 @@ function cleanAnswer(result) {
   return answer;
 }
 
-function escapeAiRegExp(value) {
-  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function emphasizeAiEntities(html) {
-  const configuredGames = APP_CONFIG.games
-    .flatMap((item) => [item.value, item.label])
-    .filter((value) => value && value !== "ALL" && value !== "All Games");
-
-  const terms = [
-    ...configuredGames,
-    "Organic / Unknown",
-    "In-App Register",
-    "Facebook Ads",
-    "Google Ads",
-    "Other Campaign",
-    "Channel Quality",
-    "Weekly Alert",
-    "Retention",
-    "Register",
-    "D14",
-    "D7",
-    "D3",
-    "D1",
-  ];
-
-  const uniqueTerms = [...new Set(terms)]
-    .sort((left, right) => right.length - left.length)
-    .map(escapeAiRegExp);
-
-  const entityPattern = new RegExp(
-    `(${uniqueTerms.join("|")}|\\b\\d+(?:\\.\\d+)?%\\b)`,
-    "gi"
-  );
-
-  return String(html || "")
-    .split(/(<strong\b[^>]*>.*?<\/strong>|<em\b[^>]*>.*?<\/em>|<code\b[^>]*>.*?<\/code>|<[^>]+>)/gi)
-    .map((part) => {
-      if (!part || part.startsWith("<")) return part;
-      return part.replace(entityPattern, '<strong class="ai-entity">$&</strong>');
-    })
-    .join("");
-}
-
 function formatAiInline(value) {
-  const html = escapeHtml(String(value || ""))
+  return escapeHtml(String(value || ""))
     .replace(/\*\*\*(.+?)\*\*\*/g, "<strong>$1</strong>")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*([^*\n]+)\*/g, "<em>$1</em>")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*/g, "");
-
-  return emphasizeAiEntities(html);
 }
 
 function classifyAiInsight(value) {

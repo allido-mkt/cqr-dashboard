@@ -509,35 +509,77 @@ async function loadSecureData(sessionToken){
   }
 }
 
-function callAppsScript(action, params){
+function waitForAppsScriptRetry(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function callAppsScriptOnce(action, params, attempt){
   return new Promise((resolve, reject)=>{
     const callback = `cqrApi_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script = document.createElement('script');
-    const timer = setTimeout(()=>{
-      cleanup();
-      reject(new Error('Apps Script ไม่ตอบกลับภายในเวลาที่กำหนด'));
-    }, 25000);
+    let settled = false;
 
-    function cleanup(){
+    const cleanup = ()=>{
       clearTimeout(timer);
       delete window[callback];
       script.remove();
-    }
-
-    window[callback] = payload => {
-      cleanup();
-      resolve(payload || {});
     };
 
-    script.onerror = () => {
+    const finish = (handler, value)=>{
+      if(settled) return;
+      settled = true;
       cleanup();
-      reject(new Error('เรียก Apps Script ไม่สำเร็จ'));
+      handler(value);
     };
-    const query = new URLSearchParams({action, callback, t:String(Date.now()), user_agent:navigator.userAgent});
+
+    const timer = setTimeout(()=>{
+      finish(
+        reject,
+        new Error(`Apps Script ไม่ตอบกลับภายในเวลาที่กำหนด (ครั้งที่ ${attempt})`)
+      );
+    }, 25000);
+
+    window[callback] = payload => finish(resolve, payload || {});
+
+    script.async = true;
+    script.referrerPolicy = 'no-referrer';
+    script.onerror = ()=>{
+      finish(
+        reject,
+        new Error(`เรียก Apps Script ไม่สำเร็จ (ครั้งที่ ${attempt})`)
+      );
+    };
+
+    const query = new URLSearchParams({
+      action,
+      callback,
+      t:String(Date.now()),
+      attempt:String(attempt),
+      user_agent:navigator.userAgent
+    });
+
     Object.keys(params || {}).forEach(key => query.set(key, params[key]));
     script.src = `${AUTH_CONFIG.appsScriptUrl}?${query.toString()}`;
     document.head.appendChild(script);
   });
+}
+
+async function callAppsScript(action, params){
+  const retryable = ['dashboard.data','session.me'].includes(String(action || ''));
+  const attempts = retryable ? 2 : 1;
+  let lastError = null;
+
+  for(let attempt = 1; attempt <= attempts; attempt += 1){
+    if(attempt > 1) await waitForAppsScriptRetry(1800);
+
+    try{
+      return await callAppsScriptOnce(action, params, attempt);
+    }catch(error){
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('เรียก Apps Script ไม่สำเร็จ');
 }
 
 async function handleCredentialResponse(response){
