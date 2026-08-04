@@ -305,8 +305,8 @@ td{vertical-align:middle;}
     </div>
     <div class="colstack">
       <div class="card">
-        <div class="title">AI SUMMARY</div>
-        <div class="desc">บทวิเคราะห์อัตโนมัติประจำเดือน — Pre-generate ล่วงหน้า อัปเดตทุกวันจันทร์</div>
+        <div class="title">DATA INSIGHT SUMMARY</div>
+        <div class="desc">Insight แบบ deterministic จาก Master Data ที่ Dashboard อ่านผ่าน Apps Script โดยตรง</div>
         <div style="margin-top:10px;" id="ai-summary"></div>
       </div>
       <div class="card">
@@ -386,7 +386,7 @@ td{vertical-align:middle;}
       <li style="color:var(--warn);"><b>ข้อควรระวังเรื่อง Google Ads:</b> เกม Mobile ส่วนใหญ่ตั้งเป้า Google Ads Campaign ที่ "การติดตั้ง (Install)" ไม่ใช่การสมัครสมาชิกโดยตรง เมื่อผู้เล่นติดตั้งแล้วสมัครสมาชิกภายในแอปภายหลัง ระบบมักบันทึก Channel เป็น <b>In-App Register</b> แทน — ตัวเลขที่ติด Tag "Google Ads" ตรงๆ จึงอาจไม่ใช่ภาพรวมทั้งหมดของ Campaign ควรตีความร่วมกับสัดส่วน In-App Register เสมอ</li>
       <li><b>นิยาม Retention:</b> นับจากวัน Register ของแต่ละคน ว่ายังมี Login ตั้งแต่ D-n เป็นต้นไปหรือไม่</li>
       <li><b>Sample เล็ก:</b> Channel ที่ Register &lt;30 คน ควรดูทิศทางเท่านั้น ไม่ควรใช้ตัดสินใจย้ายงบ</li>
-      <li style="color:var(--warn);"><b>Player Type Breakdown / Total User Retention / Total MAU ยังไม่มีข้อมูล:</b> ต้องขอ Martech เพิ่ม Query รายชื่อ User ที่ Login ทั้งหมด</li>
+      <li><b>แหล่งข้อมูล Dashboard:</b> Apps Script อ่าน Summary Tabs จาก Master Data ทั้ง 4 ไฟล์โดยตรง ไม่ใช้ไฟล์ Snapshot ที่สร้างไว้ล่วงหน้า</li>
     </ul>
   </div>
 </div>
@@ -499,7 +499,9 @@ async function loadSecureData(sessionToken){
     const game = document.getElementById('f-game')?.value || 'ALL';
     const json = await callAppsScript('dashboard.data', {session_token:sessionToken, period:month, game});
     if(json.ok === false) throw new Error(json.message || 'Data access denied');
-    D = json.data || json.CQR_DATA || json;
+    const nextData = json.data || json.CQR_DATA || json;
+    if(String(nextData?.data_version?.read_mode || '') !== 'direct_master_aggregation') throw new Error('Backend ยังไม่ได้ Deploy โหมด Direct Master');
+    D = nextData;
     refreshDashboardMonths();
     renderAll();
   }catch(e){
@@ -621,7 +623,7 @@ function signOutUser(){
 
 const ICONS = {"userPlus": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"10\" cy=\"8\" r=\"3.2\"/><path d=\"M3.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5\"/><path d=\"M18.5 5.5v6M15.5 8.5h6\"/></svg>", "star": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M12 3.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6L12 3.5Z\"/></svg>", "recall": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3\"/><path d=\"M18 3v4h-4M6 21v-4h4\"/></svg>", "streak": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M3.5 9.5h17\"/><path d=\"M12 12.5c1.8 1 2.4 2.3 1.6 3.6-.5.8-1.6.9-2.1.1-.5.9-.2 2 .8 2.3 1.7.5 3.1-1 2.7-2.7-.3-1.5-1.4-2.6-3-3.3Z\"/></svg>", "megaphone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 11v3a1 1 0 0 0 1 1h1l3 5V6l-3 5H4a1 1 0 0 0-1 1Z\"/><path d=\"M9 6l10-3v17l-10-3\"/><path d=\"M19 10a3 3 0 0 1 0 5\"/></svg>", "gap": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"2\" stroke-dasharray=\"3 2.5\"/><path d=\"M9 12h6M12 9v6\"/></svg>", "info": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v5.5\"/><circle cx=\"12\" cy=\"8\" r=\"0.8\" fill=\"currentColor\" stroke=\"none\"/></svg>", "sparkle": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3Z\"/><path d=\"M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z\"/></svg>", "close": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "arrowUp": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 19V5M5 12l7-7 7 7\"/></svg>"};
 ICONS.activeUser = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2.8 20c0-3.7 2.3-6.2 5.2-6.2s5.2 2.5 5.2 6.2"/><path d="M13 14.2c.8-.5 1.7-.8 2.7-.8 3 0 5.3 2.4 5.3 5.7"/></svg>';
-let D = window.CQR_DATA || (typeof CQR_DATA !== 'undefined' ? CQR_DATA : null);
+let D = LOCAL_PREVIEW_MODE ? (window.CQR_PREVIEW_DATA || null) : null;
 const CH_COLOR = {'Facebook Ads':'#2563eb','Google Ads':'#d97706','In-App Register':'#94a3b8','Organic / Unknown':'#cbd5e1'};
 const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const REPORT_START_MONTH = '2026-02';
@@ -1121,12 +1123,12 @@ function renderAll(){
   const playerType = D.player_type_breakdown?.[`${game}|${periodKey}`] || null;
   const activeUser = playerType && Number.isFinite(Number(playerType.total_active)) ? Number(playerType.total_active) : null;
   const cards = [
-    {key:'new_register',icon:'userPlus',bg:'c1',val:ov.new_register.toLocaleString(),lbl:'New Register',sub:'ทุก Channel รวมกัน'},
-    {key:'paid_register',icon:'megaphone',bg:'c6',val:ov.paid_register.toLocaleString(),lbl:'Paid Ads Register',sub:`${Math.round(1000*ov.paid_register/ov.new_register)/10}% ของทั้งหมด`},
-    {key:'first_login',icon:'star',bg:'c3',val:(ov.first_login ?? ov.new_register).toLocaleString(),lbl:'First Login',sub:'Register cohort ที่เข้าเกมครั้งแรกแล้ว'},
-    {key:'recall_user',icon:'recall',bg:'c4',val:ov.recall_user.toLocaleString(),lbl:'Recall User',sub:'กลับมาหลังหายไป (Returners)'},
+    {key:'new_register',icon:'userPlus',bg:'c1',val:Number(ov.new_register || 0).toLocaleString(),lbl:'New Register',sub:'ทุก Channel รวมกัน'},
+    {key:'paid_register',icon:'megaphone',bg:'c6',val:Number(ov.paid_register || 0).toLocaleString(),lbl:'Paid Ads Register',sub:`${ov.new_register ? Math.round(1000*ov.paid_register/ov.new_register)/10 : 0}% ของทั้งหมด`},
+    {key:'first_login',icon:'star',bg:'c3',val:Number(ov.first_login ?? ov.new_register ?? 0).toLocaleString(),lbl:'First Login',sub:'Register cohort ที่เข้าเกมครั้งแรกแล้ว'},
+    {key:'recall_user',icon:'recall',bg:'c4',val:Number(ov.recall_user || 0).toLocaleString(),lbl:'Recall User',sub:'กลับมาหลังหายไป (Returners)'},
     {key:'active_user',icon:'activeUser',bg:'c7',val:activeUser===null?'-':activeUser.toLocaleString(),lbl:'Active User',sub:period.mode==='สัปดาห์'?'ผู้เล่นที่มี Login ในสัปดาห์นี้':'ผู้เล่นที่มี Login ในเดือนนี้'},
-    {key:'avg_days_active',icon:'streak',bg:'c5',val:ov.avg_days_active,unit:' วัน',lbl:'Avg. Days Active',sub:'จาก Register Cohort'},
+    {key:'avg_days_active',icon:'streak',bg:'c5',val:Number(ov.avg_days_active || 0),unit:' วัน',lbl:'Avg. Days Active',sub:'จาก Register Cohort'},
     {key:'d3',circle:'D3',bg:'c7',val:ov.d3,unit:'%',lbl:'Day 3 Retention',sub:'% ที่ยังกลับมาใช้งาน'},
     {key:'d7',circle:'D7',bg:'c8',val:ov.d7,unit:'%',lbl:'Day 7 Retention',sub:'% ที่ยังกลับมาใช้งาน'},
     {key:'d14',circle:'D14',bg:'c9',val:ov.d14,unit:'%',lbl:'Day 14 Retention',sub:'% ที่ยังกลับมาใช้งาน'}
@@ -1136,8 +1138,8 @@ function renderAll(){
   /* ---- CHANNEL QUALITY SUMMARY (ผูกทั้งเกม+เดือน) ---- */
   document.getElementById('channel-tbody').innerHTML = chData.map(r=>{
     const dim = chFilter!=='all' && chFilter!==r.channel;
-    return `<tr style="${dim?'opacity:.3;':''}"><td><span class="chip"><span class="dot" style="background:${CH_COLOR[r.channel]}"></span>${r.channel}</span></td>
-    <td class="num">${r.register.toLocaleString()}</td><td class="num">${r.d1}%</td><td class="num">${r.d3}%</td>
+    return `<tr style="${dim?'opacity:.3;':''}"><td><span class="chip"><span class="dot" style="background:${CH_COLOR[r.channel] || '#94a3b8'}"></span>${r.channel}</span></td>
+    <td class="num">${Number(r.register || 0).toLocaleString()}</td><td class="num">${r.d1}%</td><td class="num">${r.d3}%</td>
     <td class="num">${r.d7}%</td><td class="num"><span class="pill ${r.verdict_tier}">${r.d14}%</span></td>
     <td class="verdict-cell">${r.verdict_text}</td></tr>`;
   }).join('');
@@ -1207,20 +1209,31 @@ function renderAll(){
   renderMau(game,periodKey);
 
   /* ---- GAME x CHANNEL DETAIL (ใช้ table จริง แก้ column ลอย) ---- */
-  const detailRows = D.game_channel_full[periodKey] || [];
+  const detailRows = (D.game_channel_full?.[periodKey] || []).map((row) => ({
+    ...row,
+    game: String(row?.game || row?.game_code || "").trim(),
+    channel: String(row?.channel || "Unknown Channel").trim(),
+    register: Number(row?.register || 0),
+    d1: Number(row?.d1 || 0),
+    d3: Number(row?.d3 || 0),
+    d7: Number(row?.d7 || 0),
+    d14: row?.d14 === null || row?.d14 === undefined || row?.d14 === ""
+      ? null
+      : Number(row.d14),
+  })).filter((row) => row.game);
   document.getElementById('sm-grid').innerHTML = [...new Set(detailRows.map(r=>r.game))].map(g=>{
     const rows = detailRows.filter(r=>r.game===g).sort((a,b)=>b.register-a.register);
     const total = rows.reduce((a,r)=>a+r.register,0);
     const hl = (game!=='ALL' && game===g);
     return `<div class="gm-card" style="${hl?'border-color:var(--accent2);box-shadow:0 0 0 1px var(--accent2);':''}">
-      <div class="gm-head"><span class="gm-name">${g.replace('_',' ')}</span><span class="gm-total">Register รวม ${total.toLocaleString()}</span></div>
+      <div class="gm-head"><span class="gm-name">${String(g || '').replaceAll('_',' ')}</span><span class="gm-total">Register รวม ${total.toLocaleString()}</span></div>
       <table class="gm-table"><thead><tr><th>Channel</th><th>Reg</th><th>D1</th><th>D3</th><th>D7</th><th>D14</th></tr></thead>
       <tbody>${rows.map(r=>{
         const t=r.d14===null?'warn':(r.d14>=20?'good':(r.d14>=8?'warn':'bad'));
         const dim = chFilter!=='all' && chFilter!==r.channel;
-        return `<tr style="${dim?'opacity:.3;':''}"><td><span class="gm-ch"><span class="dot" style="background:${CH_COLOR[r.channel]}"></span>${r.channel}</span></td>
-          <td class="num">${r.register.toLocaleString()}</td><td class="num">${r.d1}%</td><td class="num">${r.d3}%</td>
-          <td class="num">${r.d7}%</td><td><span class="pill ${t}">${r.d14}%</span></td></tr>`;
+        return `<tr style="${dim?'opacity:.3;':''}"><td><span class="gm-ch"><span class="dot" style="background:${CH_COLOR[r.channel] || '#94a3b8'}"></span>${r.channel}</span></td>
+          <td class="num">${Number(r.register || 0).toLocaleString()}</td><td class="num">${r.d1}%</td><td class="num">${r.d3}%</td>
+          <td class="num">${r.d7}%</td><td><span class="pill ${t}">${r.d14 === null ? "-" : `${r.d14}%`}</span></td></tr>`;
       }).join('')}</tbody></table></div>`;
   }).join('');
   window.CQR_DASHBOARD_R11?.publishAuditSnapshot?.();

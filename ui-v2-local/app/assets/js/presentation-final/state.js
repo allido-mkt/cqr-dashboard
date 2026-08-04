@@ -16,7 +16,11 @@ function readJsonStorage(storage, key, fallback) {
   }
 }
 
-const INITIAL_CONTEXT = readJsonStorage(localStorage, "cqr_ai_context", {});
+try {
+  localStorage.removeItem("cqr_ai_context");
+  localStorage.removeItem("cqr_ai_context_v8");
+} catch {}
+const INITIAL_CONTEXT = {};
 const INITIAL_PREFERENCES = readJsonStorage(localStorage, "cqr_user_preferences", {});
 const SAVED_AI_MESSAGES = readJsonStorage(sessionStorage, AI_MESSAGES_KEY, []);
 const SAVED_CONTROL_STATE = readJsonStorage(sessionStorage, CONTROL_STATE_KEY, {});

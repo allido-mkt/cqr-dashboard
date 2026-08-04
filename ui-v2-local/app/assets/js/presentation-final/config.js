@@ -1,15 +1,15 @@
 export const APP_CONFIG = Object.freeze({
   appName: "CQR Report",
-  appVersion: "UI V2 Audited R5",
+  appVersion: "UI V2 Production V2 Direct Master",
   googleClientId: "496972749333-ddnqu2jefebjcuhj8koar6d66v510qou.apps.googleusercontent.com",
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbyZwor9CRKgKWTf2Zs0rTWHDo3qGniF7swEv1cszTHJ5oAZbKCiMzp_86UGUuiecI-mQQ/exec",
   defaultRoute: "dashboard",
   defaultFilters: {
-    game: "CBM_TH",
-    month: "2026-06",
+    game: "ALL",
+    month: "ALL",
     channel: "ALL",
     periodType: "month",
-    week: "2026-06-W4",
+    week: "2026-07-W5",
   },
   games: [
     { value: "ALL", label: "All Games" },
@@ -27,11 +27,11 @@ export const APP_CONFIG = Object.freeze({
     { value: "2026-02", label: "กุมภาพันธ์ 2026" },
   ],
   weeksByMonth: {
-    "2026-07": ["2026-07-W1", "2026-07-W2", "2026-07-W3", "2026-07-W4"],
-    "2026-06": ["2026-06-W1", "2026-06-W2", "2026-06-W3", "2026-06-W4"],
-    "2026-05": ["2026-05-W1", "2026-05-W2", "2026-05-W3", "2026-05-W4"],
-    "2026-04": ["2026-04-W1", "2026-04-W2", "2026-04-W3", "2026-04-W4"],
-    "2026-03": ["2026-03-W1", "2026-03-W2", "2026-03-W3", "2026-03-W4"],
+    "2026-07": ["2026-07-W1", "2026-07-W2", "2026-07-W3", "2026-07-W4", "2026-07-W5"],
+    "2026-06": ["2026-06-W1", "2026-06-W2", "2026-06-W3", "2026-06-W4", "2026-06-W5"],
+    "2026-05": ["2026-05-W1", "2026-05-W2", "2026-05-W3", "2026-05-W4", "2026-05-W5"],
+    "2026-04": ["2026-04-W1", "2026-04-W2", "2026-04-W3", "2026-04-W4", "2026-04-W5"],
+    "2026-03": ["2026-03-W1", "2026-03-W2", "2026-03-W3", "2026-03-W4", "2026-03-W5"],
     "2026-02": ["2026-02-W1", "2026-02-W2", "2026-02-W3", "2026-02-W4"],
   },
   channels: [
@@ -40,5 +40,6 @@ export const APP_CONFIG = Object.freeze({
     { value: "Google Ads", label: "Google Ads" },
     { value: "In-App Register", label: "In-App Register" },
     { value: "Organic / Unknown", label: "Organic / Unknown" },
+    { value: "Other Campaign", label: "Other Campaign" },
   ],
 });
