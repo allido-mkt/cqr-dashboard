@@ -41,18 +41,15 @@ function doGet(e) {
 
     if (action === 'login') {
       const profile = requireAllowedProfile_(e.parameter.id_token);
-      touchUserLogin_(profile);
+      touchUserLogin_(profile, e.parameter.user_agent || '');
       const session = createSession_(profile);
       return json_({
         ok: true,
         session_token: session.session_token,
         expires_at: session.expires_at,
-        user: {
-          email: profile.email,
-          display_name: profile.name || profile.email,
-          role_id: roleForEmail_(profile.email),
+        user: Object.assign({}, session.user || currentAdminUser_(profile.email), {
           is_super_admin: roleForEmail_(profile.email) === 'super_admin'
-        }
+        })
       }, callback);
     }
 
@@ -64,6 +61,18 @@ function doGet(e) {
 
     if (action === 'ai.ask') {
       return handleAiAsk_(e, callback);
+    }
+
+    if (action === 'session.me') {
+      return handleSessionMe_(e, callback);
+    }
+
+    if (action === 'admin.users.audit') {
+      return handleAdminUsersAudit_(e, callback);
+    }
+
+    if (action === 'admin.users.login_history') {
+      return handleAdminUsersLoginHistory_(e, callback);
     }
 
     if (action === 'admin.users.list') {
@@ -88,6 +97,10 @@ function doGet(e) {
 
     if (action === 'admin.n8n.raw.check') {
       return handleAdminN8nCommand_(e, callback, 'raw.check');
+    }
+
+    if (action === 'admin.n8n.raw.status') {
+      return handleAdminRawCheckStatus_(e, callback);
     }
 
     if (action === 'admin.n8n.cleanup.preview') {
@@ -173,148 +186,258 @@ function setupAiAskN8nConfig_() {
   }
 }
 
-function createSession_(profile) {
-  const token = Utilities.getUuid() + '-' + Utilities.getUuid();
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + CONFIG.SESSION_TTL_SECONDS * 1000);
-  CacheService.getScriptCache().put('session:' + token, JSON.stringify({
-    email: profile.email,
-    name: profile.name || profile.email,
-    role_id: roleForEmail_(profile.email),
-    created_at: now.toISOString(),
-    expires_at: expiresAt.toISOString()
-  }), CONFIG.SESSION_TTL_SECONDS);
+const CQR_USER_ROLES_ = ['viewer', 'analyst', 'manager', 'admin', 'super_admin', 'guest'];
+const CQR_USER_STATUSES_ = ['active', 'pending', 'disabled'];
+const CQR_USER_GAMES_ = ['CBM_TH', 'CBM_SEA', 'CBPC_TH', 'CBPC_SEA'];
+const CQR_USER_REGIONS_ = ['TH', 'SEA'];
+const CQR_USER_ACCESS_LOG_HEADERS_ = ['log_id', 'target_email', 'action', 'before_json', 'after_json', 'performed_by', 'result', 'created_at'];
+const CQR_USER_LOGIN_LOG_HEADERS_ = ['login_id', 'email', 'login_at', 'result', 'role_id', 'user_agent'];
+
+function configuredSuperAdminEmails_() {
+  return CONFIG.SUPER_ADMIN_EMAILS.map(String).map(function (email) { return email.trim().toLowerCase(); }).filter(Boolean);
+}
+
+function normalizeUserCsv_(value, allowedValues, label) {
+  const text = String(value || 'ALL').trim().toUpperCase();
+  if (!text || text === 'ALL') return 'ALL';
+  const values = Array.from(new Set(text.split(',').map(function (item) { return item.trim(); }).filter(Boolean)));
+  const invalid = values.filter(function (item) { return allowedValues.indexOf(item) === -1; });
+  if (invalid.length) throw new Error(label + ' contains invalid values: ' + invalid.join(', '));
+  return values.join(',');
+}
+
+function normalizeAllowedGames_(value) { return normalizeUserCsv_(value, CQR_USER_GAMES_, 'allowed_games'); }
+function normalizeAllowedRegions_(value) { return normalizeUserCsv_(value, CQR_USER_REGIONS_, 'allowed_regions'); }
+
+function validateUserScopeCompatibility_(gamesCsv, regionsCsv) {
+  if (gamesCsv === 'ALL' || regionsCsv === 'ALL') return;
+  const regions = regionsCsv.split(',');
+  const mismatch = gamesCsv.split(',').filter(function (game) {
+    const region = /_TH$/.test(game) ? 'TH' : /_SEA$/.test(game) ? 'SEA' : '';
+    return region && regions.indexOf(region) === -1;
+  });
+  if (mismatch.length) throw new Error('Allowed Games and Regions conflict: ' + mismatch.join(', '));
+}
+
+function normalizeAdminUser_(user) {
+  const source = user || {};
+  const email = String(source.email || '').trim().toLowerCase();
+  const configuredSuper = configuredSuperAdminEmails_().indexOf(email) !== -1;
+  const requestedRole = String(source.role_id || '').trim();
+  const requestedStatus = String(source.status || '').trim();
+  const role = configuredSuper ? 'super_admin' : CQR_USER_ROLES_.indexOf(requestedRole) !== -1 ? requestedRole : 'viewer';
+  const status = configuredSuper ? 'active' : CQR_USER_STATUSES_.indexOf(requestedStatus) !== -1 ? requestedStatus : 'active';
+  let games = 'ALL';
+  let regions = 'ALL';
+  try { games = normalizeAllowedGames_(source.allowed_games || 'ALL'); } catch (err) { games = 'ALL'; }
+  try { regions = normalizeAllowedRegions_(source.allowed_regions || 'ALL'); } catch (err) { regions = 'ALL'; }
   return {
-    session_token: token,
-    expires_at: expiresAt.toISOString()
+    email: email,
+    display_name: String(source.display_name || '').trim(),
+    role_id: role,
+    status: status,
+    allowed_games: games,
+    allowed_regions: regions,
+    last_login_at: String(source.last_login_at || ''),
+    created_at: String(source.created_at || ''),
+    created_by: String(source.created_by || ''),
+    updated_at: String(source.updated_at || ''),
+    updated_by: String(source.updated_by || '')
   };
-}
-
-function roleForEmail_(email) {
-  const normalized = String(email || '').toLowerCase();
-  if (CONFIG.SUPER_ADMIN_EMAILS.map(String).map(e => e.toLowerCase()).includes(normalized)) return 'super_admin';
-  const user = readAdminUsers_().find(item => String(item.email || '').toLowerCase() === normalized);
-  return user ? String(user.role_id || 'viewer') : 'viewer';
-}
-
-function requireSuperAdmin_(session) {
-  if (roleForEmail_(session.email) !== 'super_admin') {
-    throw new Error('Only super_admin can manage users.');
-  }
 }
 
 function readAdminUsers_() {
   const props = PropertiesService.getScriptProperties();
   const text = props.getProperty('CQR_ADMIN_USERS_JSON');
-  if (text) {
-    return safeJsonParse_(text, []);
-  }
-  return CONFIG.ALLOWED_EMAILS.map(email => ({
-    email: String(email).toLowerCase(),
-    display_name: '',
-    role_id: roleForSeedEmail_(email),
-    status: 'active',
-    allowed_games: 'ALL',
-    allowed_regions: 'ALL',
-    last_login_at: ''
-  }));
+  const source = text ? safeJsonParse_(text, []) : CONFIG.ALLOWED_EMAILS.map(function (email) {
+    return { email: String(email).toLowerCase(), display_name: '', role_id: roleForSeedEmail_(email), status: 'active', allowed_games: 'ALL', allowed_regions: 'ALL', last_login_at: '' };
+  });
+  return (Array.isArray(source) ? source : []).map(normalizeAdminUser_).filter(function (user) { return Boolean(user.email); });
 }
 
 function writeAdminUsers_(users) {
-  PropertiesService.getScriptProperties().setProperty('CQR_ADMIN_USERS_JSON', JSON.stringify(users || []));
+  const normalized = (users || []).map(normalizeAdminUser_).filter(function (user) { return Boolean(user.email); });
+  PropertiesService.getScriptProperties().setProperty('CQR_ADMIN_USERS_JSON', JSON.stringify(normalized));
 }
 
-function touchUserLogin_(profile) {
-  const email = String(profile.email || '').trim().toLowerCase();
-  if (!email) return;
-
-  const users = readAdminUsers_();
-  const index = users.findIndex(user => String(user.email || '').toLowerCase() === email);
-  const loginAt = new Date().toISOString();
-  if (index >= 0) {
-    users[index] = Object.assign({}, users[index], {
-      display_name: users[index].display_name || profile.name || '',
-      last_login_at: loginAt
-    });
-  } else {
-    users.push({
-      email,
-      display_name: profile.name || '',
-      role_id: roleForSeedEmail_(email),
-      status: 'active',
-      allowed_games: 'ALL',
-      allowed_regions: 'ALL',
-      last_login_at: loginAt
-    });
-  }
-  writeAdminUsers_(users);
+function withUserStoreLock_(callback) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try { return callback(); } finally { lock.releaseLock(); }
 }
 
 function roleForSeedEmail_(email) {
-  const normalized = String(email || '').toLowerCase();
-  return CONFIG.SUPER_ADMIN_EMAILS.map(String).map(e => e.toLowerCase()).includes(normalized)
-    ? 'super_admin'
-    : 'viewer';
+  return configuredSuperAdminEmails_().indexOf(String(email || '').trim().toLowerCase()) !== -1 ? 'super_admin' : 'viewer';
+}
+
+function roleForEmail_(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (configuredSuperAdminEmails_().indexOf(normalized) !== -1) return 'super_admin';
+  const user = readAdminUsers_().find(function (item) { return item.email === normalized; });
+  return user ? String(user.role_id || 'viewer') : 'viewer';
+}
+
+function currentAdminUser_(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  const user = readAdminUsers_().find(function (item) { return item.email === normalized; });
+  if (user) return normalizeAdminUser_(user);
+  if (configuredSuperAdminEmails_().indexOf(normalized) !== -1) return normalizeAdminUser_({ email: normalized, role_id: 'super_admin', status: 'active', allowed_games: 'ALL', allowed_regions: 'ALL' });
+  return null;
+}
+
+function userForClient_(user) { return normalizeAdminUser_(user || {}); }
+
+function createSession_(profile) {
+  const token = Utilities.getUuid() + '-' + Utilities.getUuid();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + CONFIG.SESSION_TTL_SECONDS * 1000);
+  const user = currentAdminUser_(profile.email) || normalizeAdminUser_({ email: profile.email, display_name: profile.name || profile.email, role_id: roleForEmail_(profile.email), status: 'active', allowed_games: 'ALL', allowed_regions: 'ALL' });
+  CacheService.getScriptCache().put('session:' + token, JSON.stringify({ email: user.email, name: user.display_name || profile.name || user.email, role_id: user.role_id, status: user.status, allowed_games: user.allowed_games, allowed_regions: user.allowed_regions, created_at: now.toISOString(), expires_at: expiresAt.toISOString() }), CONFIG.SESSION_TTL_SECONDS);
+  return { session_token: token, expires_at: expiresAt.toISOString(), user: userForClient_(user) };
+}
+
+function requireSuperAdmin_(session) {
+  if (roleForEmail_(session.email) !== 'super_admin') throw new Error('Only super_admin can manage users.');
+}
+
+function activeSuperAdminCount_(users) {
+  return (users || []).filter(function (user) { return user.role_id === 'super_admin' && user.status === 'active'; }).length;
+}
+
+function ensureCentralLogSheet_(sheetName, headers) {
+  const ss = SpreadsheetApp.openById(CONFIG.CENTRAL_DB_ID);
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet) sheet = ss.insertSheet(sheetName);
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function appendCentralLogRow_(sheetName, headers, row) {
+  ensureCentralLogSheet_(sheetName, headers).appendRow(headers.map(function (header) { return row[header] == null ? '' : row[header]; }));
+}
+
+function appendUserAccessLog_(targetEmail, action, beforeValue, afterValue, performedBy, result) {
+  appendCentralLogRow_('UserAccessLogs', CQR_USER_ACCESS_LOG_HEADERS_, { log_id: 'UAL-' + Utilities.getUuid(), target_email: String(targetEmail || '').toLowerCase(), action: action, before_json: beforeValue ? JSON.stringify(beforeValue) : '', after_json: afterValue ? JSON.stringify(afterValue) : '', performed_by: String(performedBy || '').toLowerCase(), result: result || 'completed', created_at: new Date().toISOString() });
+}
+
+function appendUserLoginLog_(email, roleId, result, userAgent) {
+  appendCentralLogRow_('UserLoginLogs', CQR_USER_LOGIN_LOG_HEADERS_, { login_id: 'ULL-' + Utilities.getUuid(), email: String(email || '').toLowerCase(), login_at: new Date().toISOString(), result: result || 'success', role_id: roleId || 'viewer', user_agent: String(userAgent || '').slice(0, 500) });
+}
+
+function touchUserLogin_(profile, userAgent) {
+  const email = String(profile.email || '').trim().toLowerCase();
+  if (!email) return;
+  const loginAt = new Date().toISOString();
+  let savedUser = null;
+  withUserStoreLock_(function () {
+    const users = readAdminUsers_();
+    const index = users.findIndex(function (user) { return user.email === email; });
+    if (index >= 0) {
+      users[index] = normalizeAdminUser_(Object.assign({}, users[index], { display_name: users[index].display_name || profile.name || '', last_login_at: loginAt }));
+      savedUser = users[index];
+    } else {
+      savedUser = normalizeAdminUser_({ email: email, display_name: profile.name || '', role_id: roleForSeedEmail_(email), status: 'active', allowed_games: 'ALL', allowed_regions: 'ALL', last_login_at: loginAt, created_at: loginAt, created_by: 'login', updated_at: loginAt, updated_by: 'login' });
+      users.push(savedUser);
+    }
+    writeAdminUsers_(users);
+  });
+  try { appendUserLoginLog_(email, savedUser ? savedUser.role_id : roleForEmail_(email), 'success', userAgent); }
+  catch (auditError) { console.warn('UserLoginLogs append failed: ' + (auditError.message || auditError)); }
+}
+
+function handleSessionMe_(e, callback) {
+  const session = validateSession_(e.parameter.session_token);
+  const user = currentAdminUser_(session.email);
+  if (!user) throw new Error('User not found.');
+  return json_({ ok: true, user: userForClient_(user) }, callback);
 }
 
 function handleAdminUsersList_(e, callback) {
   const session = validateSession_(e.parameter.session_token);
   requireSuperAdmin_(session);
-  const users = readAdminUsers_().sort((a, b) => String(a.email).localeCompare(String(b.email)));
-  return json_({ ok: true, users }, callback);
+  const users = readAdminUsers_().sort(function (a, b) { return String(a.email).localeCompare(String(b.email)); });
+  return json_({ ok: true, users: users.map(userForClient_), current_user_email: String(session.email || '').toLowerCase(), configured_super_admins: configuredSuperAdminEmails_() }, callback);
 }
 
 function handleAdminUsersUpsert_(e, callback) {
   const session = validateSession_(e.parameter.session_token);
   requireSuperAdmin_(session);
-
   const email = String(e.parameter.email || '').trim().toLowerCase();
-  if (!email || !email.includes('@')) throw new Error('Valid email is required.');
-
-  const nextUser = {
-    email,
-    display_name: String(e.parameter.display_name || '').trim(),
-    role_id: String(e.parameter.role_id || 'viewer').trim(),
-    status: String(e.parameter.status || 'active').trim(),
-    allowed_games: String(e.parameter.allowed_games || 'ALL').trim(),
-    allowed_regions: String(e.parameter.allowed_regions || 'ALL').trim(),
-    last_login_at: ''
-  };
-  if (CONFIG.SUPER_ADMIN_EMAILS.map(String).map(item => item.toLowerCase()).includes(email)) {
-    nextUser.role_id = 'super_admin';
-    nextUser.status = 'active';
-  }
-
-  const users = readAdminUsers_();
-  const index = users.findIndex(user => String(user.email || '').toLowerCase() === email);
-  if (index >= 0) {
-    nextUser.last_login_at = users[index].last_login_at || '';
-    users[index] = Object.assign({}, users[index], nextUser);
-  } else {
-    users.push(nextUser);
-  }
-  writeAdminUsers_(users);
-  return json_({ ok: true, user: nextUser, users }, callback);
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Valid email is required.');
+  const displayName = String(e.parameter.display_name || '').trim();
+  if (!displayName) throw new Error('Display name is required.');
+  let roleId = String(e.parameter.role_id || 'viewer').trim();
+  let status = String(e.parameter.status || 'active').trim();
+  if (CQR_USER_ROLES_.indexOf(roleId) === -1) throw new Error('Invalid role_id: ' + roleId);
+  if (CQR_USER_STATUSES_.indexOf(status) === -1) throw new Error('Invalid status: ' + status);
+  const allowedGames = normalizeAllowedGames_(e.parameter.allowed_games || 'ALL');
+  const allowedRegions = normalizeAllowedRegions_(e.parameter.allowed_regions || 'ALL');
+  validateUserScopeCompatibility_(allowedGames, allowedRegions);
+  if (configuredSuperAdminEmails_().indexOf(email) !== -1) { roleId = 'super_admin'; status = 'active'; }
+  const now = new Date().toISOString();
+  let beforeUser = null;
+  let savedUser = null;
+  withUserStoreLock_(function () {
+    const users = readAdminUsers_();
+    const index = users.findIndex(function (user) { return user.email === email; });
+    beforeUser = index >= 0 ? normalizeAdminUser_(users[index]) : null;
+    savedUser = normalizeAdminUser_({ email: email, display_name: displayName, role_id: roleId, status: status, allowed_games: allowedGames, allowed_regions: allowedRegions, last_login_at: beforeUser ? beforeUser.last_login_at : '', created_at: beforeUser && beforeUser.created_at ? beforeUser.created_at : now, created_by: beforeUser && beforeUser.created_by ? beforeUser.created_by : session.email, updated_at: now, updated_by: session.email });
+    const removesActiveSuper = beforeUser && beforeUser.role_id === 'super_admin' && beforeUser.status === 'active' && !(savedUser.role_id === 'super_admin' && savedUser.status === 'active');
+    if (removesActiveSuper && activeSuperAdminCount_(users) <= 1) throw new Error('Cannot remove or disable the last active super_admin.');
+    if (index >= 0) users[index] = savedUser; else users.push(savedUser);
+    writeAdminUsers_(users);
+  });
+  let auditWarning = '';
+  try { appendUserAccessLog_(email, beforeUser ? 'update' : 'create', beforeUser, savedUser, session.email, 'completed'); }
+  catch (auditError) { auditWarning = auditError.message || String(auditError); }
+  return json_({ ok: true, user: userForClient_(savedUser), audit_warning: auditWarning, session_refresh_required: email !== String(session.email || '').toLowerCase() }, callback);
 }
 
 function handleAdminUsersDelete_(e, callback) {
   const session = validateSession_(e.parameter.session_token);
   requireSuperAdmin_(session);
-
   const email = String(e.parameter.email || '').trim().toLowerCase();
   if (!email || !email.includes('@')) throw new Error('Valid email is required.');
-  if (email === String(session.email || '').toLowerCase()) {
-    throw new Error('Cannot delete the current signed-in account.');
-  }
-  if (CONFIG.SUPER_ADMIN_EMAILS.map(String).map(item => item.toLowerCase()).includes(email)) {
-    throw new Error('Cannot delete a configured super_admin account.');
-  }
+  if (email === String(session.email || '').toLowerCase()) throw new Error('Cannot delete the current signed-in account.');
+  if (configuredSuperAdminEmails_().indexOf(email) !== -1) throw new Error('Cannot delete a configured super_admin account.');
+  let deletedUser = null;
+  withUserStoreLock_(function () {
+    const users = readAdminUsers_();
+    const index = users.findIndex(function (user) { return user.email === email; });
+    if (index < 0) throw new Error('User not found.');
+    deletedUser = normalizeAdminUser_(users[index]);
+    if (deletedUser.role_id === 'super_admin' && deletedUser.status === 'active' && activeSuperAdminCount_(users) <= 1) throw new Error('Cannot delete the last active super_admin.');
+    users.splice(index, 1);
+    writeAdminUsers_(users);
+  });
+  let auditWarning = '';
+  try { appendUserAccessLog_(email, 'delete', deletedUser, null, session.email, 'completed'); }
+  catch (auditError) { auditWarning = auditError.message || String(auditError); }
+  return json_({ ok: true, deleted_email: email, audit_warning: auditWarning }, callback);
+}
 
-  const users = readAdminUsers_();
-  const nextUsers = users.filter(user => String(user.email || '').toLowerCase() !== email);
-  if (nextUsers.length === users.length) throw new Error('User not found.');
-  writeAdminUsers_(nextUsers);
-  return json_({ ok: true, deleted_email: email, users: nextUsers }, callback);
+function recentUserLogs_(sheetName, email, limit, timeField) {
+  const targetEmail = String(email || '').trim().toLowerCase();
+  const maxRows = Math.max(1, Math.min(Number(limit || 50), 200));
+  return readCentralSheetRows_(sheetName).filter(function (row) {
+    const rowEmail = String(row.target_email || row.email || '').trim().toLowerCase();
+    return !targetEmail || rowEmail === targetEmail;
+  }).sort(function (a, b) { return String(b[timeField] || '').localeCompare(String(a[timeField] || '')); }).slice(0, maxRows);
+}
+
+function handleAdminUsersAudit_(e, callback) {
+  const session = validateSession_(e.parameter.session_token);
+  requireSuperAdmin_(session);
+  return json_({ ok: true, logs: recentUserLogs_('UserAccessLogs', e.parameter.email, e.parameter.limit, 'created_at') }, callback);
+}
+
+function handleAdminUsersLoginHistory_(e, callback) {
+  const session = validateSession_(e.parameter.session_token);
+  requireSuperAdmin_(session);
+  return json_({ ok: true, logs: recentUserLogs_('UserLoginLogs', e.parameter.email, e.parameter.limit, 'login_at') }, callback);
 }
 
 function handleAdminPipelineHealth_(e, callback) {
@@ -367,6 +490,32 @@ function handleAdminPipelineHealth_(e, callback) {
       });
     });
 
+  scopeRows
+    .filter(row => row.action_status === 'build_required')
+    .forEach(row => {
+      issues.push({
+        level: 'warn',
+        badge: 'Build required',
+        game_code: row.game_code,
+        period_key: row.period_key,
+        title: row.game_code + ' ยังไม่ได้ Build Master',
+        detail: 'เดือน ' + row.period_key + ' ผ่าน Raw Check แล้ว แต่ยังไม่มี Master/Central พร้อมใช้'
+      });
+      recommendations.push({
+        title: 'Build Master ' + row.game_code + ' รอบ ' + row.period_key,
+        detail: 'ใช้ First Build จาก Raw Hash ล่าสุด โดยไม่ต้อง Preview หรือ Clear',
+        build: {
+          mode: 'first_build',
+          target_game_code: row.game_code,
+          target_month: row.period_key,
+          raw_hash: row.raw_hash || '',
+          raw_check_id: row.raw_check_id || '',
+          raw_status: row.raw_status || '',
+          action_status: row.action_status || ''
+        }
+      });
+    });
+
   reviewRows.forEach(row => {
     const gameCode = pipelineGame_(row);
     const periodKey = pipelinePeriod_(row);
@@ -402,7 +551,7 @@ function handleAdminPipelineHealth_(e, callback) {
     (normalizeGameCode_(game) === 'ALL' || pipelineGame_(row) === normalizeGameCode_(game)) &&
     (!normalizePeriodKey_(month) || pipelinePeriod_(row) === normalizePeriodKey_(month))
   );
-  if (!targetRows.length) {
+  if (!targetRows.length && !scopeRows.some(row => row.action_status === 'build_required')) {
     issues.push({
       level: 'warn',
       badge: 'No logs',
@@ -456,6 +605,7 @@ function handleAdminPipelineHealth_(e, callback) {
   });
 
   missingReadyGames.forEach(gameCode => {
+    if (scopeRows.some(row => row.game_code === gameCode && row.action_status === 'build_required')) return;
     if (reviewRows.some(row => pipelineGame_(row) === gameCode)) return;
     issues.push({
       level: 'warn',
@@ -495,8 +645,9 @@ function handleAdminPipelineHealth_(e, callback) {
       raw_ready: rawReadyRows.length,
       raw_logs: targetRawRows.length,
       ready_runs: readyRows.length,
+      build_required: scopeRows.filter(row => row.action_status === 'build_required').length,
       needs_review: reviewRows.length,
-      cleanup_needed: recommendations.length,
+      cleanup_needed: scopeRows.filter(row => row.action_status === 'repair').length,
       pipeline_logs: targetRows.length,
       data_index_rows: dataIndexTargetRows.length,
       scope_rows: scopeRows.length
@@ -877,12 +1028,48 @@ function handleAdminN8nCommand_(e, callback, command) {
   const targetGamesCsv = String(e.parameter.target_games_csv || game || 'ALL').trim();
   const targetMonthsCsv = String(e.parameter.target_months_csv || month || 'AUTO').trim();
   const expectedTabsCsv = String(e.parameter.expected_tabs_csv || 'Registered,DAU,Returners,Late_Starters,Login').trim();
+  const requestedBuildMode = String(e.parameter.build_mode || '').trim().toLowerCase();
+  const requestedRawHash = String(e.parameter.raw_data_hash || e.parameter.raw_hash || '').trim();
+  const requestedRawCheckId = String(e.parameter.raw_check_id || '').trim();
+  const previewReceipt = String(e.parameter.preview_receipt || '').trim();
+  let effectiveBuildMode = requestedBuildMode;
+  let firstBuildGuard = null;
+  if (command === 'raw.check' && (game.toUpperCase() === 'ALL' || month.toUpperCase() === 'ALL')) {
+    throw new Error('Manual Raw Check ต้องเลือก Game และ Month อย่างละ 1 ค่า ห้ามใช้ ALL; ALL จะใช้ Background Raw Check.');
+  }
   if (!month) throw new Error('Month is required.');
   if ((command === 'cleanup.preview' || command === 'cleanup.run') && !runId && !runIds.length && !cleanupHash) {
     throw new Error('Run ID or hash is required for cleanup.');
   }
   if ((command === 'cleanup.preview' || command === 'cleanup.run') && game === 'ALL' && !runIds.length && !cleanupHash) {
     throw new Error('Cleanup requires one selected game, not ALL.');
+  }
+
+  if (command === 'master.run') {
+    const normalizedGame = normalizeGameCode_(game);
+    const normalizedMonth = normalizePeriodKey_(month);
+    if (!normalizedGame || normalizedGame === 'ALL') {
+      throw new Error('Master Build requires one selected game, not ALL.');
+    }
+    if (!normalizedMonth) {
+      throw new Error('Master Build requires a valid month.');
+    }
+
+    effectiveBuildMode = effectiveBuildMode || ((runId || previewReceipt) ? 'repair' : 'first_build');
+
+    if (effectiveBuildMode === 'first_build') {
+      firstBuildGuard = validateFirstBuildScope_(
+        normalizedGame,
+        normalizedMonth,
+        requestedRawHash,
+        requestedRawCheckId
+      );
+    } else if (effectiveBuildMode === 'repair') {
+      if (!runId) throw new Error('Repair Build requires run_id.');
+      if (!previewReceipt) throw new Error('Repair Build requires preview_receipt.');
+    } else {
+      throw new Error('Unsupported build_mode: ' + effectiveBuildMode);
+    }
   }
 
   const props = PropertiesService.getScriptProperties();
@@ -900,6 +1087,25 @@ function handleAdminN8nCommand_(e, callback, command) {
     cleanup_hash: cleanupHash,
     old_hash: cleanupHash,
     hash: cleanupHash,
+    build_mode: command === 'master.run' ? effectiveBuildMode : '',
+    raw_data_hash: command === 'master.run'
+      ? (firstBuildGuard ? firstBuildGuard.raw_hash : requestedRawHash)
+      : '',
+    raw_hash: command === 'master.run'
+      ? (firstBuildGuard ? firstBuildGuard.raw_hash : requestedRawHash)
+      : '',
+    raw_check_id: command === 'master.run'
+      ? (firstBuildGuard ? firstBuildGuard.raw_check_id : requestedRawCheckId)
+      : '',
+    preview_receipt: previewReceipt,
+    idempotency_key: command === 'master.run' && effectiveBuildMode === 'first_build'
+      ? [
+          'FIRST-BUILD',
+          normalizeGameCode_(game),
+          normalizePeriodKey_(month),
+          firstBuildGuard ? firstBuildGuard.raw_hash : requestedRawHash
+        ].join('|')
+      : '',
     confirm_delete: command === 'cleanup.run' ? 'YES' : 'NO',
     run_mode: command === 'master.run' ? 'force' : command === 'raw.check' ? 'manual_check' : '',
     check_mode: command === 'raw.check' ? String(e.parameter.check_mode || 'manual') : '',
@@ -934,10 +1140,94 @@ function handleAdminN8nCommand_(e, callback, command) {
     command,
     game,
     month,
+    build_mode: command === 'master.run' ? effectiveBuildMode : '',
+    raw_data_hash: command === 'master.run' ? payload.raw_data_hash : '',
+    raw_check_id: command === 'master.run' ? payload.raw_check_id : '',
+    idempotency_key: command === 'master.run' ? payload.idempotency_key : '',
     status: 'sent',
     n8n_result: data,
     request_id: payload.request_id
   }, callback);
+}
+
+/**
+ * Validates that a scope is safe for First Build.
+ *
+ * A First Build is allowed only when:
+ * - one concrete Game and Month are selected;
+ * - the latest RawIngestionLogs row is raw_ready;
+ * - the client Raw Hash still matches the latest Raw Hash;
+ * - no ready Master run, needs_review run, or non-empty DataIndex hash exists.
+ *
+ * This guard deliberately reads Central DB directly instead of trusting
+ * frontend state or an n8n health response.
+ */
+function validateFirstBuildScope_(game, month, requestedRawHash, requestedRawCheckId) {
+  const wantedGame = normalizeGameCode_(game);
+  const wantedMonth = normalizePeriodKey_(month);
+
+  if (!wantedGame || wantedGame === 'ALL') {
+    throw new Error('First Build requires one selected game.');
+  }
+  if (!wantedMonth) {
+    throw new Error('First Build requires a valid month.');
+  }
+
+  const rawRows = readCentralSheetRows_('RawIngestionLogs').filter(function (row) {
+    return pipelineGame_(row) === wantedGame && pipelinePeriod_(row) === wantedMonth;
+  });
+  const latestRaw = latestPipelineRow_(rawRows);
+  const rawStatus = pipelineStatus_(latestRaw || {});
+  const rawHash = pipelineHashAfter_(latestRaw || {});
+  const rawCheckId = pipelineRunId_(latestRaw || {})
+    || String(rowValue_(latestRaw || {}, ['raw_check_id', 'request_id']) || '').trim();
+
+  if (!latestRaw || rawStatus !== 'raw_ready') {
+    throw new Error('Raw is not ready. Run Check Raw first.');
+  }
+  if (!rawHash) {
+    throw new Error('Latest Raw Hash is missing. Run Check Raw again.');
+  }
+  if (!requestedRawHash) {
+    throw new Error('First Build requires raw_data_hash from the latest Pipeline Check.');
+  }
+  if (requestedRawHash !== rawHash) {
+    throw new Error('Raw Hash changed after Pipeline Check. Refresh Data Health before Build.');
+  }
+  if (requestedRawCheckId && rawCheckId && requestedRawCheckId !== rawCheckId) {
+    throw new Error('Raw Check ID changed after Pipeline Check. Refresh Data Health before Build.');
+  }
+
+  const pipelineRows = readCentralSheetRows_('PipelineLogs').filter(function (row) {
+    return pipelineGame_(row) === wantedGame && pipelinePeriod_(row) === wantedMonth;
+  });
+  const dataIndexRows = readCentralSheetRows_('DataIndex').filter(function (row) {
+    return pipelineGame_(row) === wantedGame && pipelinePeriod_(row) === wantedMonth;
+  });
+
+  const latestReady = latestPipelineRow_(pipelineRows.filter(function (row) {
+    return pipelineStatus_(row) === 'ready';
+  }));
+  const latestReview = latestPipelineRow_(pipelineRows.filter(function (row) {
+    return pipelineStatus_(row) === 'needs_review';
+  }));
+  const latestIndex = latestPipelineRow_(dataIndexRows);
+  const indexHash = dataIndexHash_(latestIndex || {});
+
+  if (latestReady || indexHash) {
+    throw new Error('Existing Master data found. Use Repair Flow.');
+  }
+  if (latestReview) {
+    throw new Error('Existing needs_review run found. Use Preview/Clear Repair Flow.');
+  }
+
+  return {
+    game_code: wantedGame,
+    period_key: wantedMonth,
+    raw_status: rawStatus,
+    raw_hash: rawHash,
+    raw_check_id: rawCheckId
+  };
 }
 
 function n8nWebhookUrlForCommand_(props, command) {
@@ -967,6 +1257,295 @@ function readCentralSheetRows_(sheetName) {
     });
     return object;
   });
+}
+
+/**
+ * Returns Raw Check queue status to the Admin Dashboard.
+ *
+ * Required query parameters:
+ * - session_token
+ * - request_id
+ *
+ * Optional query parameter:
+ * - include_jobs=true
+ *
+ * Normal polling should omit include_jobs so Apps Script reads only one
+ * RawCheckRequests row. Job details are loaded only when explicitly requested.
+ */
+function handleAdminRawCheckStatus_(e, callback) {
+  const session = validateSession_(e.parameter.session_token);
+  requireSuperAdmin_(session);
+
+  const requestId = String(e.parameter.request_id || '').trim();
+  const includeJobs = /^(1|true|yes)$/i.test(String(e.parameter.include_jobs || '').trim());
+  const result = getRawCheckRequestStatus_(requestId, includeJobs);
+
+  return json_(result, callback);
+}
+
+/**
+ * Reads one RawCheckRequests row efficiently.
+ *
+ * Performance notes:
+ * - Opens the Central DB once per API request.
+ * - Uses TextFinder on the request_id column instead of reading the whole tab.
+ * - Caches normalized headers for five minutes.
+ * - Skips RawCheckJobs during normal polling.
+ */
+function getRawCheckRequestStatus_(requestId, includeJobs) {
+  const normalizedRequestId = String(requestId || '').trim();
+
+  if (!normalizedRequestId) {
+    throw new Error('Missing request_id.');
+  }
+
+  const spreadsheet = SpreadsheetApp.openById(CONFIG.CENTRAL_DB_ID);
+  const requestSheet = spreadsheet.getSheetByName('RawCheckRequests');
+
+  if (!requestSheet) {
+    throw new Error('Missing Central DB sheet: RawCheckRequests');
+  }
+
+  const requestHeaders = getSheetHeaderInfo_(requestSheet);
+  const request = findSheetRowByValue_(
+    requestSheet,
+    requestHeaders,
+    'request_id',
+    normalizedRequestId
+  );
+
+  if (!request) {
+    return {
+      ok: false,
+      found: false,
+      request_id: normalizedRequestId,
+      status: 'not_found',
+      message: 'Raw Check request not found.',
+      jobs_included: false,
+      jobs: [],
+      poll_after_ms: 5000,
+      server_time: new Date().toISOString()
+    };
+  }
+
+  const result = {
+    ok: true,
+    found: true,
+
+    request_id: normalizedRequestId,
+    batch_id: stringValue_(request.batch_id),
+    target_games_csv: stringValue_(request.target_games_csv),
+    target_months_csv: stringValue_(request.target_months_csv),
+
+    total_jobs: numberValue_(request.total_jobs),
+    queued_jobs: numberValue_(request.queued_jobs),
+    running_jobs: numberValue_(request.running_jobs),
+    completed_jobs: numberValue_(request.completed_jobs),
+    failed_jobs: numberValue_(request.failed_jobs),
+
+    raw_ready_count: numberValue_(request.raw_ready_count),
+    raw_updated_count: numberValue_(request.raw_updated_count),
+    raw_partial_count: numberValue_(request.raw_partial_count),
+    raw_missing_count: numberValue_(request.raw_missing_count),
+
+    status: stringValue_(request.status),
+    current_job_id: stringValue_(request.current_job_id),
+    current_game_code: stringValue_(request.current_game_code),
+    current_period_key: stringValue_(request.current_period_key),
+
+    requested_by: stringValue_(request.requested_by),
+    check_mode: stringValue_(request.check_mode),
+    source: stringValue_(request.source),
+
+    created_at: stringValue_(request.created_at),
+    updated_at: stringValue_(request.updated_at),
+    finished_at: stringValue_(request.finished_at),
+    error_message: stringValue_(request.error_message),
+
+    jobs_included: false,
+    jobs: [],
+    poll_after_ms: 5000,
+    server_time: new Date().toISOString()
+  };
+
+  if (includeJobs) {
+    result.jobs = readRawCheckJobsForRequest_(spreadsheet, normalizedRequestId);
+    result.jobs_included = true;
+  }
+
+  return result;
+}
+
+/**
+ * Reads RawCheckJobs only when include_jobs=true.
+ */
+function readRawCheckJobsForRequest_(spreadsheet, requestId) {
+  const jobsSheet = spreadsheet.getSheetByName('RawCheckJobs');
+
+  if (!jobsSheet || jobsSheet.getLastRow() < 2) {
+    return [];
+  }
+
+  const headerInfo = getSheetHeaderInfo_(jobsSheet);
+  const requestIdIndex = headerInfo.index_by_name.request_id;
+
+  if (requestIdIndex === undefined) {
+    throw new Error('Missing request_id column in RawCheckJobs.');
+  }
+
+  const rowCount = jobsSheet.getLastRow() - 1;
+  const columnCount = headerInfo.headers.length;
+  const values = jobsSheet.getRange(2, 1, rowCount, columnCount).getValues();
+
+  return values
+    .map(function (row, index) {
+      return sheetRowToObject_(headerInfo.headers, row, index + 2);
+    })
+    .filter(function (row) {
+      return String(row.request_id || '').trim() === requestId;
+    })
+    .map(function (row) {
+      return {
+        job_id: stringValue_(row.job_id),
+        request_id: stringValue_(row.request_id),
+        batch_id: stringValue_(row.batch_id),
+
+        game_code: stringValue_(row.game_code),
+        period_key: stringValue_(row.period_key),
+        raw_file_id: stringValue_(row.raw_file_id),
+        raw_file_name: stringValue_(row.raw_file_name),
+
+        status: stringValue_(row.status),
+        result_status: stringValue_(row.result_status),
+        tab_count_found: numberValue_(row.tab_count_found),
+        tab_count_expected: numberValue_(row.tab_count_expected),
+        missing_tabs: stringValue_(row.missing_tabs),
+
+        raw_previous_hash: stringValue_(row.raw_previous_hash),
+        raw_data_hash: stringValue_(row.raw_data_hash),
+
+        registered_rows: numberValue_(row.registered_rows),
+        dau_rows: numberValue_(row.dau_rows),
+        returners_rows: numberValue_(row.returners_rows),
+        late_starters_rows: numberValue_(row.late_starters_rows),
+        login_rows: numberValue_(row.login_rows),
+
+        attempt_count: numberValue_(row.attempt_count),
+        created_at: stringValue_(row.created_at),
+        started_at: stringValue_(row.started_at),
+        updated_at: stringValue_(row.updated_at),
+        finished_at: stringValue_(row.finished_at),
+        error_message: stringValue_(row.error_message)
+      };
+    })
+    .sort(function (a, b) {
+      return String(a.job_id).localeCompare(String(b.job_id));
+    });
+}
+
+/**
+ * Returns normalized sheet headers and their zero-based indexes.
+ * The value is cached for five minutes to reduce repeated header reads.
+ */
+function getSheetHeaderInfo_(sheet) {
+  const lastColumn = sheet.getLastColumn();
+
+  if (lastColumn < 1) {
+    throw new Error('Sheet has no columns: ' + sheet.getName());
+  }
+
+  const cache = CacheService.getScriptCache();
+  const cacheKey = [
+    'cqr-sheet-headers',
+    CONFIG.CENTRAL_DB_ID,
+    sheet.getSheetId(),
+    lastColumn
+  ].join(':');
+
+  const cached = cache.get(cacheKey);
+
+  if (cached) {
+    const parsed = safeJsonParse_(cached, null);
+
+    if (parsed && Array.isArray(parsed.headers) && parsed.index_by_name) {
+      return parsed;
+    }
+  }
+
+  const headers = sheet
+    .getRange(1, 1, 1, lastColumn)
+    .getValues()[0]
+    .map(normalizeHeader_);
+
+  const indexByName = {};
+
+  headers.forEach(function (header, index) {
+    if (header) indexByName[header] = index;
+  });
+
+  const result = {
+    headers: headers,
+    index_by_name: indexByName
+  };
+
+  cache.put(cacheKey, JSON.stringify(result), 300);
+  return result;
+}
+
+/**
+ * Finds an exact cell in one key column, then reads only that matching row.
+ */
+function findSheetRowByValue_(sheet, headerInfo, headerName, wantedValue) {
+  const normalizedHeader = normalizeHeader_(headerName);
+  const columnIndex = headerInfo.index_by_name[normalizedHeader];
+
+  if (columnIndex === undefined) {
+    throw new Error(
+      'Missing column "' + normalizedHeader + '" in sheet "' + sheet.getName() + '".'
+    );
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
+
+  const match = sheet
+    .getRange(2, columnIndex + 1, lastRow - 1, 1)
+    .createTextFinder(String(wantedValue))
+    .matchEntireCell(true)
+    .matchCase(true)
+    .findNext();
+
+  if (!match) return null;
+
+  const rowNumber = match.getRow();
+  const values = sheet
+    .getRange(rowNumber, 1, 1, headerInfo.headers.length)
+    .getValues()[0];
+
+  return sheetRowToObject_(headerInfo.headers, values, rowNumber);
+}
+
+function sheetRowToObject_(headers, row, rowNumber) {
+  const result = { row_number: rowNumber };
+
+  headers.forEach(function (header, index) {
+    if (!header) return;
+    const value = row[index];
+    result[header] = value instanceof Date ? value.toISOString() : value;
+  });
+
+  return result;
+}
+
+function stringValue_(value) {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString();
+  return String(value);
+}
+
+function numberValue_(value) {
+  const number = Number(value);
+  return isFinite(number) ? number : 0;
 }
 
 function normalizeHeader_(header) {
@@ -1062,13 +1641,24 @@ function uniqueValues_(values) {
 function validateSession_(sessionToken) {
   const token = String(sessionToken || '').trim();
   if (!token) throw new Error('Missing session_token.');
-
-  const text = CacheService.getScriptCache().get('session:' + token);
+  const cache = CacheService.getScriptCache();
+  const text = cache.get('session:' + token);
   if (!text) throw new Error('Session not found or expired.');
-
   const session = JSON.parse(text);
-  if (!isAllowed_(session.email)) throw new Error('Email is not allowed.');
-  return session;
+  const liveUser = currentAdminUser_(session.email);
+  if (!liveUser || liveUser.status !== 'active' || !isAllowed_(session.email)) {
+    cache.remove('session:' + token);
+    throw new Error('User is disabled, pending, deleted, or not allowed.');
+  }
+  const expiresAt = new Date(session.expires_at || 0).getTime();
+  const remainingSeconds = Math.floor((expiresAt - Date.now()) / 1000);
+  if (remainingSeconds <= 0) {
+    cache.remove('session:' + token);
+    throw new Error('Session not found or expired.');
+  }
+  const refreshed = Object.assign({}, session, { name: liveUser.display_name || session.name || liveUser.email, role_id: liveUser.role_id, status: liveUser.status, allowed_games: liveUser.allowed_games, allowed_regions: liveUser.allowed_regions });
+  cache.put('session:' + token, JSON.stringify(refreshed), Math.min(remainingSeconds, CONFIG.SESSION_TTL_SECONDS));
+  return refreshed;
 }
 
 function readDashboardData_() {
@@ -1297,4 +1887,24 @@ function buildCqrAlertLogContext_(limit) {
       message
     ].join('\n');
   }).join('\n\n');
+}
+function authorizeCqrAllServices() {
+  const result = {};
+
+  const tokenCheck = UrlFetchApp.fetch(
+    'https://oauth2.googleapis.com/tokeninfo?id_token=test',
+    { muteHttpExceptions: true }
+  );
+  result.url_fetch_status = tokenCheck.getResponseCode();
+
+  result.data_file = DriveApp
+    .getFileById(CONFIG.DATA_FILE_ID)
+    .getName();
+
+  result.central_db = SpreadsheetApp
+    .openById(CONFIG.CENTRAL_DB_ID)
+    .getName();
+
+  console.log(JSON.stringify(result, null, 2));
+  return result;
 }
