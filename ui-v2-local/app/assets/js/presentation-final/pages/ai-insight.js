@@ -66,6 +66,15 @@ const AI_CHAT_UX_STYLE = `<style>
     font-weight: 800;
   }
 
+  .ai-answer-content .ai-entity {
+    color: rgb(15, 23, 42);
+    font-weight: 850;
+    text-decoration: underline;
+    text-decoration-color: rgba(249, 115, 22, 0.32);
+    text-decoration-thickness: 0.16em;
+    text-underline-offset: 0.16em;
+  }
+
   .ai-answer-content code {
     padding: 0.08rem 0.3rem;
     border-radius: 0.35rem;
@@ -203,6 +212,12 @@ const AI_CONTEXT_VERSION = 9;
 const AI_CONVERSATION_KEY = "cqr_ai_conversation_id";
 const AI_PROMPT_VERSION = "ai-summary-v3-direct-master";
 let aiCatalogLoaded = false;
+let aiDraft = "";
+let aiFeedScrollTop = 0;
+let aiFeedStickToBottom = true;
+let aiInputSelectionStart = 0;
+let aiInputSelectionEnd = 0;
+let aiInputRestoreFocus = false;
 
 function allowedAiGames() {
   return new Set(APP_CONFIG.games.map((item) => item.value));
@@ -255,9 +270,7 @@ async function loadAiCatalogFromDirectMaster() {
     const current = readAiContext().period;
     select.innerHTML = optionMarkup([{ value: "ALL", label: "All Periods" }, ...months.slice().reverse().map((value) => ({ value, label: monthEnglish(value) }))], current);
   } catch (error) {
-    aiCatalogLoaded = false;
-    setAiStatus({ status: "failed", source: "Direct Master catalog", error: error.message || String(error), updatedAt: new Date().toISOString() });
-    window.dispatchEvent(new Event("cqr-page-refresh"));
+    console.warn("AI catalog load skipped; using configured periods:", error);
   }
 }
 
@@ -297,13 +310,59 @@ function cleanAnswer(result) {
   return answer;
 }
 
+function escapeAiRegExp(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function emphasizeAiEntities(html) {
+  const configuredGames = APP_CONFIG.games
+    .flatMap((item) => [item.value, item.label])
+    .filter((value) => value && value !== "ALL" && value !== "All Games");
+
+  const terms = [
+    ...configuredGames,
+    "Organic / Unknown",
+    "In-App Register",
+    "Facebook Ads",
+    "Google Ads",
+    "Other Campaign",
+    "Channel Quality",
+    "Weekly Alert",
+    "Retention",
+    "Register",
+    "D14",
+    "D7",
+    "D3",
+    "D1",
+  ];
+
+  const uniqueTerms = [...new Set(terms)]
+    .sort((left, right) => right.length - left.length)
+    .map(escapeAiRegExp);
+
+  const entityPattern = new RegExp(
+    `(${uniqueTerms.join("|")}|\\b\\d+(?:\\.\\d+)?%\\b)`,
+    "gi"
+  );
+
+  return String(html || "")
+    .split(/(<strong\b[^>]*>.*?<\/strong>|<em\b[^>]*>.*?<\/em>|<code\b[^>]*>.*?<\/code>|<[^>]+>)/gi)
+    .map((part) => {
+      if (!part || part.startsWith("<")) return part;
+      return part.replace(entityPattern, '<strong class="ai-entity">$&</strong>');
+    })
+    .join("");
+}
+
 function formatAiInline(value) {
-  return escapeHtml(String(value || ""))
+  const html = escapeHtml(String(value || ""))
     .replace(/\*\*\*(.+?)\*\*\*/g, "<strong>$1</strong>")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*([^*\n]+)\*/g, "<em>$1</em>")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*/g, "");
+
+  return emphasizeAiEntities(html);
 }
 
 function classifyAiInsight(value) {
@@ -489,7 +548,7 @@ export function renderAiInsightPage() {
     <article class="surface-card ai-chat-card ai-warm-workspace">
       <div class="ai-chat-head"><div class="ai-chat-head-row"><div class="ai-chat-title"><div class="ai-chat-title-icon">${icon("sparkles")}</div><div><h2 class="card-title">AI INSIGHT WORKSPACE</h2><p class="card-description">อ่าน Master Data ผ่าน Backend, Suggested Questions, Export Chat และ Clear Chat</p></div></div><div class="toolbar"><button class="button small" id="export-chat" type="button">${icon("export", "nav-icon")} Export Chat</button><button class="button small ghost" id="clear-chat" type="button">Clear</button></div></div></div>
       <div class="ai-feed" id="ai-feed">${renderMessages(state.aiMessages)}${analyzingMarkup()}</div>
-      <div class="ai-composer"><div class="ai-composer-row"><textarea class="form-control" id="ai-input" maxlength="500" placeholder="ถามเกี่ยวกับ Performance, Retention, Channel Quality หรือ Weekly Alert..." ${busy ? "disabled" : ""}></textarea><button class="send-button" id="ai-send" type="button" aria-label="Send question" ${busy ? "disabled" : ""}>${icon("arrow")}</button><div class="ai-busy-note">${busy ? "กำลังอ่านข้อมูลและเรียบเรียงคำตอบ..." : "คำถามสูงสุด 500 ตัวอักษร"}</div></div><div class="suggest-grid">${PRESETS.map(([label, prompt]) => `<button class="suggest-chip" type="button" data-prompt="${escapeHtml(prompt)}" ${busy ? "disabled" : ""}>${label}</button>`).join("")}</div></div>
+      <div class="ai-composer"><div class="ai-composer-row"><textarea class="form-control" id="ai-input" maxlength="500" placeholder="ถามเกี่ยวกับ Performance, Retention, Channel Quality หรือ Weekly Alert..." ${busy ? "disabled" : ""}>${escapeHtml(aiDraft)}</textarea><button class="send-button" id="ai-send" type="button" aria-label="Send question" ${busy ? "disabled" : ""}>${icon("arrow")}</button><div class="ai-busy-note">${busy ? "กำลังอ่านข้อมูลและเรียบเรียงคำตอบ..." : "คำถามสูงสุด 500 ตัวอักษร"}</div></div><div class="suggest-grid">${PRESETS.map(([label, prompt]) => `<button class="suggest-chip" type="button" data-prompt="${escapeHtml(prompt)}" ${busy ? "disabled" : ""}>${label}</button>`).join("")}</div></div>
     </article></div>
     <aside class="page-grid"><article class="surface-card ai-minimal-insights"><div class="card-header"><div><h2 class="card-title">Recent Insights</h2><p class="card-description">ประเด็นล่าสุดจากบทสนทนาใน Session นี้</p></div>${statusPill("warm", `${Math.min(3, state.aiMessages.filter((message) => message.role === "assistant").length)} items`)}</div><div class="card-body list-stack">${recentMarkup(state.aiMessages)}</div></article>
     ${groundingMarkup(state.aiStatus, ctx)}</aside>
@@ -502,6 +561,11 @@ async function sendQuestion(override) {
   if (!question || busy) return;
   if (question.length > 500) { showToast("คำถามยาวเกิน 500 ตัวอักษร"); return; }
   if (input) input.value = "";
+  aiDraft = "";
+  aiInputSelectionStart = 0;
+  aiInputSelectionEnd = 0;
+  aiInputRestoreFocus = false;
+  aiFeedStickToBottom = true;
   busy = true;
   const analyzingStartedAt = Date.now();
   window.dispatchEvent(new Event("cqr-page-refresh"));
@@ -553,7 +617,54 @@ async function sendQuestion(override) {
 
 export function bindAiInsightPage() {
   const feed = document.getElementById("ai-feed");
-  if (feed) feed.scrollTop = feed.scrollHeight;
+
+  if (feed) {
+    const maxScrollTop = Math.max(0, feed.scrollHeight - feed.clientHeight);
+
+    if (aiFeedStickToBottom || busy) {
+      feed.scrollTop = feed.scrollHeight;
+      aiFeedScrollTop = feed.scrollTop;
+    } else {
+      feed.scrollTop = Math.min(aiFeedScrollTop, maxScrollTop);
+    }
+
+    feed.addEventListener("scroll", () => {
+      aiFeedScrollTop = feed.scrollTop;
+      aiFeedStickToBottom =
+        feed.scrollHeight - feed.scrollTop - feed.clientHeight < 80;
+    }, { passive: true });
+  }
+
+  const draftInput = document.getElementById("ai-input");
+
+  if (draftInput) {
+    draftInput.value = aiDraft;
+
+    const saveDraftState = () => {
+      aiDraft = draftInput.value;
+      aiInputSelectionStart = Number(draftInput.selectionStart || 0);
+      aiInputSelectionEnd = Number(draftInput.selectionEnd || aiInputSelectionStart);
+      aiInputRestoreFocus = true;
+    };
+
+    draftInput.addEventListener("focus", saveDraftState);
+    draftInput.addEventListener("input", saveDraftState);
+    draftInput.addEventListener("keyup", saveDraftState);
+    draftInput.addEventListener("select", saveDraftState);
+
+    if (aiInputRestoreFocus && !busy) {
+      requestAnimationFrame(() => {
+        const currentInput = document.getElementById("ai-input");
+        if (!currentInput) return;
+        currentInput.focus({ preventScroll: true });
+        currentInput.setSelectionRange(
+          Math.min(aiInputSelectionStart, currentInput.value.length),
+          Math.min(aiInputSelectionEnd, currentInput.value.length)
+        );
+      });
+    }
+  }
+
   loadAiCatalogFromDirectMaster();
 
   document.getElementById("apply-ai-context")?.addEventListener("click", () => {
@@ -571,7 +682,14 @@ export function bindAiInsightPage() {
   });
   document.querySelectorAll("[data-prompt]").forEach((button) => button.addEventListener("click", () => sendQuestion(button.dataset.prompt)));
   document.getElementById("clear-chat")?.addEventListener("click", () => {
-    clearAiMessages(); sessionStorage.removeItem(AI_CONVERSATION_KEY); window.dispatchEvent(new Event("cqr-page-refresh"));
+    aiDraft = "";
+    aiInputSelectionStart = 0;
+    aiInputSelectionEnd = 0;
+    aiInputRestoreFocus = false;
+    aiFeedStickToBottom = true;
+    clearAiMessages();
+    sessionStorage.removeItem(AI_CONVERSATION_KEY);
+    window.dispatchEvent(new Event("cqr-page-refresh"));
   });
   document.getElementById("export-chat")?.addEventListener("click", () => {
     const ctx = context();
