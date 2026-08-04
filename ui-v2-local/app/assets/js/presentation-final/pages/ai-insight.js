@@ -12,6 +12,191 @@ const PRESETS = [
 const MONTHS = APP_CONFIG.months.map((item) => ({ value: item.value, label: new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${item.value}-01T00:00:00Z`)) }));
 let busy = false;
 
+const AI_CHAT_UX_STYLE = `<style>
+  .ai-answer-content {
+    line-height: 1.72;
+    white-space: normal;
+  }
+
+  .ai-answer-content p {
+    margin: 0 0 0.75rem;
+  }
+
+  .ai-answer-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  .ai-answer-content h4 {
+    margin: 1.05rem 0 0.5rem;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+
+  .ai-answer-content h4:first-child {
+    margin-top: 0;
+  }
+
+  .ai-answer-content ul {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0.3rem 0 0.95rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ai-answer-content li {
+    position: relative;
+    margin: 0;
+    padding: 0.62rem 0.75rem 0.62rem 2.15rem;
+    border: 1px solid rgba(100, 116, 139, 0.16);
+    border-radius: 0.75rem;
+    background: rgba(248, 250, 252, 0.78);
+  }
+
+  .ai-answer-content li::before {
+    position: absolute;
+    left: 0.75rem;
+    top: 0.65rem;
+    content: "•";
+    font-weight: 900;
+  }
+
+  .ai-answer-content strong {
+    font-weight: 800;
+  }
+
+  .ai-answer-content code {
+    padding: 0.08rem 0.3rem;
+    border-radius: 0.35rem;
+    background: rgba(15, 23, 42, 0.07);
+    font-size: 0.92em;
+  }
+
+  .ai-insight-section {
+    margin: 0.55rem 0 0.85rem;
+    padding: 0.78rem 0.85rem;
+    border-left: 4px solid rgba(100, 116, 139, 0.5);
+    border-radius: 0.75rem;
+    background: rgba(248, 250, 252, 0.82);
+  }
+
+  .ai-insight-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.35rem;
+    font-weight: 800;
+  }
+
+  .ai-insight-section.is-positive,
+  .ai-answer-content li.is-positive {
+    border-color: rgba(22, 163, 74, 0.28);
+    background: rgba(240, 253, 244, 0.88);
+  }
+
+  .ai-insight-section.is-positive {
+    border-left-color: rgb(22, 163, 74);
+  }
+
+  .ai-answer-content li.is-positive::before {
+    content: "✅";
+  }
+
+  .ai-insight-section.is-warning,
+  .ai-answer-content li.is-warning {
+    border-color: rgba(217, 119, 6, 0.3);
+    background: rgba(255, 251, 235, 0.92);
+  }
+
+  .ai-insight-section.is-warning {
+    border-left-color: rgb(217, 119, 6);
+  }
+
+  .ai-answer-content li.is-warning::before {
+    content: "⚠️";
+  }
+
+  .ai-insight-section.is-risk,
+  .ai-answer-content li.is-risk {
+    border-color: rgba(220, 38, 38, 0.28);
+    background: rgba(254, 242, 242, 0.92);
+  }
+
+  .ai-insight-section.is-risk {
+    border-left-color: rgb(220, 38, 38);
+  }
+
+  .ai-answer-content li.is-risk::before {
+    content: "🔴";
+  }
+
+  .ai-insight-section.is-action,
+  .ai-answer-content li.is-action {
+    border-color: rgba(37, 99, 235, 0.28);
+    background: rgba(239, 246, 255, 0.92);
+  }
+
+  .ai-insight-section.is-action {
+    border-left-color: rgb(37, 99, 235);
+  }
+
+  .ai-answer-content li.is-action::before {
+    content: "💡";
+  }
+
+  .ai-insight-section.is-neutral {
+    border-left-color: rgba(100, 116, 139, 0.72);
+  }
+
+  .ai-answer-content li.is-neutral::before {
+    content: "•";
+  }
+
+  .ai-analyzing .ai-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 13rem;
+  }
+
+  .ai-analyzing-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 1.7rem;
+  }
+
+  .ai-analyzing-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.25;
+    animation: cqr-ai-dot 1.05s infinite ease-in-out;
+  }
+
+  .ai-analyzing-dot:nth-child(2) {
+    animation-delay: 0.16s;
+  }
+
+  .ai-analyzing-dot:nth-child(3) {
+    animation-delay: 0.32s;
+  }
+
+  @keyframes cqr-ai-dot {
+    0%, 70%, 100% {
+      transform: translateY(0);
+      opacity: 0.25;
+    }
+
+    35% {
+      transform: translateY(-0.24rem);
+      opacity: 1;
+    }
+  }
+</style>`;
+
 /* CQR_AI_CONTEXT_V9_DIRECT_MASTER_START */
 const AI_CONTEXT_KEY = "cqr_ai_context_v9_direct_master";
 const AI_CONTEXT_VERSION = 9;
@@ -112,13 +297,164 @@ function cleanAnswer(result) {
   return answer;
 }
 
+function formatAiInline(value) {
+  return escapeHtml(String(value || ""))
+    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong>$1</strong>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*\n]+)\*/g, "<em>$1</em>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*/g, "");
+}
+
+function classifyAiInsight(value) {
+  const text = String(value || "").toLowerCase();
+
+  const actionTerms = [
+    "สิ่งที่ควรทำต่อ", "ข้อเสนอแนะ", "แนะนำ", "ควรตรวจ", "ควรปรับ",
+    "recommended action", "next step", "action item", "recommend"
+  ];
+  const riskTerms = [
+    "ความเสี่ยง", "น่ากังวล", "ผิดปกติ", "ต่ำสุด", "ลดลงมาก", "ตกลงมาก",
+    "critical", "high risk", "risk", "anomaly", "severe", "weakest"
+  ];
+  const warningTerms = [
+    "ควรติดตาม", "เฝ้าระวัง", "ต่ำกว่าค่าเฉลี่ย", "ลดลงเล็กน้อย", "watch",
+    "monitor", "warning", "ต้องจับตา"
+  ];
+  const positiveTerms = [
+    "จุดแข็ง", "ทำได้ดี", "สูงสุด", "เหนือค่าเฉลี่ย", "แข็งแรง", "เติบโต",
+    "improved", "healthy", "strong", "best", "positive"
+  ];
+
+  if (actionTerms.some((term) => text.includes(term))) return "action";
+  if (riskTerms.some((term) => text.includes(term))) return "risk";
+  if (warningTerms.some((term) => text.includes(term))) return "warning";
+  if (positiveTerms.some((term) => text.includes(term))) return "positive";
+  return "neutral";
+}
+
+function insightEmoji(kind) {
+  return {
+    positive: "✅",
+    warning: "⚠️",
+    risk: "🔴",
+    action: "💡",
+    neutral: "📌",
+  }[kind] || "📌";
+}
+
+function cleanAiMarkdown(value) {
+  return String(value || "")
+    .replace(/^\s*\*{1,3}\s*/, "")
+    .replace(/\s*\*{1,3}\s*$/, "")
+    .trim();
+}
+
+function formatAiAnswer(value) {
+  const lines = String(value || "").replace(/\r\n?/g, "\n").split("\n");
+  const blocks = [];
+  let listItems = [];
+
+  const flushList = () => {
+    if (!listItems.length) return;
+
+    blocks.push(
+      `<ul>${listItems.map((item) => {
+        const kind = classifyAiInsight(item);
+        return `<li class="is-${kind}">${formatAiInline(cleanAiMarkdown(item))}</li>`;
+      }).join("")}</ul>`
+    );
+
+    listItems = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushList();
+      continue;
+    }
+
+    const bullet = line.match(/^(?:[-*•]\s+)(.+)$/);
+    if (bullet) {
+      listItems.push(bullet[1].trim());
+      continue;
+    }
+
+    flushList();
+
+    const plain = cleanAiMarkdown(line);
+    const isSectionTitle =
+      plain.endsWith(":")
+      && plain.length <= 85
+      && !/[.!?]$/.test(plain.slice(0, -1));
+
+    if (isSectionTitle) {
+      const title = plain.slice(0, -1).trim();
+      const kind = classifyAiInsight(title);
+      const isGameTitle = /^[A-Z0-9_/-]{3,30}$/.test(title);
+      const finalKind = isGameTitle ? "neutral" : kind;
+      const emoji = isGameTitle ? "🎯" : insightEmoji(finalKind);
+
+      blocks.push(
+        `<div class="ai-insight-section is-${finalKind}">`
+        + `<div class="ai-insight-section-title"><span>${emoji}</span><span>${formatAiInline(title)}</span></div>`
+        + `</div>`
+      );
+      continue;
+    }
+
+    const kind = classifyAiInsight(plain);
+
+    if (kind !== "neutral") {
+      blocks.push(
+        `<div class="ai-insight-section is-${kind}">`
+        + `<div class="ai-insight-section-title"><span>${insightEmoji(kind)}</span><span>${formatAiInline(plain)}</span></div>`
+        + `</div>`
+      );
+      continue;
+    }
+
+    blocks.push(`<p>${formatAiInline(plain)}</p>`);
+  }
+
+  flushList();
+  return blocks.join("");
+}
+
 function renderMessages(messages) {
-  return messages.map((message) => `<div class="ai-message ${message.role}"><div class="ai-avatar">${message.role === "assistant" ? "AI" : "YOU"}</div><div class="ai-bubble">${escapeHtml(message.text).replaceAll("\n", "<br>")}</div></div>`).join("");
+  return messages.map((message) => {
+    const assistant = message.role === "assistant";
+    const content = assistant
+      ? formatAiAnswer(message.text)
+      : escapeHtml(message.text).replaceAll("\n", "<br>");
+
+    return `<div class="ai-message ${message.role}"><div class="ai-avatar">${assistant ? "AI" : "YOU"}</div><div class="ai-bubble${assistant ? " ai-answer-content" : ""}">${content}</div></div>`;
+  }).join("");
 }
 
 function analyzingMarkup() {
   if (!busy) return "";
-  return `<div class="ai-message assistant ai-analyzing"><div class="ai-avatar">AI</div><div class="ai-bubble">AI กำลังวิเคราะห์ข้อมูล กรุณารอสักครู่...</div></div>`;
+
+  return `<div class="ai-message assistant ai-analyzing">`
+    + `<div class="ai-avatar">AI</div>`
+    + `<div class="ai-bubble">`
+    + `<span class="ai-analyzing-dots" aria-hidden="true">`
+    + `<span class="ai-analyzing-dot"></span>`
+    + `<span class="ai-analyzing-dot"></span>`
+    + `<span class="ai-analyzing-dot"></span>`
+    + `</span>`
+    + `<span>AI กำลังวิเคราะห์ข้อมูล</span>`
+    + `</div>`
+    + `</div>`;
+}
+
+async function keepAnalyzingVisible(startedAt) {
+  const remaining = Math.max(0, 1200 - (Date.now() - startedAt));
+  if (remaining > 0) {
+    await new Promise((resolve) => setTimeout(resolve, remaining));
+  }
 }
 
 function recentMarkup(messages) {
@@ -144,7 +480,7 @@ function groundingMarkup(ai, ctx) {
 export function renderAiInsightPage() {
   const state = getState();
   const ctx = context();
-  return `<div class="page-grid ai-insight-page"><section class="ai-layout"><div class="page-grid ai-main-column">
+  return `${AI_CHAT_UX_STYLE}<div class="page-grid ai-insight-page"><section class="ai-layout"><div class="page-grid ai-main-column">
     <article class="surface-card ai-soft-warm ai-context-card"><div class="card-body"><div class="ai-context ai-context-compact ai-context-v2">
       <label class="form-field"><span class="form-label">Game</span><select class="form-control" id="ai-context-game">${optionMarkup(APP_CONFIG.games, ctx.game)}</select></label>
       <label class="form-field"><span class="form-label">Period</span><select class="form-control" id="ai-context-period">${optionMarkup([{ value: "ALL", label: "All Periods" }, ...MONTHS], ctx.period)}</select></label>
@@ -167,6 +503,7 @@ async function sendQuestion(override) {
   if (question.length > 500) { showToast("คำถามยาวเกิน 500 ตัวอักษร"); return; }
   if (input) input.value = "";
   busy = true;
+  const analyzingStartedAt = Date.now();
   window.dispatchEvent(new Event("cqr-page-refresh"));
   addAiMessage("user", question);
   setAiStatus({ status: "loading", error: "", resolvedPeriod: "", resolvedGame: "", maturityStatus: "" });
@@ -189,6 +526,7 @@ async function sendQuestion(override) {
     const result = await callAuthorized("ai.ask", request, 60000);
     const payload = assertSuccessfulPayload(result, "AI");
     const answer = cleanAnswer(payload);
+    await keepAnalyzingVisible(analyzingStartedAt);
     addAiMessage("assistant", answer);
     setAiStatus({
       status: "completed",
@@ -204,6 +542,7 @@ async function sendQuestion(override) {
     });
   } catch (error) {
     const message = error.message || String(error);
+    await keepAnalyzingVisible(analyzingStartedAt);
     addAiMessage("assistant", `ตอนนี้เชื่อม AI ไม่สำเร็จ: ${message}`);
     setAiStatus({ status: "failed", updatedAt: new Date().toISOString(), error: message });
   } finally {
