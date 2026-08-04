@@ -206,7 +206,11 @@ function callAppsScriptOnce(action, params = {}, timeoutMs = 25000, attempt = 1)
     });
 
     Object.entries(params || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && key !== "_timeout_ms") {
+      // Apps Script is called by JSONP GET. Never put chat history in the URL:
+      // it is not consumed by the current Apps Script handler and can exceed
+      // the script-src / Google request URL limit, causing script.onerror.
+      const skipLargeAiHistory = action === "ai.ask" && key === "previous_messages";
+      if (!skipLargeAiHistory && value !== undefined && value !== null && key !== "_timeout_ms") {
         query.set(key, typeof value === "string" ? value : JSON.stringify(value));
       }
     });

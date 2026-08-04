@@ -275,10 +275,6 @@ function aiConversationId() {
   return value;
 }
 
-function aiConversationWindow() {
-  const messages = Array.isArray(getState().aiMessages) ? getState().aiMessages : [];
-  return messages.slice(-8).map((message) => ({ role: message.role === "assistant" ? "assistant" : "user", text: String(message.text || "").slice(0, 1600) }));
-}
 /* CQR_AI_CONTEXT_V9_DIRECT_MASTER_END */
 
 function context() { return readAiContext(); }
@@ -531,7 +527,6 @@ async function sendQuestion(override) {
       data_source: "direct_master_aggregation",
       dashboard_state: JSON.stringify({ ...ctx, retention_method: "same_cohort_cumulative_d14", requested_period: ctx.period, source: "direct_master_aggregation" }),
       conversation_id: aiConversationId(),
-      previous_messages: JSON.stringify(aiConversationWindow()),
       prompt_version: AI_PROMPT_VERSION,
     };
     const result = await callAuthorized("ai.ask", request, 60000);
