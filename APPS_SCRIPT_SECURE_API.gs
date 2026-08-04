@@ -1735,7 +1735,7 @@ function handleAiAsk_(e, callback) {
   });
 
   const status = response.getResponseCode();
-  const data = safeJsonParse_(response.getContentText() || '{}', {});
+  const data = normalizeAiWebhookResponse_(response.getContentText() || '{}');
 
   if (status < 200 || status >= 300) {
     return json_({
@@ -1746,16 +1746,81 @@ function handleAiAsk_(e, callback) {
     }, callback);
   }
 
+  const answer = sanitizeAiAnswerForUsers_(data.answer || '');
+
+  if (data.ok === false) {
+    return json_({
+      ok: false,
+      message: data.message || data.error || 'AI backend returned a failed response.',
+      status,
+      detail: data,
+      requested_period: requestedPeriod,
+      resolved_period: resolvedPeriod
+    }, callback);
+  }
+
+  if (!answer) {
+    return json_({
+      ok: false,
+      message: 'AI backend returned an empty answer.',
+      status,
+      detail_type: typeof data,
+      detail: data,
+      requested_period: requestedPeriod,
+      resolved_period: resolvedPeriod
+    }, callback);
+  }
+
   return json_({
-    ok: data.ok !== false,
-    answer: sanitizeAiAnswerForUsers_(data.answer || ''),
+    ok: true,
+    answer,
     source: data.source || 'n8n',
     used_ai_model: data.used_ai_model || '',
+    grounded: data.grounded === true || Number(data.summaries_used || 0) > 0,
     intent: data.intent || '',
     summaries_used: data.summaries_used || 0,
     request_id: data.request_id || payload.request_id,
     warnings: data.warnings || []
   }, callback);
+}
+
+function normalizeAiWebhookResponse_(value) {
+  let current = value;
+
+  for (let index = 0; index < 8; index += 1) {
+    if (typeof current === 'string') {
+      const text = current.trim();
+      if (!text) return {};
+      try {
+        current = JSON.parse(text);
+        continue;
+      } catch (error) {
+        return { raw_text: text };
+      }
+    }
+
+    if (Array.isArray(current) && current.length === 1) {
+      current = current[0];
+      continue;
+    }
+
+    if (!current || typeof current !== 'object' || Array.isArray(current)) break;
+    if (Object.prototype.hasOwnProperty.call(current, 'answer')) break;
+
+    const unwrapKeys = ['body', 'data', 'result', 'n8n_result', 'json', 'payload'];
+    const key = unwrapKeys.find(function (candidate) {
+      return Object.prototype.hasOwnProperty.call(current, candidate)
+        && current[candidate] !== undefined
+        && current[candidate] !== null;
+    });
+
+    if (!key) break;
+    current = current[key];
+  }
+
+  return current && typeof current === 'object' && !Array.isArray(current)
+    ? current
+    : {};
 }
 
 function safeJsonParse_(text, fallback) {

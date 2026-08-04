@@ -107,11 +107,18 @@ function cleanAnswer(result) {
     }
   }
   if (value && typeof value === "object") value = value.answer ?? value.text ?? value.message ?? JSON.stringify(value, null, 2);
-  return String(value || "ยังไม่มีคำตอบจาก AI").replace(/\\n/g, "\n").trim();
+  const answer = String(value || "").replace(/\\n/g, "\n").trim();
+  if (!answer) throw new Error("AI backend returned an empty answer");
+  return answer;
 }
 
 function renderMessages(messages) {
   return messages.map((message) => `<div class="ai-message ${message.role}"><div class="ai-avatar">${message.role === "assistant" ? "AI" : "YOU"}</div><div class="ai-bubble">${escapeHtml(message.text).replaceAll("\n", "<br>")}</div></div>`).join("");
+}
+
+function analyzingMarkup() {
+  if (!busy) return "";
+  return `<div class="ai-message assistant ai-analyzing"><div class="ai-avatar">AI</div><div class="ai-bubble">AI กำลังวิเคราะห์ข้อมูล กรุณารอสักครู่...</div></div>`;
 }
 
 function recentMarkup(messages) {
@@ -120,8 +127,9 @@ function recentMarkup(messages) {
 }
 
 function groundingMarkup(ai, ctx) {
-  const status = ai.status === "loading" ? "running" : ai.status === "completed" ? "ready" : ai.status === "failed" ? "danger" : "warm";
-  const label = ai.status === "loading" ? "Reading" : ai.status === "completed" ? "Grounded" : ai.status === "failed" ? "Failed" : "Not checked";
+  const isGrounded = ai.status === "completed" && ai.grounded === true;
+  const status = ai.status === "loading" ? "running" : ai.status === "completed" ? (isGrounded ? "ready" : "warm") : ai.status === "failed" ? "danger" : "warm";
+  const label = ai.status === "loading" ? "Reading" : ai.status === "completed" ? (isGrounded ? "Grounded" : "Answered") : ai.status === "failed" ? "Failed" : "Not checked";
   const resolvedPeriod = ai.resolvedPeriod || ctx.period;
   return `<article class="surface-card"><div class="card-header"><div><h2 class="card-title">AI Status</h2><p class="card-description">สถานะจริงจากคำขอ AI ล่าสุด</p></div>${statusPill(status, label)}</div><div class="card-body list-stack">
     <div class="list-item"><div class="list-item-icon">${icon("database")}</div><div><div class="list-item-title">Data Source</div><div class="list-item-meta">${escapeHtml(ai.source || "Master Data → Summary Cache → Gemini")}</div></div></div>
@@ -144,7 +152,7 @@ export function renderAiInsightPage() {
     </div></div></article>
     <article class="surface-card ai-chat-card ai-warm-workspace">
       <div class="ai-chat-head"><div class="ai-chat-head-row"><div class="ai-chat-title"><div class="ai-chat-title-icon">${icon("sparkles")}</div><div><h2 class="card-title">AI INSIGHT WORKSPACE</h2><p class="card-description">อ่าน Master Data ผ่าน Backend, Suggested Questions, Export Chat และ Clear Chat</p></div></div><div class="toolbar"><button class="button small" id="export-chat" type="button">${icon("export", "nav-icon")} Export Chat</button><button class="button small ghost" id="clear-chat" type="button">Clear</button></div></div></div>
-      <div class="ai-feed" id="ai-feed">${renderMessages(state.aiMessages)}</div>
+      <div class="ai-feed" id="ai-feed">${renderMessages(state.aiMessages)}${analyzingMarkup()}</div>
       <div class="ai-composer"><div class="ai-composer-row"><textarea class="form-control" id="ai-input" maxlength="500" placeholder="ถามเกี่ยวกับ Performance, Retention, Channel Quality หรือ Weekly Alert..." ${busy ? "disabled" : ""}></textarea><button class="send-button" id="ai-send" type="button" aria-label="Send question" ${busy ? "disabled" : ""}>${icon("arrow")}</button><div class="ai-busy-note">${busy ? "กำลังอ่านข้อมูลและเรียบเรียงคำตอบ..." : "คำถามสูงสุด 500 ตัวอักษร"}</div></div><div class="suggest-grid">${PRESETS.map(([label, prompt]) => `<button class="suggest-chip" type="button" data-prompt="${escapeHtml(prompt)}" ${busy ? "disabled" : ""}>${label}</button>`).join("")}</div></div>
     </article></div>
     <aside class="page-grid"><article class="surface-card ai-minimal-insights"><div class="card-header"><div><h2 class="card-title">Recent Insights</h2><p class="card-description">ประเด็นล่าสุดจากบทสนทนาใน Session นี้</p></div>${statusPill("warm", `${Math.min(3, state.aiMessages.filter((message) => message.role === "assistant").length)} items`)}</div><div class="card-body list-stack">${recentMarkup(state.aiMessages)}</div></article>
@@ -185,8 +193,8 @@ async function sendQuestion(override) {
     setAiStatus({
       status: "completed",
       source: String(payload?.source || result?.source || "Master Data → Summary Cache → Gemini"),
-      model: String(payload?.used_ai_model || payload?.model || result?.used_ai_model || "backend-selected"),
-      grounded: payload?.grounded ?? true,
+      model: String(payload?.used_ai_model || payload?.model || result?.used_ai_model || "not-reported"),
+      grounded: payload?.grounded === true,
       resolvedPeriod: String(payload?.resolved_period || payload?.period || ctx.period),
       resolvedGame: String(payload?.resolved_game || payload?.game || ctx.game),
       maturityStatus: String(payload?.maturity_status || payload?.maturity || "matured"),
