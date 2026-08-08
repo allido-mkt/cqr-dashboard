@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "../config.js";
 import { getState, setFilter, setRawCheck } from "../state.js";
-import { callAuthorized } from "../api.js";
+import { callAuthorized } from "../services/admin-api.js";
 import { icon, statusPill, escapeHtml, showToast, optionMarkup } from "../ui.js";
 
 const ACTIVE_KEY="cqr_raw_check_active_request_id";

@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "../config.js";
 import { getState, setFilters, addAiMessage, clearAiMessages } from "../state.js";
-import { callAuthorized } from "../api.js";
+import { callAuthorized } from "../services/ai-api.js";
 import { escapeHtml, optionMarkup, icon, downloadText, showToast } from "../ui.js";
 
 const EN_MONTHS=APP_CONFIG.months.map((item)=>({value:item.value,label:new Intl.DateTimeFormat("en-US",{month:"long",year:"numeric",timeZone:"UTC"}).format(new Date(`${item.value}-01T00:00:00Z`))}));

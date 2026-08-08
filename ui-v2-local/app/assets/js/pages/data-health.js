@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "../config.js";
 import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js";
-import { callAuthorized } from "../api.js";
+import { callAuthorized } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill, showToast } from "../ui.js";
 
 function tone(level){const v=String(level||"").toLowerCase();return ["ok","ready","healthy","raw_ready"].includes(v)?"ready":["danger","failed","missing"].includes(v)?"danger":"warning";}

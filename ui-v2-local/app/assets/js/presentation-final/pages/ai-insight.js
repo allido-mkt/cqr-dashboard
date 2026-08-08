@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "../config.js";
 import { getState, addAiMessage, clearAiMessages, setAiStatus } from "../state.js";
-import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../api.js";
+import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/ai-api.js";
 import { icon, escapeHtml, downloadText, showToast, statusPill, optionMarkup } from "../ui.js";
 
 const PRESETS = [

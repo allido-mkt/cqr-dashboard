@@ -1,4 +1,4 @@
-import { callAuthorized } from "../api.js";
+import { callAuthorized } from "../services/user-api.js";
 import { escapeHtml, showToast, statusPill, openConfirmModal } from "../ui.js";
 
 let users=[],selectedEmail="",loading=false,error="";

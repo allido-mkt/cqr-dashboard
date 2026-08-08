@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../api.js";
+import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/user-api.js";
 import { getSavedSession, updateSavedSession } from "../session.js";
 import { escapeHtml, showToast, statusPill, openConfirmModal } from "../ui.js";
 
