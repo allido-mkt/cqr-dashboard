@@ -24,8 +24,14 @@ function renderApp() {
   if (redirectLegacyDashboard()) return;
   const topbar = document.getElementById("topbar");
   if (topbar) {
-    topbar.innerHTML = renderTopbar();
-    topbar.classList.toggle("topbar-title-only", !topbar.querySelector(".topbar-actions"));
+    /* CQR_FRONTEND_V10_ADAPTIVE_BLOCKS_TOPBAR */
+    const isAiInsight = getState().route === "ai-insight";
+    topbar.hidden = false;
+    topbar.innerHTML = isAiInsight
+      ? `<div class="topbar-ai-brand"><img class="topbar-ai-logo" src="./assets/images/ask-ai-logo.png" alt="" aria-hidden="true"><div><div class="topbar-ai-title">ASK AI</div><div class="topbar-ai-subtitle">ช่วยวิเคราะห์ข้อมูลจากคำถาม สรุปประเด็นสำคัญ และแนะนำสิ่งที่ควรทำต่อ</div></div></div>`
+      : renderTopbar();
+    topbar.classList.toggle("topbar-ai", isAiInsight);
+    topbar.classList.toggle("topbar-title-only", !isAiInsight && !topbar.querySelector(".topbar-actions"));
   }
   bindTopbarEvents();
   renderCurrentPage();

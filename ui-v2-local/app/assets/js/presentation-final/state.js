@@ -26,7 +26,7 @@ const SAVED_AI_MESSAGES = readJsonStorage(sessionStorage, AI_MESSAGES_KEY, []);
 const SAVED_CONTROL_STATE = readJsonStorage(sessionStorage, CONTROL_STATE_KEY, {});
 const DEFAULT_AI_MESSAGE = {
   role: "assistant",
-  text: "พร้อมช่วยอ่าน CQR ครับ เลือก Game และ Period แล้วถามเรื่อง Retention, Channel Quality หรือ Weekly Alert ได้เลย",
+  text: "วันนี้มีอะไรให้ช่วยดูหรือวิเคราะห์ไหมครับ",
 };
 
 const initialState = {
@@ -138,7 +138,7 @@ export function addAiMessage(role, text) {
   setState({ aiMessages });
 }
 export function clearAiMessages() {
-  const aiMessages = [{ role: "assistant", text: "ล้างบทสนทนาแล้วครับ เริ่มถามจาก Context ปัจจุบันได้เลย" }];
+  const aiMessages = [{ role: "assistant", text: "วันนี้มีอะไรให้ช่วยดูหรือวิเคราะห์ไหมครับ" }];
   persistAiMessages(aiMessages);
   setState({ aiMessages, aiStatus: { status: "idle", source: "", model: "", grounded: null, updatedAt: "", error: "" } });
 }
