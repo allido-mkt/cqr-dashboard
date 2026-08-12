@@ -1235,9 +1235,10 @@ function normalizeAiAnswerBlocks(value) {
 }
 function readAiAdaptiveStore(){try{const v=JSON.parse(sessionStorage.getItem(AI_ADAPTIVE_BLOCKS_KEY)||"[]");return Array.isArray(v)?v:[]}catch{return []}}
 function writeAiAdaptiveBlocks(text,blocks){
-  const b=normalizeAiAnswerBlocks(blocks); if(!b.length)return;
+  const b=normalizeAiAnswerBlocks(blocks);
   const key=String(text||"");
-  const next=[{text:key,blocks:b,at:Date.now()},...readAiAdaptiveStore().filter(x=>String(x?.text||"")!==key)].slice(0,30);
+  const remaining=readAiAdaptiveStore().filter(x=>String(x?.text||"")!==key);
+  const next=(b.length?[{text:key,blocks:b,at:Date.now()},...remaining]:remaining).slice(0,30);
   sessionStorage.setItem(AI_ADAPTIVE_BLOCKS_KEY,JSON.stringify(next));
 }
 function readAiAdaptiveBlocks(text){
