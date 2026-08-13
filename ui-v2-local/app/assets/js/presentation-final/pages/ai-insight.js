@@ -1266,7 +1266,8 @@ function renderAiAdaptiveBlock(b){
 }
 function renderAiAdaptiveBlocks(blocks,fallback){
   const b=normalizeAiAnswerBlocks(blocks);
-  return b.length?`<div class="ai-adaptive">${b.map(renderAiAdaptiveBlock).join("")}</div>`:formatAiAnswer(fallback);
+  const answerHtml=formatAiAnswer(fallback);
+  return b.length?`${answerHtml}<div class="ai-adaptive">${b.map(renderAiAdaptiveBlock).join("")}</div>`:answerHtml;
 }
 
 function renderMessages(messages) {
@@ -1626,7 +1627,7 @@ export function renderAiInsightPage() {
           <div class="ai-selected-composer">
             <div class="ai-selected-composer-inner">
               <div class="ai-selected-input-shell">
-                <textarea class="form-control" id="ai-input" maxlength="500" placeholder="ถามเรื่องที่อยากรู้ พร้อมชื่อเกมหรือกลุ่มเกม และช่วงเวลา เช่น CABAL เดือน June" ${busy?"disabled":""}>${escapeHtml(aiDraft)}</textarea>
+                <textarea class="form-control" id="ai-input" maxlength="500" placeholder="ถามได้ทั้งข้อมูล CQR การวิเคราะห์ หรือคำถามทั่วไป..." ${busy?"disabled":""}>${escapeHtml(aiDraft)}</textarea>
                 <button class="send-button" id="ai-send" type="button" aria-label="Send question" ${busy?"disabled":""}>${icon("arrow")}</button>
               </div>
               <div class="ai-selected-hint">${busy?"กำลังวิเคราะห์ข้อมูล...":"Enter เพื่อส่ง · Shift+Enter ขึ้นบรรทัดใหม่"}</div>
@@ -1669,7 +1670,7 @@ async function sendQuestion(override) {
       conversation_id: aiConversationId(),
       ai_mode: "gemini",
       data_source: "direct_master_aggregation",
-      prompt_version: "auto_scope_v1",
+      prompt_version: "universal_chat_v4_1",
       previous_scope: previousScope ? JSON.stringify(previousScope) : "",
     };
 
@@ -1704,7 +1705,11 @@ async function sendQuestion(override) {
     const coverage = payload?.coverage || result?.coverage || {};
     const intent = String(payload?.intent || result?.intent || "").trim();
 
-    if (resolvedScope && typeof resolvedScope === "object") {
+    if (
+      resolvedScope &&
+      typeof resolvedScope === "object" &&
+      coverage?.complete_scope === true
+    ) {
       writeAiAutoScopeResult(resolvedScope, coverage, intent);
     }
 
@@ -1750,7 +1755,7 @@ async function sendQuestion(override) {
 export function bindAiInsightPage() {
   /* CQR_AI_BIND_V8 */
   const inputV8 = document.getElementById("ai-input");
-  if (inputV8) inputV8.placeholder = "ถามเรื่องที่อยากรู้ พร้อมชื่อเกมและช่วงเวลา เช่น CBM_TH เดือน June";
+  if (inputV8) inputV8.placeholder = "ถามได้ทั้งข้อมูล CQR การวิเคราะห์ หรือคำถามทั่วไป...";
 
   document.querySelectorAll("[data-ai-example]").forEach((button) => {
     button.addEventListener("click", () => {
