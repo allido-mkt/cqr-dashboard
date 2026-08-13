@@ -1085,8 +1085,8 @@ function cleanAnswer(result) {
 
 function formatAiInline(value) {
   return escapeHtml(String(value || ""))
-    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong>$1</strong>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*\*\*(.+?)\*\*\*/g, "$1")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/\*([^*\n]+)\*/g, "<em>$1</em>")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*/g, "");
@@ -1159,6 +1159,27 @@ function formatAiAnswer(value) {
 
     if (!line) {
       flushList();
+      continue;
+    }
+
+    if (/^-{3,}$/.test(line)) {
+      flushList();
+      continue;
+    }
+
+    const markdownHeading = line.match(/^#{1,6}\s+(.+)$/);
+    if (markdownHeading) {
+      flushList();
+      const title = cleanAiMarkdown(markdownHeading[1]);
+      const kind = classifyAiInsight(title);
+      const isGameTitle = /^[A-Z0-9_/-]{3,30}$/.test(title);
+      const finalKind = isGameTitle ? "neutral" : kind;
+      const emoji = isGameTitle ? "🎯" : insightEmoji(finalKind);
+      blocks.push(
+        `<div class="ai-insight-section is-${finalKind}">`
+        + `<div class="ai-insight-section-title"><span>${emoji}</span><span>${formatAiInline(title)}</span></div>`
+        + `</div>`
+      );
       continue;
     }
 
@@ -1258,7 +1279,7 @@ function aiAdaptiveDirection(item){
 function renderAiAdaptiveBlock(b){
   const type=String(b?.type||""), title=aiAdaptiveTitle(b);
   if(type==="summary") return `<section class="ai-adaptive-block"><div class="ai-adaptive-summary">${escapeHtml(b.content)}</div></section>`;
-  if(type==="comparison_table") return `<section class="ai-adaptive-block"><div class="ai-adaptive-title"><i class="ai-adaptive-dot"></i>${escapeHtml(title)}</div><div class="ai-adaptive-body"><div class="ai-adaptive-table-wrap"><table class="ai-adaptive-table"><thead><tr>${b.columns.map(c=>`<th>${escapeHtml(c)}</th>`).join("")}</tr></thead><tbody>${b.rows.map(r=>`<tr>${r.map(c=>`<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div></section>`;
+  if(type==="comparison_table") return `<section class="ai-adaptive-block"><div class="ai-adaptive-title"><i class="ai-adaptive-dot"></i>${escapeHtml(title)}</div><div class="ai-adaptive-body"><div class="ai-adaptive-table-wrap"><table class="ai-adaptive-table"><thead><tr>${b.columns.map((c,index)=>`<th class="${index===0?"ai-adaptive-col-label":"ai-adaptive-col-metric"}" style="text-align:${index===0?"left":"center"}">${escapeHtml(c)}</th>`).join("")}</tr></thead><tbody>${b.rows.map(r=>`<tr>${r.map((c,index)=>`<td class="${index===0?"ai-adaptive-col-label":"ai-adaptive-col-metric num"}" style="text-align:${index===0?"left":"center"}">${escapeHtml(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div></section>`;
   if(type==="ranking") return `<section class="ai-adaptive-block"><div class="ai-adaptive-title"><i class="ai-adaptive-dot"></i>${escapeHtml(title)}</div><div class="ai-adaptive-body">${b.items.map(i=>`<div class="ai-adaptive-rank"><span class="ai-adaptive-rank-no">${escapeHtml(String(i.rank||"-"))}</span><div><div class="ai-adaptive-label">${escapeHtml(i.label||"-")}</div><div class="ai-adaptive-note">${escapeHtml(i.metric||"")}</div></div><div class="ai-adaptive-value">${escapeHtml(i.value||"-")}</div><div class="ai-adaptive-note">${escapeHtml(i.note||"")}</div></div>`).join("")}</div></section>`;
   const action=["recommendation","next_actions","warning","limitations"].includes(type);
   const cls=`ai-adaptive-block${action?" ai-adaptive-action":""}${type==="warning"?" ai-adaptive-warning":""}${type==="limitations"?" ai-adaptive-limitations":""}`;
