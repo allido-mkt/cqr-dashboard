@@ -559,8 +559,49 @@ const AI_CHAT_UX_STYLE = `<style>
 .ai-adaptive-up{color:#27824e}.ai-adaptive-down{color:#c64a43}.ai-adaptive-neutral{color:#667085}
 .ai-adaptive-table-wrap{overflow-x:auto}
 .ai-adaptive-table{width:100%;min-width:620px;border-collapse:collapse;font-size:12px}
-.ai-adaptive-table th,.ai-adaptive-table td{padding:9px 10px;border-top:1px solid rgba(130,143,162,.14);text-align:left;vertical-align:top}
+.ai-adaptive-table th,.ai-adaptive-table td{padding:9px 10px;border-top:1px solid rgba(130,143,162,.14);vertical-align:middle}
 .ai-adaptive-table th{background:#fafbfc;color:#7a8595;font-weight:760}
+
+/* CQR_CHAT_LAYOUT_FINAL_FIX */
+.ai-selected-page .ai-answer-content .ai-answer-spacer{
+  height:10px!important;
+}
+.ai-selected-page .ai-answer-content .ai-insight-section{
+  margin:18px 0 8px!important;
+}
+.ai-selected-page .ai-answer-content .ai-insight-section:first-child{
+  margin-top:0!important;
+}
+.ai-selected-page .ai-answer-content p{
+  margin:7px 0 12px!important;
+  line-height:1.72!important;
+}
+.ai-selected-page .ai-answer-content ul,
+.ai-selected-page .ai-answer-content ol{
+  margin:8px 0 15px 22px!important;
+}
+.ai-selected-page .ai-answer-content li{
+  margin:7px 0!important;
+  line-height:1.68!important;
+}
+
+/* Table alignment contract:
+   first column = label/game left
+   every other header + metric value = centered */
+.ai-selected-page .ai-answer-content .ai-adaptive-table th.ai-adaptive-col-label,
+.ai-selected-page .ai-answer-content .ai-adaptive-table td.ai-adaptive-col-label{
+  text-align:left!important;
+}
+.ai-selected-page .ai-answer-content .ai-adaptive-table th.ai-adaptive-col-metric,
+.ai-selected-page .ai-answer-content .ai-adaptive-table td.ai-adaptive-col-metric{
+  text-align:center!important;
+}
+.ai-selected-page .ai-answer-content .ai-adaptive-table thead th{
+  vertical-align:middle!important;
+}
+.ai-selected-page .ai-answer-content .ai-adaptive-table tbody td{
+  vertical-align:middle!important;
+}
 .ai-adaptive-rank{display:grid;grid-template-columns:34px minmax(140px,.8fr) minmax(90px,.4fr) minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid rgba(130,143,162,.14)}
 .ai-adaptive-rank:first-child{border-top:0}
 .ai-adaptive-rank-no{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#fff1e6;color:#d65e13;font-weight:850}
@@ -1159,6 +1200,9 @@ function formatAiAnswer(value) {
 
     if (!line) {
       flushList();
+      if (blocks.length && !String(blocks[blocks.length - 1] || "").includes("ai-answer-spacer")) {
+        blocks.push('<div class="ai-answer-spacer" aria-hidden="true"></div>');
+      }
       continue;
     }
 
