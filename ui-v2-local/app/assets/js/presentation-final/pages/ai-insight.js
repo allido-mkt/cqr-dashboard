@@ -664,6 +664,88 @@ const AI_CHAT_UX_STYLE = `<style>
 .ai-selected-page .ai-answer-content .ai-adaptive{margin-top:18px!important}
 
 
+
+/* CQR_UI_POLISH_SIDEBAR_COMPOSER_V1
+   CSS-only. AI / renderer / request logic intentionally untouched. */
+
+/* Suggested / Recent section titles */
+.ai-selected-page .ai-selected-section > .ai-selected-label{
+  display:flex!important;
+  align-items:center!important;
+  gap:9px!important;
+  min-height:22px!important;
+  color:#2e3745!important;
+  font-size:11.5px!important;
+  line-height:1.2!important;
+  font-weight:850!important;
+  letter-spacing:.095em!important;
+}
+.ai-selected-page .ai-selected-section > .ai-selected-label::before{
+  content:""!important;
+  width:3px!important;
+  height:15px!important;
+  flex:0 0 3px!important;
+  border-radius:999px!important;
+  background:var(--orange)!important;
+}
+.ai-selected-page .ai-selected-section > .ai-selected-label::after{
+  content:""!important;
+  height:1px!important;
+  flex:1 1 auto!important;
+  margin-left:3px!important;
+  background:linear-gradient(90deg,rgba(244,119,33,.24),rgba(130,143,162,.08))!important;
+}
+
+/* Suggested questions breathe a little more below the heading */
+.ai-selected-page .ai-selected-question-list{
+  margin-top:11px!important;
+}
+
+/* Recent questions: separate each row clearly */
+.ai-selected-page .ai-recent-question-list{
+  display:grid!important;
+  gap:7px!important;
+  margin-top:11px!important;
+}
+.ai-selected-page .ai-selected-rail .ai-recent-question{
+  margin:0!important;
+  padding:10px 11px!important;
+  border:1px solid rgba(130,143,162,.10)!important;
+  border-radius:10px!important;
+  background:#fbfcfd!important;
+  line-height:1.55!important;
+  transition:background 150ms ease,border-color 150ms ease,transform 150ms ease!important;
+}
+.ai-selected-page .ai-selected-rail .ai-recent-question:hover{
+  background:#f7f8fa!important;
+  border-color:rgba(130,143,162,.18)!important;
+  transform:translateY(-1px)!important;
+}
+.ai-selected-page .ai-selected-rail .ai-recent-question:first-child{
+  border-color:rgba(244,119,33,.14)!important;
+  background:linear-gradient(90deg,#fff0e5,#fff8f3)!important;
+}
+
+/* Composer: lock the send button to the visual vertical center */
+.ai-selected-page .ai-selected-input-shell{
+  align-items:center!important;
+  min-height:64px!important;
+  padding:8px 10px!important;
+}
+.ai-selected-page #ai-input{
+  align-self:center!important;
+  min-height:40px!important;
+  padding:8px 4px!important;
+  line-height:1.55!important;
+}
+.ai-selected-page .send-button{
+  align-self:center!important;
+  justify-self:center!important;
+  place-self:center!important;
+  flex:0 0 40px!important;
+}
+
+
 </style>`;
 
 /* CQR_AI_CONTEXT_V10_DYNAMIC_REGISTRY_START */
