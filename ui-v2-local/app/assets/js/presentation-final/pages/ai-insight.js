@@ -623,6 +623,47 @@ const AI_CHAT_UX_STYLE = `<style>
   .ai-adaptive-rank{grid-template-columns:34px 1fr}
 }
 
+
+/* CQR_UNIVERSAL_ANSWER_RENDERER_V1 */
+.ai-selected-page .ai-answer-content .ai-md-answer{width:100%;color:#3f4b5d;font-size:13px;line-height:1.72}
+.ai-selected-page .ai-answer-content .ai-md-answer>:first-child{margin-top:0!important}
+.ai-selected-page .ai-answer-content .ai-md-answer>:last-child{margin-bottom:0!important}
+.ai-selected-page .ai-answer-content .ai-md-answer p{margin:0 0 14px!important;line-height:1.72!important}
+.ai-selected-page .ai-answer-content .ai-md-answer h2,
+.ai-selected-page .ai-answer-content .ai-md-answer h3,
+.ai-selected-page .ai-answer-content .ai-md-answer h4{margin:22px 0 10px!important;padding:0!important;border:0!important;color:#202733!important;font-weight:780!important;letter-spacing:-.012em!important}
+.ai-selected-page .ai-answer-content .ai-md-answer h2{font-size:16px!important;line-height:1.38!important}
+.ai-selected-page .ai-answer-content .ai-md-answer h3{font-size:14.5px!important;line-height:1.42!important}
+.ai-selected-page .ai-answer-content .ai-md-answer h4{font-size:13.5px!important;line-height:1.45!important}
+.ai-selected-page .ai-answer-content .ai-md-answer strong{color:#202733!important;font-weight:720!important}
+.ai-selected-page .ai-answer-content .ai-md-answer a{color:#c95f1e!important;text-decoration:underline;text-underline-offset:2px}
+.ai-selected-page .ai-answer-content .ai-md-answer code{padding:1px 5px;border-radius:5px;background:#f3f5f7;color:#374151;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.92em}
+.ai-selected-page .ai-answer-content .ai-md-code{overflow:auto;margin:8px 0 16px!important;padding:13px 15px!important;border:1px solid rgba(130,143,162,.16)!important;border-radius:10px!important;background:#f7f8fa!important;white-space:pre}
+.ai-selected-page .ai-answer-content .ai-md-code code{padding:0!important;background:transparent!important}
+.ai-selected-page .ai-answer-content .ai-md-list{display:grid;gap:7px;margin:5px 0 16px}
+.ai-selected-page .ai-answer-content .ai-md-list-item{display:grid;grid-template-columns:18px minmax(0,1fr);gap:5px;padding-left:calc(var(--ai-list-depth,0) * 20px);line-height:1.68}
+.ai-selected-page .ai-answer-content .ai-md-list-marker{color:#667085;text-align:right;font-variant-numeric:tabular-nums}
+.ai-selected-page .ai-answer-content .ai-md-list-copy{min-width:0}
+.ai-selected-page .ai-answer-content .ai-md-answer blockquote{margin:8px 0 16px!important;padding:9px 14px!important;border:0!important;border-left:3px solid rgba(244,119,33,.55)!important;border-radius:0!important;background:transparent!important;color:#566273!important}
+.ai-selected-page .ai-answer-content .ai-md-rule{margin:18px 0!important;border:0!important;border-top:1px solid rgba(130,143,162,.16)!important}
+
+.ai-selected-page .ai-answer-content .ai-md-table-wrap,
+.ai-selected-page .ai-answer-content .ai-adaptive-table-wrap{width:100%;overflow-x:auto}
+.ai-selected-page .ai-answer-content .ai-md-table,
+.ai-selected-page .ai-answer-content .ai-adaptive-table{width:max-content!important;min-width:100%!important;border-collapse:collapse!important;table-layout:auto!important}
+.ai-selected-page .ai-answer-content .ai-md-table th,
+.ai-selected-page .ai-answer-content .ai-md-table td,
+.ai-selected-page .ai-answer-content .ai-adaptive-table th,
+.ai-selected-page .ai-answer-content .ai-adaptive-table td{padding:10px 12px!important;border-bottom:1px solid rgba(130,143,162,.14)!important;vertical-align:middle!important;white-space:nowrap!important}
+.ai-selected-page .ai-answer-content .ai-md-table th,
+.ai-selected-page .ai-answer-content .ai-adaptive-table th{background:#fafbfc!important;color:#758196!important;font-weight:760!important}
+.ai-selected-page .ai-answer-content .ai-md-table .is-label,
+.ai-selected-page .ai-answer-content .ai-adaptive-table .ai-adaptive-col-label{min-width:132px!important;text-align:left!important}
+.ai-selected-page .ai-answer-content .ai-md-table .is-value,
+.ai-selected-page .ai-answer-content .ai-adaptive-table .ai-adaptive-col-metric{min-width:112px!important;text-align:center!important;font-variant-numeric:tabular-nums}
+.ai-selected-page .ai-answer-content .ai-adaptive{margin-top:18px!important}
+
+
 </style>`;
 
 /* CQR_AI_CONTEXT_V10_DYNAMIC_REGISTRY_START */
@@ -1125,143 +1166,189 @@ function cleanAnswer(result) {
 }
 
 function formatAiInline(value) {
-  return escapeHtml(String(value || ""))
-    .replace(/\*\*\*(.+?)\*\*\*/g, "$1")
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*([^*\n]+)\*/g, "<em>$1</em>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\*/g, "");
+  const source = String(value || "");
+  const codeTokens = [];
+  const linkTokens = [];
+
+  let working = source
+    .replace(/`([^`\n]+)`/g, (_, code) => {
+      const index = codeTokens.push(code) - 1;
+      return `@@AICODE${index}@@`;
+    })
+    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => {
+      const index = linkTokens.push({ label, url }) - 1;
+      return `@@AILINK${index}@@`;
+    });
+
+  let html = escapeHtml(working)
+    .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/__([^_\n]+)__/g, "<strong>$1</strong>")
+    .replace(/~~([^~\n]+)~~/g, "<del>$1</del>")
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+
+  html = html.replace(/@@AICODE(\d+)@@/g, (_, index) => {
+    return `<code>${escapeHtml(codeTokens[Number(index)] || "")}</code>`;
+  });
+
+  html = html.replace(/@@AILINK(\d+)@@/g, (_, index) => {
+    const token = linkTokens[Number(index)] || {};
+    const url = String(token.url || "");
+    if (!/^https?:\/\//i.test(url)) return escapeHtml(token.label || "");
+    return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(token.label || url)}</a>`;
+  });
+
+  return html;
 }
 
-function classifyAiInsight(value) {
-  const text = String(value || "").toLowerCase();
-
-  const actionTerms = [
-    "สิ่งที่ควรทำต่อ", "ข้อเสนอแนะ", "แนะนำ", "ควรตรวจ", "ควรปรับ",
-    "recommended action", "next step", "action item", "recommend"
-  ];
-  const riskTerms = [
-    "ความเสี่ยง", "น่ากังวล", "ผิดปกติ", "ต่ำสุด", "ลดลงมาก", "ตกลงมาก",
-    "critical", "high risk", "risk", "anomaly", "severe", "weakest"
-  ];
-  const warningTerms = [
-    "ควรติดตาม", "เฝ้าระวัง", "ต่ำกว่าค่าเฉลี่ย", "ลดลงเล็กน้อย", "watch",
-    "monitor", "warning", "ต้องจับตา"
-  ];
-  const positiveTerms = [
-    "จุดแข็ง", "ทำได้ดี", "สูงสุด", "เหนือค่าเฉลี่ย", "แข็งแรง", "เติบโต",
-    "improved", "healthy", "strong", "best", "positive"
-  ];
-
-  if (actionTerms.some((term) => text.includes(term))) return "action";
-  if (riskTerms.some((term) => text.includes(term))) return "risk";
-  if (warningTerms.some((term) => text.includes(term))) return "warning";
-  if (positiveTerms.some((term) => text.includes(term))) return "positive";
-  return "neutral";
+function aiMarkdownTableCells(line) {
+  let value = String(line || "").trim();
+  if (value.startsWith("|")) value = value.slice(1);
+  if (value.endsWith("|")) value = value.slice(0, -1);
+  return value.split("|").map((cell) => cell.trim());
 }
 
-function insightEmoji(kind) {
+function aiMarkdownIsTableDivider(line) {
+  const cells = aiMarkdownTableCells(line);
+  return cells.length >= 2 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+}
+
+function aiMarkdownIsStructural(lines, index) {
+  const line = String(lines[index] || "");
+  const trimmed = line.trim();
+  if (!trimmed) return true;
+  if (/^```/.test(trimmed)) return true;
+  if (/^#{1,6}\s+/.test(trimmed)) return true;
+  if (/^(?:-{3,}|\*{3,}|_{3,})$/.test(trimmed)) return true;
+  if (/^>\s?/.test(trimmed)) return true;
+  if (/^\s*(?:[-+*]|\d+[.)])\s+/.test(line)) return true;
+  if (trimmed.includes("|") && index + 1 < lines.length && aiMarkdownIsTableDivider(lines[index + 1])) return true;
+  return false;
+}
+
+function aiMarkdownRenderList(lines, startIndex) {
+  const rows = [];
+  let index = startIndex;
+
+  while (index < lines.length) {
+    const raw = String(lines[index] || "");
+    const match = raw.match(/^(\s*)([-+*]|\d+[.)])\s+(.+)$/);
+    if (!match) break;
+
+    const spaces = match[1].replace(/\t/g, "    ").length;
+    const depth = Math.min(4, Math.floor(spaces / 2));
+    const markerRaw = match[2];
+    const ordered = /^\d/.test(markerRaw);
+    const marker = ordered ? markerRaw.replace(/[)]$/, ".") : "•";
+
+    rows.push(
+      `<div class="ai-md-list-item" role="listitem" style="--ai-list-depth:${depth}">`
+      + `<span class="ai-md-list-marker">${escapeHtml(marker)}</span>`
+      + `<div class="ai-md-list-copy">${formatAiInline(match[3].trim())}</div>`
+      + `</div>`
+    );
+    index += 1;
+  }
+
   return {
-    positive: "✅",
-    warning: "⚠️",
-    risk: "🔴",
-    action: "💡",
-    neutral: "📌",
-  }[kind] || "📌";
-}
-
-function cleanAiMarkdown(value) {
-  return String(value || "")
-    .replace(/^\s*\*{1,3}\s*/, "")
-    .replace(/\s*\*{1,3}\s*$/, "")
-    .trim();
+    html: `<div class="ai-md-list" role="list">${rows.join("")}</div>`,
+    nextIndex: index,
+  };
 }
 
 function formatAiAnswer(value) {
   const lines = String(value || "").replace(/\r\n?/g, "\n").split("\n");
   const blocks = [];
-  let listItems = [];
+  let index = 0;
 
-  const flushList = () => {
-    if (!listItems.length) return;
+  while (index < lines.length) {
+    const raw = String(lines[index] || "");
+    const trimmed = raw.trim();
 
-    blocks.push(
-      `<ul>${listItems.map((item) => {
-        const kind = classifyAiInsight(item);
-        return `<li class="is-${kind}">${formatAiInline(cleanAiMarkdown(item))}</li>`;
-      }).join("")}</ul>`
-    );
+    if (!trimmed) {
+      index += 1;
+      continue;
+    }
 
-    listItems = [];
-  };
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-
-    if (!line) {
-      flushList();
-      if (blocks.length && !String(blocks[blocks.length - 1] || "").includes("ai-answer-spacer")) {
-        blocks.push('<div class="ai-answer-spacer" aria-hidden="true"></div>');
+    const fence = trimmed.match(/^```([a-zA-Z0-9_-]*)\s*$/);
+    if (fence) {
+      const language = String(fence[1] || "").trim();
+      const codeLines = [];
+      index += 1;
+      while (index < lines.length && !/^```\s*$/.test(String(lines[index] || "").trim())) {
+        codeLines.push(String(lines[index] || ""));
+        index += 1;
       }
-      continue;
-    }
-
-    if (/^-{3,}$/.test(line)) {
-      flushList();
-      continue;
-    }
-
-    const markdownHeading = line.match(/^#{1,6}\s+(.+)$/);
-    if (markdownHeading) {
-      flushList();
-      const title = cleanAiMarkdown(markdownHeading[1]);
-      const kind = classifyAiInsight(title);
-      const isGameTitle = /^[A-Z0-9_/-]{3,30}$/.test(title);
-      const finalKind = isGameTitle ? "neutral" : kind;
-      const emoji = isGameTitle ? "🎯" : insightEmoji(finalKind);
+      if (index < lines.length) index += 1;
       blocks.push(
-        `<div class="ai-insight-section is-${finalKind}">`
-        + `<div class="ai-insight-section-title"><span>${emoji}</span><span>${formatAiInline(title)}</span></div>`
-        + `</div>`
+        `<pre class="ai-md-code"><code${language ? ` data-language="${escapeHtml(language)}"` : ""}>`
+        + `${escapeHtml(codeLines.join("\n"))}</code></pre>`
       );
       continue;
     }
 
-    const bullet = line.match(/^(?:[-*•]\s+)(.+)$/);
-    if (bullet) {
-      listItems.push(bullet[1].trim());
+    const heading = trimmed.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      const level = Math.min(4, Math.max(2, heading[1].length + 1));
+      blocks.push(`<h${level}>${formatAiInline(heading[2].trim())}</h${level}>`);
+      index += 1;
       continue;
     }
 
-    flushList();
+    if (/^(?:-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+      blocks.push('<hr class="ai-md-rule">');
+      index += 1;
+      continue;
+    }
 
-    const plain = cleanAiMarkdown(line);
-    const isSectionTitle =
-      plain.endsWith(":")
-      && plain.length <= 85
-      && !/[.!?]$/.test(plain.slice(0, -1));
+    if (/^>\s?/.test(trimmed)) {
+      const quote = [];
+      while (index < lines.length && /^>\s?/.test(String(lines[index] || "").trim())) {
+        quote.push(String(lines[index] || "").trim().replace(/^>\s?/, ""));
+        index += 1;
+      }
+      blocks.push(`<blockquote>${quote.map(formatAiInline).join("<br>")}</blockquote>`);
+      continue;
+    }
 
-    if (isSectionTitle) {
-      const title = plain.slice(0, -1).trim();
-      const kind = classifyAiInsight(title);
-      const isGameTitle = /^[A-Z0-9_/-]{3,30}$/.test(title);
-      const finalKind = isGameTitle ? "neutral" : kind;
-      const emoji = isGameTitle ? "🎯" : insightEmoji(finalKind);
+    if (trimmed.includes("|") && index + 1 < lines.length && aiMarkdownIsTableDivider(lines[index + 1])) {
+      const columns = aiMarkdownTableCells(trimmed);
+      index += 2;
+      const rows = [];
+      while (index < lines.length) {
+        const rowLine = String(lines[index] || "").trim();
+        if (!rowLine || !rowLine.includes("|")) break;
+        rows.push(aiMarkdownTableCells(rowLine));
+        index += 1;
+      }
 
       blocks.push(
-        `<div class="ai-insight-section is-${finalKind}">`
-        + `<div class="ai-insight-section-title"><span>${emoji}</span><span>${formatAiInline(title)}</span></div>`
-        + `</div>`
+        `<div class="ai-md-table-wrap"><table class="ai-md-table">`
+        + `<thead><tr>${columns.map((cell, colIndex) => `<th class="${colIndex === 0 ? "is-label" : "is-value"}">${formatAiInline(cell)}</th>`).join("")}</tr></thead>`
+        + `<tbody>${rows.map((row) => `<tr>${columns.map((_, colIndex) => `<td class="${colIndex === 0 ? "is-label" : "is-value"}">${formatAiInline(row[colIndex] || "")}</td>`).join("")}</tr>`).join("")}</tbody>`
+        + `</table></div>`
       );
       continue;
     }
 
-    blocks.push(`<p>${formatAiInline(plain)}</p>`);
+    if (/^\s*(?:[-+*]|\d+[.)])\s+/.test(raw)) {
+      const rendered = aiMarkdownRenderList(lines, index);
+      blocks.push(rendered.html);
+      index = rendered.nextIndex;
+      continue;
+    }
+
+    const paragraph = [trimmed];
+    index += 1;
+    while (index < lines.length && String(lines[index] || "").trim() && !aiMarkdownIsStructural(lines, index)) {
+      paragraph.push(String(lines[index] || "").trim());
+      index += 1;
+    }
+    blocks.push(`<p>${formatAiInline(paragraph.join(" "))}</p>`);
   }
 
-  flushList();
-  return blocks.join("");
+  return `<div class="ai-md-answer">${blocks.join("")}</div>`;
 }
+
 
 const AI_ADAPTIVE_BLOCKS_KEY = "cqr_ai_adaptive_answer_blocks_v1";
 const AI_ADAPTIVE_TYPES = new Set(["summary","key_findings","metrics","comparison_table","ranking","recommendation","next_actions","warning","limitations"]);
