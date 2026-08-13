@@ -492,11 +492,21 @@ async function loginWithBackend(idToken){
   return json;
 }
 
+let dashboardDataInFlight = null;
+
 async function loadSecureData(sessionToken){
+  const month = document.getElementById('f-month')?.value || '';
+  const game = document.getElementById('f-game')?.value || 'ALL';
+  if(
+    dashboardDataInFlight &&
+    dashboardDataInFlight.sessionToken === sessionToken &&
+    dashboardDataInFlight.month === month &&
+    dashboardDataInFlight.game === game
+  ) return dashboardDataInFlight.promise;
+
   showDashboardLoading('กำลังโหลดข้อมูลจากระบบหลังบ้าน...');
-  try{
-    const month = document.getElementById('f-month')?.value || '';
-    const game = document.getElementById('f-game')?.value || 'ALL';
+  const promise = (async () => {
+    try{
     const json = await callAppsScript('dashboard.data', {session_token:sessionToken, period:month, game});
     if(json.ok === false) throw new Error(json.message || 'Data access denied');
     const nextData = json.data || json.CQR_DATA || json;
@@ -504,8 +514,15 @@ async function loadSecureData(sessionToken){
     D = nextData;
     refreshDashboardMonths();
     renderAll();
-  }catch(e){
-    showDashboardUnavailable(`โหลดข้อมูลไม่สำเร็จ: ${e.message || e}`);
+    }catch(e){
+      showDashboardUnavailable(`โหลดข้อมูลไม่สำเร็จ: ${e.message || e}`);
+    }
+  })();
+  dashboardDataInFlight = {sessionToken, month, game, promise};
+  try{
+    return await promise;
+  }finally{
+    if(dashboardDataInFlight?.promise === promise) dashboardDataInFlight = null;
   }
 }
 
