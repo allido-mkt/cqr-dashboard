@@ -1212,17 +1212,6 @@ function formatAiAnswer(value) {
       continue;
     }
 
-    const kind = classifyAiInsight(plain);
-
-    if (kind !== "neutral") {
-      blocks.push(
-        `<div class="ai-insight-section is-${kind}">`
-        + `<div class="ai-insight-section-title"><span>${insightEmoji(kind)}</span><span>${formatAiInline(plain)}</span></div>`
-        + `</div>`
-      );
-      continue;
-    }
-
     blocks.push(`<p>${formatAiInline(plain)}</p>`);
   }
 
@@ -1695,7 +1684,7 @@ async function sendQuestion(override) {
       previous_scope: previousScope ? JSON.stringify(previousScope) : "",
     };
 
-    const result = await callAuthorized("ai.ask", request, 60000);
+    const result = await callAuthorized("ai.ask", request, 120000);
     const payload = assertSuccessfulPayload(result, "AI");
     const status = String(payload?.status || result?.status || "").trim().toLowerCase();
 
