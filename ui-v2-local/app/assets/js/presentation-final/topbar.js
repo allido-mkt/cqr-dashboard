@@ -3,8 +3,9 @@ import { getState, setFilter, setFilters } from "./state.js";
 import { icon, optionMarkup, showToast, downloadText } from "./ui.js";
 
 const PAGE_META = {
-  dashboard: ["Dashboard", "ภาพรวม Performance, Retention และ Channel Quality"],
-  "ai-insight": ["AI Chat Bot", "วิเคราะห์ CQR แบบเต็มหน้าโดยอิง Game และ Period ที่เลือก"],
+  "daily-retention": ["Daily Retention", "ดูว่าผู้เล่นใหม่กลับมาเล่นต่อมากน้อยแค่ไหน และเลือกวันที่เพื่อย้อนดู Performance"],
+dashboard: ["Dashboard", "ภาพรวม Performance, Retention และ Channel Quality"],
+  "ai-insight": ["ASK AI", "Analyze data from your questions and surface insights, comparisons, and recommended next actions."],
   "user-access": ["User Access", "จัดการผู้ใช้ Role และขอบเขตที่บันทึกใน Users table"],
   "data-health-overview": ["Data Health", "ภาพรวมความพร้อมของ Raw, Master และ Central DB"],
   "check-raw": ["Check Raw", "ส่งคำขอตรวจ Raw และติดตาม Queue จนเสร็จ"],
@@ -30,7 +31,10 @@ function exportMenu() {
   return `<div class="export-menu" id="export-menu"><button class="export-trigger" id="export-trigger" type="button">${icon("export")} Export</button><div class="export-popover"><button class="export-option" data-export="csv" type="button">${icon("table","nav-icon")} Export current view CSV</button><button class="export-option" data-export="summary" type="button">${icon("file","nav-icon")} Export summary TXT</button><button class="export-option" data-export="print" type="button">${icon("download","nav-icon")} Print / Save PDF</button></div></div>`;
 }
 
-function renderActions() { return ""; }
+function renderActions(route) {
+  if (route === "daily-retention") return `<div id="daily-retention-header-tools" class="daily-retention-header-tools" aria-label="Daily Retention filters"></div>`;
+  return "";
+}
 
 export function renderTopbar() {
   const state = getState();

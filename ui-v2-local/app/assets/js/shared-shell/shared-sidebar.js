@@ -19,6 +19,7 @@
   const ICONS = {
     logo: '<path d="M12 2.5 20 7.1v9.8L12 21.5 4 16.9V7.1L12 2.5Z"/><path d="m9 12 2 2 4-4"/>',
     dashboard: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="4" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="11" width="7" height="10" rx="1.5"/>',
+    retention: '<path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v6h-6"/>',
     sparkles: '<path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3Z"/><path d="m18.5 13 1 2.4L22 16.5l-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z"/><path d="m5 14 .8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14Z"/>',
     users: '<circle cx="9" cy="8" r="3"/><path d="M3.5 20v-1.3c0-3.1 2.4-5.4 5.5-5.4s5.5 2.3 5.5 5.4V20"/><circle cx="17" cy="8.5" r="2.3"/><path d="M16 13.6c2.7.2 4.5 2 4.5 4.5V20"/>',
     health: '<path d="M12 21s-8-4.7-9.4-9.8C1.5 7.5 4 4 7.4 4c2 0 3.7 1.1 4.6 2.5C12.9 5.1 14.6 4 16.6 4c3.4 0 5.9 3.5 4.8 7.2C20 16.3 12 21 12 21Z"/><path d="M6.5 12h3l1.5-3 2 6 1.4-3h3"/>',
@@ -44,6 +45,7 @@
       label: "Main Menu",
       items: [
         { id: "dashboard", label: "Dashboard", icon: "dashboard" },
+        { id: "daily-retention", label: "Daily Retention", icon: "retention" },
         { id: "ai-insight", label: "AI Chat Bot", icon: "sparkles" },
       ],
     },
