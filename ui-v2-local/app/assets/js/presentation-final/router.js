@@ -9,10 +9,12 @@ import { renderDataControlHistoryPage, bindDataControlHistoryPage, renderDataCon
 import { renderProfilePage, bindProfilePage, renderPreferencesPage, bindPreferencesPage } from "./pages/profile.js";
 import { accessDeniedPage } from "./pages/shared.js";
 
+import { renderDailyRetentionPage, bindDailyRetentionPage } from "./pages/daily-retention.js?v=3301";
 const ROUTES = {
+  "daily-retention":{render:renderDailyRetentionPage,bind:bindDailyRetentionPage},
   dashboard:{render:renderDashboardPage,bind:bindDashboardPage},
   "ai-insight":{render:renderAiInsightPage,bind:bindAiInsightPage},
-  "user-access":{permission:PERMISSIONS.MANAGE_USER_ACCESS,render:renderUserAccessPage,bind:bindUserAccessPage},
+"user-access":{permission:PERMISSIONS.MANAGE_USER_ACCESS,render:renderUserAccessPage,bind:bindUserAccessPage},
   "data-health-overview":{permission:PERMISSIONS.VIEW_DATA_HEALTH,render:renderDataHealthOverviewPage,bind:bindDataHealthOverviewPage},
   "check-raw":{permission:PERMISSIONS.RUN_RAW_CHECK,render:renderCheckRawPage,bind:bindCheckRawPage},
   "pipeline-check":{permission:PERMISSIONS.RUN_PIPELINE_CHECK,render:renderPipelineCheckPage,bind:bindPipelineCheckPage},
