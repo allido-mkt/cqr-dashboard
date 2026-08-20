@@ -7,8 +7,8 @@ import {
   clearDailyRetentionClientCache,
 } from "../services/daily-retention-api.js?v=3301";
 
-const STYLE_ID = "cqr-daily-retention-v3101-style";
-const STYLE_HREF = "./assets/css/daily-retention.css?v=3101";
+const STYLE_ID = "cqr-daily-retention-v3303-style";
+const STYLE_HREF = "./assets/css/daily-retention.css?v=3303";
 const GAMES = [
   { value: "ALL", label: "All Games" },
   { value: "CBM_TH", label: "CBM TH" },

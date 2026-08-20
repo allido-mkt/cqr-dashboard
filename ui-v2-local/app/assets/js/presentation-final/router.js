@@ -9,7 +9,7 @@ import { renderDataControlHistoryPage, bindDataControlHistoryPage, renderDataCon
 import { renderProfilePage, bindProfilePage, renderPreferencesPage, bindPreferencesPage } from "./pages/profile.js";
 import { accessDeniedPage } from "./pages/shared.js";
 
-import { renderDailyRetentionPage, bindDailyRetentionPage } from "./pages/daily-retention.js?v=3301";
+import { renderDailyRetentionPage, bindDailyRetentionPage } from "./pages/daily-retention.js?v=3303";
 const ROUTES = {
   "daily-retention":{render:renderDailyRetentionPage,bind:bindDailyRetentionPage},
   dashboard:{render:renderDashboardPage,bind:bindDashboardPage},
