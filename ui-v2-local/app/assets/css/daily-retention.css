@@ -480,3 +480,60 @@
 
 @media(max-width:1380px){#topbar:has(#daily-retention-header-tools){align-items:flex-start}.dr-header-tools-inner{justify-content:flex-start}.daily-retention-header-tools .dr-date-control input{width:124px}}
 @media(max-width:980px){#topbar:has(#daily-retention-header-tools){flex-direction:column}.daily-retention-header-tools .dr-header-tools-inner{justify-content:flex-start}.topbar-actions:has(#daily-retention-header-tools){width:100%}}
+
+/* CQR DAILY RETENTION UX PATCH V2 SAFE 2026-08-22 */
+.dr-context-card{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:12px 18px;
+  align-items:center;
+  padding:14px 16px;
+  margin-bottom:16px;
+  border:1px solid var(--border,#dfe5ec);
+  border-radius:14px;
+  background:var(--surface,#fff);
+  font-size:13px;
+  line-height:1.45;
+}
+.dr-context-card strong{font-size:14px}
+.dr-context-muted{color:var(--text-muted,#64748b);text-align:right}
+.dr-highlight-meta{
+  margin-top:5px;
+  color:var(--text-muted,#64748b);
+  font-size:12px;
+  line-height:1.4;
+}
+.dr-comp-rank.high{
+  background:var(--surface-subtle,#f3f5f8)!important;
+  color:var(--text,#263244)!important;
+  border-color:var(--border,#d9e0e8)!important;
+}
+.dr-comp-rank.low{font-weight:700}
+.dr-section-title{font-size:20px}
+.dr-section-sub,.dr-panel-sub,.dr-ret-desc,.dr-cell-sub{font-size:12.5px;line-height:1.45}
+.dr-table{font-size:13px}
+.dr-table th{font-size:12px;white-space:nowrap}
+.dr-table td{vertical-align:top}
+.dr-table-wrap{max-width:100%}
+.dr-ret-date{font-size:12px}
+.dr-highlight-label{font-size:12px}
+.dr-highlight-value{line-height:1.25}
+@media(max-width:1100px){
+  .dr-context-card{grid-template-columns:1fr}
+  .dr-context-muted{text-align:left}
+}
+
+/* CQR DAILY RETENTION APPROVED UI PATCH V3 FIX1 2026-08-23 */
+.dr-ai-summary-free .dr-ai-summary-prose{
+  margin-top:14px;
+  max-width:none;
+  font-size:15px;
+  line-height:1.75;
+  color:var(--text,#263244);
+}
+.dr-ai-summary-free .dr-ai-summary-prose p{margin:0 0 12px}
+.dr-ai-summary-free .dr-ai-summary-prose p:last-child{margin-bottom:0}
+.dr-comp-delta{white-space:nowrap}
+.dr-ret-delta.up,.dr-comp-delta.up{color:#157347}
+.dr-ret-delta.down,.dr-comp-delta.down{color:#b42318}
+.dr-ret-delta.flat,.dr-comp-delta.flat{color:var(--text-muted,#64748b)}

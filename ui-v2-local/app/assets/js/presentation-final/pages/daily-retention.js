@@ -10,7 +10,7 @@ import {
 const STYLE_ID = "cqr-daily-retention-v3303-style";
 const STYLE_HREF = "./assets/css/daily-retention.css?v=3303";
 const GAMES = [
-  { value: "ALL", label: "All Games" },
+  { value: "ALL", label: "ทุกเกม (4 เกม)" },
   { value: "CBM_TH", label: "CBM TH" },
   { value: "CBM_SEA", label: "CBM SEA" },
   { value: "CBPC_TH", label: "CBPC TH" },
@@ -22,6 +22,8 @@ const HISTORY_WINDOW = 60;
 const TABS = ["overview", "cohorts", "channels", "anomalies"];
 const MONTHS_TH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 const MILESTONE_DAYS = { D1: 1, D3: 3, D7: 7, D14: 14 };
+const CQR_DAILY_RETENTION_UX_PATCH_V2_SAFE_20260822 = true;
+const CQR_DAILY_RETENTION_APPROVED_UI_PATCH_V3_20260823 = true;
 
 const view = {
   game: "ALL",
@@ -128,12 +130,13 @@ function metricKey(code) {
 }
 function metricThai(code) {
   return {
-    D1: "กลับมาเล่นในวันถัดไป",
-    D3: "กลับมาเล่นภายใน 3 วัน",
-    D7: "กลับมาเล่นภายใน 7 วัน",
-    D14: "กลับมาเล่นภายใน 14 วัน",
+    D1: "ผู้สมัครที่ใช้วัด D1",
+    D3: "ผู้สมัครที่ใช้วัด D3",
+    D7: "ผู้สมัครที่ใช้วัด D7",
+    D14: "ผู้สมัครที่ใช้วัด D14",
   }[code] || code;
 }
+
 function alertLabel(state) {
   const labels = {
     none: "",
@@ -165,11 +168,9 @@ function pointDifference(value) {
   return "ใกล้เคียงช่วงปกติ";
 }
 function historicalComparison(current, baseline, diff) {
-  const currentNum = n(current);
-  const baselineNum = n(baseline);
-  if (currentNum === null || baselineNum === null) return "ยังไม่มีข้อมูลช่วงปกติให้เทียบ";
-  return `รอบนี้ ${pct(currentNum)} · ปกติเกมนี้ราว ${pct(baselineNum)} · ${pointDifference(diff)}`;
+  return normalComparisonText(current, baseline);
 }
+
 function channelComparison(current, gameRate, diff) {
   const currentNum = n(current);
   const gameNum = n(gameRate);
@@ -323,6 +324,9 @@ function allMilestonePoints(games) {
     value: n(item.value),
     baseline: n(item.baseline),
     diff: n(item.diff_pp),
+    retained: item.retained,
+    eligible: item.eligible,
+    cohortDate: item.cohort_date,
     state: String(item.alert_state || "none").toLowerCase(),
   }))).filter((item) => item.value !== null);
 }
@@ -526,6 +530,36 @@ function deltaPresentation(diff) {
   return { cls: "flat", icon: "•", text: "ใกล้เคียงช่วงปกติ" };
 }
 
+function relativeChangePresentation(current, baseline) {
+  const currentNum = n(current);
+  const baselineNum = n(baseline);
+  if (currentNum === null || baselineNum === null || Math.abs(baselineNum) < 1e-12) {
+    return { cls: "flat", icon: "→", text: "ยังไม่มีข้อมูลเทียบย้อนหลัง", percent: null };
+  }
+  const relative = ((currentNum - baselineNum) / Math.abs(baselineNum)) * 100;
+  const rounded = Math.round(Math.abs(relative));
+  if (relative < 0) return { cls: "down", icon: "↓", text: `วันนี้ลดลง ${rounded}%`, percent: -rounded };
+  if (relative > 0) return { cls: "up", icon: "↑", text: `วันนี้เพิ่มขึ้น ${rounded}%`, percent: rounded };
+  return { cls: "flat", icon: "→", text: "วันนี้ใกล้เคียงเดิม", percent: 0 };
+}
+
+function normalComparisonText(current, baseline) {
+  const baselineNum = n(baseline);
+  if (baselineNum === null) return "ยังไม่มีข้อมูลย้อนหลังให้เทียบ";
+  const movement = relativeChangePresentation(current, baseline);
+  return `ปกติอยู่ราว ${pct(baselineNum)} · ${movement.icon} ${movement.text}`;
+}
+
+function aiSummaryParagraphs(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const chunks = text
+    .split(/\n\s*\n/)
+    .map((part) => part.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  return chunks.map((part) => `<p>${esc(part)}</p>`).join("");
+}
+
 function deterministicDailyFallback(games) {
   const leader = dailyLeader(games);
   const weakest = weakestGameSummary(games);
@@ -551,40 +585,28 @@ function deterministicDailyFallback(games) {
 function overallSummary(data) {
   const games = data.games || [];
   const ai = currentAiSummary();
-  const summaryText = String(ai?.summary_text || "").trim() || deterministicDailyFallback(games);
-  const keyFinding = String(ai?.key_finding || "").trim();
-  const attentionPoint = String(ai?.attention_point || "").trim();
-  const recommendedCheck = String(ai?.recommended_check || "").trim();
+  const aiParagraphs = [
+    String(ai?.key_finding || "").trim(),
+    String(ai?.attention_point || "").trim(),
+    String(ai?.recommended_check || "").trim(),
+  ].filter(Boolean);
+  const summaryText = aiParagraphs.length
+    ? aiParagraphs.join("\n\n")
+    : (String(ai?.summary_text || "").trim() || deterministicDailyFallback(games));
 
   return `
-    <section class="dr-overall dr-ai-summary">
+    <section class="dr-overall dr-ai-summary dr-ai-summary-free">
       <div class="dr-ai-summary-head">
         <div>
-          <div class="dr-overall-kicker">${icon("spark", "dr-ico dr-ico-sm")} AI Daily Summary · ${esc(formatDateTh(selectedReportDate()))}</div>
+          <div class="dr-overall-kicker">${icon("spark", "dr-ico dr-ico-sm")} สรุปประจำวัน · ข้อมูล ณ ${esc(formatDateTh(selectedReportDate()))}</div>
           <div class="dr-ai-summary-title">ภาพรวม Retention เป็นอย่างไร?</div>
         </div>
         ${ai ? `<span class="dr-ai-ready">${icon("spark", "dr-ico dr-ico-sm")} AI Summary</span>` : ""}
       </div>
-
-      <div class="dr-ai-summary-main">${esc(summaryText)}</div>
-
-      ${(keyFinding || attentionPoint || recommendedCheck) ? `
-        <div class="dr-ai-summary-grid">
-          ${keyFinding ? `<div class="dr-ai-summary-item">
-            <div class="dr-ai-summary-label">จุดเด่น</div>
-            <div class="dr-ai-summary-text">${esc(keyFinding)}</div>
-          </div>` : ""}
-          ${attentionPoint ? `<div class="dr-ai-summary-item">
-            <div class="dr-ai-summary-label">จุดที่ควรจับตา</div>
-            <div class="dr-ai-summary-text">${esc(attentionPoint)}</div>
-          </div>` : ""}
-          ${recommendedCheck ? `<div class="dr-ai-summary-item">
-            <div class="dr-ai-summary-label">ควรดูอะไรต่อ</div>
-            <div class="dr-ai-summary-text">${esc(recommendedCheck)}</div>
-          </div>` : ""}
-        </div>` : ""}
+      <div class="dr-ai-summary-prose">${aiSummaryParagraphs(summaryText)}</div>
     </section>`;
 }
+
 
 function metricBadge(code) {
   return `<div class="dr-metric-badge">${esc(code)}</div>`;
@@ -614,8 +636,9 @@ function highlights(data) {
     return `<div class="dr-highlight dr-highlight-metric">
       ${metricBadge(code)}
       <div class="dr-highlight-body">
-        <div class="dr-highlight-label">${singleGame ? `${code} Retention` : `Highest ${code}`}</div>
+        <div class="dr-highlight-label">${singleGame ? `${code} Retention` : `${code} สูงสุดใน ${games.length} เกม`}</div>
         <div class="dr-highlight-value">${singleGame ? pct(item.value) : `${item.game} · ${pct(item.value)}`}</div>
+        <div class="dr-highlight-meta">${int(item.retained)} จาก ${int(item.eligible)} คนกลับมาเล่น · ผู้สมัครวันที่ ${formatDateTh(item.cohortDate)}</div>
         <div class="dr-highlight-text">${esc(caption)}</div>
       </div>
     </div>`;
@@ -626,9 +649,9 @@ function highlights(data) {
   if (flagged.length) {
     const item = flagged[0];
     attentionValue = `${item.game} · ${item.code} ${pct(item.value)}`;
-    const delta = deltaPresentation(item.diff);
+    const movement = relativeChangePresentation(item.value, item.baseline);
     attentionText = n(item.baseline) !== null
-      ? `เกมนี้มักอยู่ราว ${pct(item.baseline)} · ${delta.text} จึงควรเปิดดูรายละเอียด`
+      ? `ปกติอยู่ราว ${pct(item.baseline)} · ${movement.icon} ${movement.text} · ควรตรวจสอบ`
       : "จุดนี้มีการเปลี่ยนแปลงมากพอที่จะควรเปิดดูรายละเอียด";
   }
 
@@ -639,7 +662,7 @@ function highlights(data) {
     <div class="dr-highlight dr-highlight-attention">
       ${cautionBadge()}
       <div class="dr-highlight-body">
-        <div class="dr-highlight-label">Needs Attention</div>
+        <div class="dr-highlight-label">ต้องตรวจสอบก่อน</div>
         <div class="dr-highlight-value">${esc(attentionValue)}</div>
         <div class="dr-highlight-text">${esc(attentionText)}</div>
       </div>
@@ -658,7 +681,7 @@ function comparison(data) {
     const rank = rankLabel(games, game.game_code, code);
     const showRank = rank.startsWith("สูงสุด") || rank.startsWith("ต่ำสุด");
     const alert = alertLabel(state);
-    const delta = deltaPresentation(metric.diff_pp);
+    const movement = relativeChangePresentation(metric.value, metric.baseline);
 
     return `<div class="dr-comp-cell">
       <div class="dr-comp-top">
@@ -666,17 +689,17 @@ function comparison(data) {
         ${showRank ? `<div class="dr-comp-rank ${rank.startsWith("ต่ำสุด") ? "low" : "high"}">${esc(rank)}</div>` : ""}
       </div>
       <div class="dr-comp-sample">${int(metric.retained)} จาก ${int(metric.eligible)} คนกลับมาเล่น</div>
-      ${n(metric.baseline) !== null ? `<div class="dr-comp-history">ปกติเกมนี้อยู่ราว ${pct(metric.baseline)} <span class="dr-comp-delta ${delta.cls}">${delta.icon} ${esc(delta.text)}</span></div>` : ""}
+      ${n(metric.baseline) !== null ? `<div class="dr-comp-history">ปกติอยู่ราว ${pct(metric.baseline)} <span class="dr-comp-delta ${movement.cls}">${movement.icon} ${esc(movement.text)}</span></div>` : ""}
       ${alert ? `<div class="dr-comp-alert ${state}">${esc(alert)}</div>` : ""}
     </div>`;
   };
 
   return `<section class="dr-section dr-section-tight">
     <div class="dr-section-head"><div>
-      <h3 class="dr-section-title">Retention Comparison</h3>
+      <h3 class="dr-section-title">เปรียบเทียบ Retention ระหว่างเกม</h3>
       <div class="dr-section-sub">ดูว่าแต่ละเกมรักษาผู้เล่นได้กี่เปอร์เซ็นต์ มีคนกลับมาเล่นจริงกี่คน และต่างจากช่วงปกติของเกมแค่ไหน</div>
     </div></div>
-    <div class="dr-comparison"><table><thead><tr><th>Game</th><th>D1 · Day 1</th><th>D3 · Day 3</th><th>D7 · Day 7</th><th>D14 · Day 14</th></tr></thead>
+    <div class="dr-comparison"><table><thead><tr><th>เกม</th><th>D1 Retention</th><th>D3 Retention</th><th>D7 Retention</th><th>D14 Retention</th></tr></thead>
     <tbody>${games.map((game) => `<tr><td><strong>${esc(game.game_code)}</strong></td><td>${cell(game, "D1")}</td><td>${cell(game, "D3")}</td><td>${cell(game, "D7")}</td><td>${cell(game, "D14")}</td></tr>`).join("")}</tbody></table></div>
   </section>`;
 }
@@ -687,7 +710,7 @@ function retentionCard(game, item) {
   const state = String(item?.alert_state || "none").toLowerCase();
   const retained = int(item?.retained);
   const eligible = int(item?.eligible);
-  const delta = deltaPresentation(item?.diff_pp);
+  const movement = relativeChangePresentation(item?.value, item?.baseline);
 
   return `<div class="dr-ret ${state}">
     <div class="dr-ret-head">
@@ -701,14 +724,14 @@ function retentionCard(game, item) {
     <div class="dr-ret-rate">${pct(item?.value)}</div>
     <div class="dr-ret-people">${retained} จาก ${eligible} คนกลับมาเล่น</div>
 
-    ${n(item?.baseline) !== null ? `<div class="dr-ret-normal">ปกติเกมนี้อยู่ราว <strong>${pct(item?.baseline)}</strong></div>` : ""}
-    <div class="dr-ret-delta ${delta.cls}">
-      <span>${delta.icon}</span>
-      <strong>${esc(delta.text)}</strong>
+    ${n(item?.baseline) !== null ? `<div class="dr-ret-normal">ปกติอยู่ราว <strong>${pct(item?.baseline)}</strong></div>` : ""}
+    <div class="dr-ret-delta ${movement.cls}">
+      <span>${movement.icon}</span>
+      <strong>${esc(movement.text)}</strong>
     </div>
 
     <div class="dr-ret-date">กลุ่มผู้สมัครวันที่ ${formatDateTh(item?.cohort_date)}</div>
-    ${trend.length >= 2 ? `<div class="dr-ret-trend-label">Trend · ${view.window} Days</div>${sparkline(trend)}` : ""}
+    ${trend.length >= 2 ? `<div class="dr-ret-trend-label">แนวโน้มย้อนหลัง ${view.window} วัน</div>${sparkline(trend)}` : ""}
     ${state !== "none" ? `<div class="dr-ret-pill">${pill(state)}</div>` : ""}
   </div>`;
 }
@@ -729,8 +752,8 @@ function gameInsight(game) {
 
   if (!biggestMove) return `${values.join(" · ")}`;
   const code = metricCode(biggestMove.metric);
-  const delta = deltaPresentation(biggestMove.diff_pp);
-  return `${values.join(" · ")} · จุดที่เปลี่ยนจากอดีตมากที่สุดคือ ${code} ${delta.icon}${delta.text}`;
+  const movement = relativeChangePresentation(biggestMove.value, biggestMove.baseline);
+  return `${values.join(" · ")} · จุดที่เปลี่ยนจากช่วงย้อนหลังมากที่สุดคือ ${code} ${movement.icon} ${movement.text}`;
 }
 
 function gameCard(game) {
@@ -742,7 +765,7 @@ function gameCard(game) {
         <div class="dr-game-insight">${esc(gameInsight(game))}</div>
         ${ai?.recommended_check ? `<div class="dr-game-ai-action">${icon("spark", "dr-ico dr-ico-sm")} <strong>ควรดูต่อ:</strong> ${esc(ai.recommended_check)}</div>` : ""}
       </div>
-      <button class="dr-anomaly-link" data-open-anomalies="${esc(game.game_code)}" type="button">View Anomalies →</button>
+      <button class="dr-anomaly-link" data-open-anomalies="${esc(game.game_code)}" type="button">ดูจุดผิดปกติ →</button>
     </div>
     <div class="dr-ret-grid">${(game.milestones || []).map((item) => retentionCard(game, item)).join("")}</div>
   </article>`;
@@ -752,8 +775,12 @@ function renderOverview() {
   const data = overviewData();
   if (!data) return loadingOrError();
   const games = data.games || [];
-  return `${overallSummary({ ...data, games })}${highlights({ ...data, games })}${comparison({ ...data, games })}
-    <section class="dr-section dr-section-spacious"><div class="dr-section-head"><div><h3 class="dr-section-title">Game Detail</h3><div class="dr-section-sub">ดูเปอร์เซ็นต์จริง จำนวนคนที่กลับมา เทียบค่าปกติย้อนหลัง และคำแนะนำสั้น ๆ ของแต่ละเกม</div></div></div>
+  return `<section class="dr-context-card">
+      <div><strong>ข้อมูล ณ วันที่ ${formatDateTh(selectedReportDate())}</strong></div>
+      <div>D1–D14 อาจอ้างอิง Cohort คนละวัน กรุณาดูวันที่ Cohort และ Sample Size ประกอบก่อนสรุปผล</div>
+      <div class="dr-context-muted">ข้อมูลครบถึง ${formatDateTh(dataCompleteThrough())}</div>
+    </section>${overallSummary({ ...data, games })}${highlights({ ...data, games })}${comparison({ ...data, games })}
+    <section class="dr-section dr-section-spacious"><div class="dr-section-head"><div><h3 class="dr-section-title">รายละเอียดรายเกม</h3><div class="dr-section-sub">ดูเปอร์เซ็นต์จริง จำนวนคนที่กลับมา เทียบค่าปกติย้อนหลัง และคำแนะนำสั้น ๆ ของแต่ละเกม</div></div></div>
     <div class="dr-games">${games.map(gameCard).join("")}</div></section>`;
 }
 
@@ -782,20 +809,22 @@ function renderCohorts() {
     view.game === "ALL" ? "กลุ่มผู้เล่นใหม่ของแต่ละเกมเป็นอย่างไร?" : `กลุ่มผู้เล่นใหม่ของ ${view.game} เป็นอย่างไร?`
   );
   return `${ai}
-  <div class="dr-intro-note"><strong>Cohort Retention:</strong> แต่ละแถวคือผู้เล่นที่สมัครในวันเดียวกัน เพื่อดูว่ากลุ่มไหนกลับมาเล่นต่อได้ดีหรืออ่อนกว่ากลุ่มอื่น</div>
-  <div class="dr-panel"><div class="dr-panel-head"><div><div class="dr-panel-title">Cohort Retention</div><div class="dr-panel-sub">ใช้ดูว่าผู้เล่นที่สมัครวันไหนกลับมาเล่นต่อมากหรือน้อยเป็นพิเศษ</div></div></div>
-  <div class="dr-table-wrap"><table class="dr-table"><thead><tr><th>Signup Date</th><th>Game</th><th>D1</th><th>D3</th><th>D7</th><th>D14</th></tr></thead><tbody>
-  ${rows.length ? rows.map((row) => `<tr><td>${formatDateTh(row.cohort_date)}</td><td><strong>${esc(row.game_code)}</strong></td><td>${milestoneCell(row.milestones?.d1)}</td><td>${milestoneCell(row.milestones?.d3)}</td><td>${milestoneCell(row.milestones?.d7)}</td><td>${milestoneCell(row.milestones?.d14)}</td></tr>`).join("") : emptyRows(`ยังไม่มี Cohort Retention ในช่วง ${selectedRangeText()}`, 6)}
+  <div class="dr-intro-note"><strong>กลุ่มผู้สมัคร:</strong> แต่ละแถวคือผู้เล่นที่สมัครในวันเดียวกัน เพื่อดูว่ากลุ่มไหนกลับมาเล่นต่อได้ดีหรืออ่อนกว่ากลุ่มอื่น</div>
+  <div class="dr-panel"><div class="dr-panel-head"><div><div class="dr-panel-title">Retention ตามกลุ่มผู้สมัคร</div><div class="dr-panel-sub">ใช้ดูว่าผู้เล่นที่สมัครวันไหนกลับมาเล่นต่อมากหรือน้อยเป็นพิเศษ</div></div></div>
+  <div class="dr-table-wrap"><table class="dr-table"><thead><tr><th>วันที่สมัคร</th><th>เกม</th><th>D1</th><th>D3</th><th>D7</th><th>D14</th></tr></thead><tbody>
+  ${rows.length ? rows.map((row) => `<tr><td>${formatDateTh(row.cohort_date)}</td><td><strong>${esc(row.game_code)}</strong></td><td>${milestoneCell(row.milestones?.d1)}</td><td>${milestoneCell(row.milestones?.d3)}</td><td>${milestoneCell(row.milestones?.d7)}</td><td>${milestoneCell(row.milestones?.d14)}</td></tr>`).join("") : emptyRows(`ยังไม่มีข้อมูล Retention ของกลุ่มผู้สมัครในช่วง ${selectedRangeText()}`, 6)}
   </tbody></table></div></div>`;
 }
 function channelCell(item) {
   if (!item || String(item.maturity_status) === "collecting" || n(item.rate) === null) {
     return `<div class="dr-cell-main">ยังวัดไม่ได้</div><div class="dr-cell-sub">ยังไม่ถึงวันที่สามารถวัด Retention ช่วงนี้ได้</div>`;
   }
-  return `<div class="dr-cell-main">${pct(item.rate)}</div><div class="dr-cell-sub">${channelComparison(item.rate, item.game_rate, item.diff_vs_game_pp)}</div>`;
+  return `<div class="dr-cell-main">${pct(item.rate)}</div>
+    <div class="dr-cell-sub">${int(item.retained)} จาก ${int(item.eligible)} คนกลับมาเล่น</div>
+    <div class="dr-cell-sub">${channelComparison(item.rate, item.game_rate, item.diff_vs_game_pp)}</div>`;
 }
 function renderChannels() {
-  if (view.game === "ALL") return `<div class="dr-intro-note"><strong>เลือก Game ก่อน</strong><br>หน้านี้ใช้ดูว่าผู้เล่นจาก Facebook Ads, Google Ads หรือ Organic กลับมาเล่นต่อแตกต่างกันแค่ไหน</div>`;
+  if (view.game === "ALL") return `<div class="dr-intro-note"><strong>เลือกเกมจากตัวกรองด้านบนก่อน</strong><br>จากนั้นดู Rate พร้อมจำนวนคนของ Facebook Ads, Google Ads หรือ Organic / Unknown เพื่อไม่ให้ Percentage จาก Sample เล็กทำให้เข้าใจผิด</div>`;
   const data = view.channelsEnvelope?.data;
   if (!data) return loadingOrError();
   const rows = rowsVisibleByReport(data.rows || [], "cohort_date");
@@ -804,9 +833,9 @@ function renderChannels() {
     `ผู้เล่นจากแต่ละ Channel ของ ${view.game} เป็นอย่างไร?`
   );
   return `${ai}
-  <div class="dr-intro-note"><strong>Channel Retention:</strong> ดูว่าผู้เล่นจากแต่ละช่องทางกลับมาเล่นต่อมากน้อยต่างกันแค่ไหน</div>
-  <div class="dr-panel"><div class="dr-panel-head"><div><div class="dr-panel-title">Channel Retention · ${esc(view.game)}</div><div class="dr-panel-sub">ช่วยดูว่าช่องทางไหนพาผู้เล่นที่กลับมาเล่นต่อได้มากกว่า โดยควรดูจำนวนผู้เล่นประกอบด้วย</div></div></div>
-  <div class="dr-table-wrap"><table class="dr-table"><thead><tr><th>Signup Date</th><th>Channel</th><th>D1</th><th>D3</th><th>D7</th><th>D14</th></tr></thead><tbody>
+  <div class="dr-intro-note"><strong>Retention ตามช่องทาง:</strong> ดูว่าผู้เล่นจากแต่ละช่องทางกลับมาเล่นต่อมากน้อยต่างกันแค่ไหน</div>
+  <div class="dr-panel"><div class="dr-panel-head"><div><div class="dr-panel-title">Retention ตามช่องทาง · ${esc(view.game)}</div><div class="dr-panel-sub">ช่วยดูว่าช่องทางไหนพาผู้เล่นที่กลับมาเล่นต่อได้มากกว่า โดยควรดูจำนวนผู้เล่นประกอบด้วย</div></div></div>
+  <div class="dr-table-wrap"><table class="dr-table"><thead><tr><th>วันที่สมัคร</th><th>ช่องทาง</th><th>D1</th><th>D3</th><th>D7</th><th>D14</th></tr></thead><tbody>
   ${rows.length ? rows.map((row) => `<tr><td>${formatDateTh(row.cohort_date)}</td><td><strong>${esc(row.db_channel)}</strong></td><td>${channelCell(row.milestones?.d1)}</td><td>${channelCell(row.milestones?.d3)}</td><td>${channelCell(row.milestones?.d7)}</td><td>${channelCell(row.milestones?.d14)}</td></tr>`).join("") : emptyRows(`ยังไม่มี Channel Retention ในช่วง ${selectedRangeText()}`, 6)}
   </tbody></table></div></div>`;
 }
@@ -824,12 +853,12 @@ function renderAnomalies() {
     view.game === "ALL" ? "มีจุดไหนที่ควรตรวจสอบเป็นพิเศษ?" : `${view.game} มีจุดไหนที่ควรตรวจสอบเป็นพิเศษ?`
   );
   return `${ai}
-  <div class="dr-intro-note"><strong>Retention Anomalies:</strong> รวมจุดที่ Retention เปลี่ยนจากรูปแบบเดิมมากพอที่จะควรเปิดดูรายละเอียดต่อ</div>
-  <div class="dr-panel"><div class="dr-panel-head"><div><div class="dr-panel-title">Retention Anomalies</div><div class="dr-panel-sub">ใช้ดูว่า Game / Metric / วันที่ไหนควรถูกตรวจสอบก่อน</div></div>
-  <div class="dr-controls"><label class="dr-control"><span class="dr-control-label">Status</span><select id="dr-anomaly-status"><option value="open"${view.anomalyStatus === "open" ? " selected" : ""}>Open</option><option value="resolved"${view.anomalyStatus === "resolved" ? " selected" : ""}>Resolved</option><option value="all"${view.anomalyStatus === "all" ? " selected" : ""}>All</option></select></label>
-  <label class="dr-control"><span class="dr-control-label">Severity</span><select id="dr-anomaly-severity"><option value="">All</option><option value="critical"${view.anomalySeverity === "critical" ? " selected" : ""}>Critical</option><option value="warning"${view.anomalySeverity === "warning" ? " selected" : ""}>Warning</option><option value="watch"${view.anomalySeverity === "watch" ? " selected" : ""}>Watch</option></select></label></div></div>
-  <div class="dr-table-wrap"><table class="dr-table"><thead><tr><th>Date</th><th>Game</th><th>Metric</th><th>Level</th><th class="dr-num">วันที่เลือก</th><th class="dr-num">ปกติเกมนี้</th><th class="dr-num">เปลี่ยน</th><th class="dr-num">จำนวนคน</th></tr></thead><tbody>
-  ${rows.length ? rows.map((row) => `<tr><td>${formatDateTh(row.metric_date)}</td><td><strong>${esc(row.game_code)}</strong></td><td>${esc(row.metric_name)}</td><td>${pill(row.severity)}</td><td class="dr-num">${anomalyValue(row, "actual_value")}</td><td class="dr-num">${anomalyValue(row, "baseline_value")}</td><td class="dr-num">${row.metric_family === "retention" ? deltaPresentation(row.diff_pp).text : "—"}</td><td class="dr-num">${int(row.eligible_sample)}</td></tr>`).join("") : `<tr><td colspan="8"><div class="dr-empty">ยังไม่พบจุดที่ต้องตรวจสอบในช่วง ${esc(selectedRangeText())}</div></td></tr>`}
+  <div class="dr-intro-note"><strong>จุดผิดปกติ:</strong> รวมจุดที่ Retention เปลี่ยนจากรูปแบบเดิมมากพอที่จะควรเปิดดูรายละเอียดต่อ</div>
+  <div class="dr-panel"><div class="dr-panel-head"><div><div class="dr-panel-title">จุดผิดปกติของ Retention</div><div class="dr-panel-sub">ใช้ดูว่า Game / Metric / วันที่ไหนควรถูกตรวจสอบก่อน</div></div>
+  <div class="dr-controls"><label class="dr-control"><span class="dr-control-label">สถานะ</span><select id="dr-anomaly-status"><option value="open"${view.anomalyStatus === "open" ? " selected" : ""}>เปิดอยู่</option><option value="resolved"${view.anomalyStatus === "resolved" ? " selected" : ""}>แก้ไขแล้ว</option><option value="all"${view.anomalyStatus === "all" ? " selected" : ""}>ทั้งหมด</option></select></label>
+  <label class="dr-control"><span class="dr-control-label">ระดับ</span><select id="dr-anomaly-severity"><option value="">ทั้งหมด</option><option value="critical"${view.anomalySeverity === "critical" ? " selected" : ""}>ผิดปกติชัดเจน</option><option value="warning"${view.anomalySeverity === "warning" ? " selected" : ""}>ควรตรวจสอบ</option><option value="watch"${view.anomalySeverity === "watch" ? " selected" : ""}>ควรจับตา</option></select></label></div></div>
+  <div class="dr-table-wrap"><table class="dr-table"><thead><tr><th>วันที่</th><th>เกม</th><th>Metric</th><th>ระดับ</th><th>สถานะ</th><th class="dr-num">ค่าปัจจุบัน</th><th class="dr-num">ค่าปกติ</th><th class="dr-num">ผลต่าง</th><th class="dr-num">Eligible users</th></tr></thead><tbody>
+  ${rows.length ? rows.map((row) => `<tr><td>${formatDateTh(row.metric_date)}</td><td><strong>${esc(row.game_code)}</strong></td><td>${row.metric_family === "retention" ? esc(metricCode(row.metric_name)) : esc(row.metric_name)}</td><td>${pill(row.severity)}</td><td>${esc(row.status || "—")}</td><td class="dr-num">${anomalyValue(row, "actual_value")}</td><td class="dr-num">${anomalyValue(row, "baseline_value")}</td><td class="dr-num">${row.metric_family === "retention" ? deltaPresentation(row.diff_pp).text : "—"}</td><td class="dr-num">${int(row.eligible_sample)}</td></tr>`).join("") : `<tr><td colspan="9"><div class="dr-empty">ยังไม่พบจุดที่ต้องตรวจสอบในช่วง ${esc(selectedRangeText())}</div></td></tr>`}
   </tbody></table></div></div>`;
 }
 function loadingOrError() {
@@ -844,7 +873,7 @@ function content() {
 }
 function asOf() {
   const selected = selectedReportDate();
-  return `<div class="dr-asof">As of <strong>${formatDateTh(selected)}</strong></div>`;
+  return `<div class="dr-asof">ข้อมูล ณ <strong>${formatDateTh(selected)}</strong></div>`;
 }
 function tab(id, label, iconName) {
   return `<button class="dr-tab${view.tab === id ? " active" : ""}" data-tab="${id}" type="button">${icon(iconName, "dr-ico dr-ico-sm")}${esc(label)}</button>`;
@@ -855,12 +884,12 @@ function headerToolsMarkup() {
   return `
     <div class="dr-header-tools-inner">
       <label class="dr-control dr-header-game">
-        <span class="dr-control-label">Game</span>
+        <span class="dr-control-label">เกม</span>
         <select id="dr-game">${options(GAMES, view.game)}</select>
       </label>
       <label class="dr-control dr-date-control">
         ${icon("calendar", "dr-ico dr-ico-sm")}
-        <span class="dr-control-label">Date</span>
+        <span class="dr-control-label">ข้อมูล ณ วันที่</span>
         <input id="dr-report-date" type="date"
           value="${esc(value)}"
           ${bounds.min ? `min="${esc(bounds.min)}"` : ""}
@@ -868,10 +897,10 @@ function headerToolsMarkup() {
           ${bounds.ready ? "" : "disabled"}>
       </label>
       <div class="dr-window dr-header-trend" aria-label="Trend history range">
-        <span class="dr-window-label">Trend</span>
-        ${WINDOWS.map((value) => `<button class="dr-window-btn dr-trend-btn${view.window === value ? " active" : ""}" data-window="${value}" type="button">${value} Days</button>`).join("")}
+        <span class="dr-window-label">แนวโน้ม</span>
+        ${WINDOWS.map((value) => `<button class="dr-window-btn dr-trend-btn${view.window === value ? " active" : ""}" data-window="${value}" type="button">${value} วัน</button>`).join("")}
       </div>
-      <button class="dr-btn" id="dr-refresh" type="button">${icon("refresh", "dr-ico dr-ico-sm")}Refresh</button>
+      <button class="dr-btn" id="dr-refresh" type="button">${icon("refresh", "dr-ico dr-ico-sm")}อัปเดตข้อมูล</button>
     </div>`;
 }
 function renderHeaderTools() {
@@ -911,7 +940,7 @@ function bindHeaderTools() {
 function renderShell() {
   ensureStyle();
   return `<section class="dr-page" id="dr-page" data-ui-version="2.11.0" aria-label="Daily Retention">
-    <div class="dr-tabs">${tab("overview", "Overview", "chart")}${tab("cohorts", "Cohorts", "calendar")}${tab("channels", "Channels", "channel")}${tab("anomalies", "Anomalies", "alert")}</div>
+    <div class="dr-tabs">${tab("overview", "ภาพรวม", "chart")}${tab("cohorts", "กลุ่มผู้สมัคร", "calendar")}${tab("channels", "ช่องทางผู้เล่น", "channel")}${tab("anomalies", "จุดผิดปกติ", "alert")}</div>
     <div id="dr-content" class="dr-content-stack">${content()}</div>
   </section>`;
 }
