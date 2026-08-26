@@ -1,0 +1,14 @@
+{
+  "parameters": {
+    "jsCode": "const payload = $json.write_payloads.CohortMaturity || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+  },
+  "id": "cef0a735-6267-4c24-abe4-cb2088d49ec6",
+  "name": "Build Rows - CohortMaturity",
+  "type": "n8n-nodes-base.code",
+  "typeVersion": 2,
+  "position": [
+    8736,
+    13216
+  ],
+  "notes": "Canonical Production V1 rows: CohortMaturity; document source $json.master_file_id"
+}

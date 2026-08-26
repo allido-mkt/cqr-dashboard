@@ -1,0 +1,26 @@
+========================================
+STEP 2E - BUILD PROD BACKFILL WORKFLOW
+========================================
+Workflow: CQR Daily Retention Mart V1 PROD Backfill
+Nodes: 13
+Active: False
+
+Nodes retained:
+ - Manual Trigger
+ - Set Runtime Config
+ - Read Central DB - SourceFiles
+ - Read Central DB - DataIndex
+ - Build Work Units
+ - Split In Batches - One Game
+ - Prepare Tab Plan
+ - Read Raw - Registered
+ - Read Raw - DAU
+ - Read Raw - Returners
+ - Read Raw - Late Starters
+ - Read Raw - Login
+ - Prepare Master Write Payload
+
+PASS: No Master/Central DB write nodes
+PASS: Schedule removed
+PASS: Workflow inactive
+PASS: Production DB target recorded

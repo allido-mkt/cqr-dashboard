@@ -1,0 +1,14 @@
+{
+  "parameters": {
+    "jsCode": "const payload = $json.write_payloads.CohortSummary || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+  },
+  "id": "de085446-22e2-43e6-bc39-8734cada9f5e",
+  "name": "Build Rows - CohortSummary",
+  "type": "n8n-nodes-base.code",
+  "typeVersion": 2,
+  "position": [
+    8736,
+    13344
+  ],
+  "notes": "Direct Master summary rows for Dashboard monthly/weekly aggregation."
+}

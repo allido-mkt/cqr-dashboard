@@ -1,0 +1,14 @@
+{
+  "parameters": {
+    "jsCode": "const unit = $json;\nconst tabPlan = unit.required_tabs.map(tab => ({\n  ...tab,\n  tab_key: `${unit.game_code}|${unit.target_month}|${tab.tab_name}`,\n  source_file_id: unit.source_file_id,\n  game_code: unit.game_code,\n  period_key: unit.target_month,\n  status: 'planned'\n}));\n\nreturn [{\n  json: {\n    ...unit,\n    tab_plan: tabPlan,\n    quality_signals: [],\n    pipeline_status: 'planned'\n  }\n}];"
+  },
+  "id": "b772896a-9133-435e-8078-657cae7677e1",
+  "name": "Prepare Tab Plan",
+  "type": "n8n-nodes-base.code",
+  "typeVersion": 2,
+  "position": [
+    7024,
+    12240
+  ],
+  "notes": "วางแผน tabs ที่ต้องอ่าน ถ้า tab ไม่มีในขั้นจริงให้ mark partial"
+}

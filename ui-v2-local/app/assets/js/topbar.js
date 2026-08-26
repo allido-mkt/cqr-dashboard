@@ -4,7 +4,7 @@ import { icon, optionMarkup, showToast, downloadText } from "./ui.js";
 
 const PAGE_META = {
   dashboard: ["Dashboard", "ภาพรวม Performance, Retention และ Channel Quality"],
-  "ai-insight": ["AI Insight", "วิเคราะห์ CQR แบบเต็มหน้าโดยอิง Game และ Period ที่เลือก"],
+  "ai-insight": ["ASK AI", "Analyze data from your questions and surface insights, comparisons, and recommended next actions."],
   "user-access": ["User Access", "จัดการผู้ใช้ Role และขอบเขตที่บันทึกใน Users table"],
   "data-health-overview": ["Data Health", "ภาพรวมความพร้อมของ Raw, Master และ Central DB"],
   "check-raw": ["Check Raw", "ส่งคำขอตรวจ Raw และติดตาม Queue จนเสร็จ"],

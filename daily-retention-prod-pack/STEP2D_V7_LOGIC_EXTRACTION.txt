@@ -1,0 +1,57 @@
+========================================
+STEP 2D - EXTRACT V7 RETENTION LOGIC
+========================================
+
+SOURCE
+----------------------------------------
+/Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/CQR_N8N_Master_Data_Update_V7_Direct_Master_Cumulative.json
+
+EXTRACT REQUIRED NODES
+----------------------------------------
+PASS: Set Runtime Config
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/set_runtime_config.json
+PASS: Build Work Units
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/build_work_units.json
+PASS: Prepare Tab Plan
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/prepare_tab_plan.json
+PASS: Prepare Master Write Payload
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/prepare_master_write_payload.json
+PASS: Build Rows - CohortMaturity
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/build_rows_cohortmaturity.json
+PASS: Build Rows - DataQualitySummary
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/build_rows_dataqualitysummary.json
+PASS: Build Rows - CohortSummary
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/build_rows_cohortsummary.json
+
+EXTRACT JAVASCRIPT
+----------------------------------------
+PASS: Build Work Units
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/build_work_units.js
+PASS: Prepare Tab Plan
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/prepare_tab_plan.js
+PASS: Prepare Master Write Payload
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/prepare_master_write_payload.js
+PASS: Build Rows - CohortMaturity
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/build_rows_cohortmaturity.js
+PASS: Build Rows - DataQualitySummary
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/build_rows_dataqualitysummary.js
+PASS: Build Rows - CohortSummary
+  -> /Users/wmbew/Desktop/cqr-dashboard/daily-retention-prod-pack/reference/v7-extracted/build_rows_cohortsummary.js
+
+CHECK RETENTION CONTRACT
+----------------------------------------
+PASS: MILESTONES
+PASS: cumulativeFlags
+PASS: register anchor
+PASS: data complete gate
+PASS: D1
+PASS: D3
+PASS: D7
+PASS: D14
+
+CHECK WRITE ISOLATION
+----------------------------------------
+write nodes extracted: []
+PASS: Extracted bundle contains logic only
+
+PASS: manifest.json created

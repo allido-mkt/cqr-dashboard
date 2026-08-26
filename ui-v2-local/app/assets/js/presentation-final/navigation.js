@@ -6,6 +6,7 @@ export const NAVIGATION = [
     label: "Main Menu",
     items: [
       { id: "dashboard", label: "Dashboard", icon: "dashboard", href: "./dashboard-v2.html" },
+      { id: "daily-retention", label: "Daily Retention", icon: "retention" },
       { id: "ai-insight", label: "AI Insight", icon: "sparkles" },
     ],
   },

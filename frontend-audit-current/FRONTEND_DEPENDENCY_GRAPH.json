@@ -1,0 +1,4298 @@
+{
+  "repo": "/Users/wmbew/Desktop/cqr-dashboard",
+  "head": "dbaab9fb7e1c9b121ac5066623a41610c7c69bd8",
+  "branch": "main",
+  "git_status": [
+    " M APPS_SCRIPT_SECURE_API.gs"
+  ],
+  "file_count": 70,
+  "files": [
+    {
+      "path": "index.html",
+      "category": "Entry/HTML",
+      "lines": 1298,
+      "bytes": 77458,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [
+        "ai.ask",
+        "dashboard.data",
+        "session.me"
+      ],
+      "storage_keys": [
+        "cqr_ai_context",
+        "cqr_auth"
+      ]
+    },
+    {
+      "path": "copilot.html",
+      "category": "Entry/HTML",
+      "lines": 31,
+      "bytes": 1276,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/dashboard-v2.html",
+      "category": "Entry/HTML",
+      "lines": 1298,
+      "bytes": 77234,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [
+        "ai.ask",
+        "dashboard.data",
+        "session.me"
+      ],
+      "storage_keys": [
+        "cqr_ai_context",
+        "cqr_auth"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/copilot-v2.html",
+      "category": "Entry/HTML",
+      "lines": 29,
+      "bytes": 1110,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/api.js",
+      "category": "Core/Shared",
+      "lines": 70,
+      "bytes": 9542,
+      "imports": [
+        {
+          "specifier": "./config.js",
+          "resolved": "ui-v2-local/app/assets/js/config.js"
+        },
+        {
+          "specifier": "./session.js",
+          "resolved": "ui-v2-local/app/assets/js/session.js"
+        }
+      ],
+      "named_imports": {
+        "./config.js": [
+          "APP_CONFIG"
+        ],
+        "./session.js": [
+          "getSavedSession",
+          "isPreviewSession"
+        ]
+      },
+      "functions": [
+        "callAppsScript",
+        "callAuthorized",
+        "cleanup",
+        "normalizePayload",
+        "previewBackend",
+        "previewHealth",
+        "previewLookup",
+        "previewRawStatus",
+        "wait"
+      ],
+      "exported_functions": [
+        "callAppsScript",
+        "callAuthorized",
+        "normalizePayload"
+      ],
+      "constants": [
+        "callback",
+        "completed",
+        "elapsed",
+        "game",
+        "games",
+        "item",
+        "month",
+        "previewRawRequests",
+        "previewUsers",
+        "query",
+        "result",
+        "scope_rows",
+        "script",
+        "session",
+        "status",
+        "timer"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.n8n.cleanup.preview",
+        "admin.n8n.cleanup.run",
+        "admin.n8n.master.run",
+        "admin.n8n.raw.check",
+        "admin.n8n.raw.status",
+        "admin.pipeline.health",
+        "admin.pipeline.run.lookup",
+        "admin.users.delete",
+        "admin.users.list",
+        "admin.users.upsert",
+        "ai.ask"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/app.js",
+      "category": "Core/Shared",
+      "lines": 38,
+      "bytes": 1937,
+      "imports": [
+        {
+          "specifier": "./state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "./sidebar.js",
+          "resolved": "ui-v2-local/app/assets/js/sidebar.js"
+        },
+        {
+          "specifier": "./topbar.js",
+          "resolved": "ui-v2-local/app/assets/js/topbar.js"
+        },
+        {
+          "specifier": "./router.js",
+          "resolved": "ui-v2-local/app/assets/js/router.js"
+        },
+        {
+          "specifier": "./session.js",
+          "resolved": "ui-v2-local/app/assets/js/session.js"
+        }
+      ],
+      "named_imports": {
+        "./state.js": [
+          "getState",
+          "subscribe",
+          "setRoute",
+          "setUser"
+        ],
+        "./sidebar.js": [
+          "renderSidebar",
+          "bindSidebarEvents"
+        ],
+        "./topbar.js": [
+          "renderTopbar",
+          "bindTopbarEvents"
+        ],
+        "./router.js": [
+          "renderCurrentPage"
+        ],
+        "./session.js": [
+          "getSavedSession",
+          "userFromSession"
+        ]
+      },
+      "functions": [
+        "bootstrap",
+        "redirectLegacyDashboard",
+        "renderApp"
+      ],
+      "exported_functions": [],
+      "constants": [
+        "session",
+        "state",
+        "target"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": [
+        "cqr_user_preferences"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/config.js",
+      "category": "Core/Shared",
+      "lines": 45,
+      "bytes": 1887,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [
+        "APP_CONFIG"
+      ],
+      "exported_constants": [
+        "APP_CONFIG"
+      ],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/dashboard-final-r11.js",
+      "category": "Dashboard",
+      "lines": 288,
+      "bytes": 11138,
+      "imports": [],
+      "named_imports": {},
+      "functions": [
+        "axis",
+        "buildAuditSnapshot",
+        "heightDelta",
+        "install",
+        "margins",
+        "plotId",
+        "publishAuditSnapshot",
+        "ratio",
+        "tuneExisting",
+        "tuneLayout",
+        "tuneTrace",
+        "tunedArgs",
+        "visible"
+      ],
+      "exported_functions": [],
+      "constants": [
+        "AXIS_FONT",
+        "GRID",
+        "KNOWN_PLOTS",
+        "LINE",
+        "Plotly",
+        "a",
+        "b",
+        "curve",
+        "curveCard",
+        "firstKpi",
+        "firstKpiStyle",
+        "id",
+        "layout",
+        "newRetention",
+        "newRetentionCard",
+        "next",
+        "node",
+        "originalNewPlot",
+        "overviewLabels",
+        "params",
+        "pie",
+        "playerCard",
+        "rect",
+        "root",
+        "style",
+        "topChildren",
+        "topGrid",
+        "totalRetention",
+        "totalRetentionCard",
+        "traces",
+        "tunedConfig",
+        "tunedLayout"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/dashboard-final.js",
+      "category": "Other",
+      "lines": 358,
+      "bytes": 11908,
+      "imports": [],
+      "named_imports": {},
+      "functions": [
+        "applyFinalDesign",
+        "baseLayout",
+        "polishCurve",
+        "polishDau",
+        "polishHeat",
+        "polishPie",
+        "polishPlayerLegend",
+        "polishTotalRetention",
+        "prepareForLegacyRender",
+        "publishAuditSnapshot",
+        "ready",
+        "relayout",
+        "resizeCharts",
+        "restyle",
+        "schedule",
+        "transformFunnel",
+        "wrapRenderAll"
+      ],
+      "exported_functions": [],
+      "constants": [
+        "CHANNEL_COLORS",
+        "CHART_IDS",
+        "PLAYER_COLORS",
+        "base",
+        "color",
+        "dot",
+        "el",
+        "funnel",
+        "items",
+        "labels",
+        "original",
+        "params",
+        "result",
+        "share",
+        "source",
+        "stats",
+        "total",
+        "trace",
+        "value",
+        "values",
+        "wrapped",
+        "x",
+        "y"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/dashboard-preview-data.js",
+      "category": "Other",
+      "lines": 21,
+      "bytes": 4755,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [
+        "all",
+        "allGames",
+        "channels",
+        "data",
+        "games",
+        "hash",
+        "make",
+        "months",
+        "paid",
+        "reg",
+        "rows",
+        "seed"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/dashboard-shared-shell-r4.js",
+      "category": "Shared Shell",
+      "lines": 122,
+      "bytes": 6065,
+      "imports": [
+        {
+          "specifier": "./sidebar.js",
+          "resolved": "ui-v2-local/app/assets/js/sidebar.js"
+        },
+        {
+          "specifier": "./state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "./session.js",
+          "resolved": "ui-v2-local/app/assets/js/session.js"
+        }
+      ],
+      "named_imports": {
+        "./sidebar.js": [
+          "renderSidebar"
+        ],
+        "./state.js": [
+          "getState",
+          "setRoute",
+          "setUser"
+        ],
+        "./session.js": [
+          "getSavedSession",
+          "userFromSession",
+          "signOutAndRedirect"
+        ]
+      },
+      "functions": [
+        "bindSharedSidebar",
+        "filterWrapper",
+        "init",
+        "routeUrl",
+        "setupDashboardHeader",
+        "syncPeriodControls"
+      ],
+      "exported_functions": [],
+      "constants": [
+        "ICONS",
+        "children",
+        "collapsed",
+        "collapsedKey",
+        "heading",
+        "nativeView",
+        "open",
+        "profilePopover",
+        "profileToggle",
+        "segment",
+        "session",
+        "sidebar",
+        "view",
+        "week",
+        "weekWrapper",
+        "wrapper"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/navigation.js",
+      "category": "Other",
+      "lines": 44,
+      "bytes": 1721,
+      "imports": [
+        {
+          "specifier": "./permissions.js",
+          "resolved": "ui-v2-local/app/assets/js/permissions.js"
+        }
+      ],
+      "named_imports": {
+        "./permissions.js": [
+          "PERMISSIONS"
+        ]
+      },
+      "functions": [],
+      "exported_functions": [],
+      "constants": [
+        "NAVIGATION"
+      ],
+      "exported_constants": [
+        "NAVIGATION"
+      ],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/ai-insight.js",
+      "category": "AI",
+      "lines": 21,
+      "bytes": 7191,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/config.js"
+        },
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "../api.js",
+          "resolved": "ui-v2-local/app/assets/js/api.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../state.js": [
+          "getState",
+          "setFilters",
+          "addAiMessage",
+          "clearAiMessages"
+        ],
+        "../api.js": [
+          "callAuthorized"
+        ],
+        "../ui.js": [
+          "escapeHtml",
+          "optionMarkup",
+          "icon",
+          "downloadText",
+          "showToast"
+        ]
+      },
+      "functions": [
+        "bindAiInsightPage",
+        "context",
+        "messageMarkup",
+        "renderAiInsightPage",
+        "sendQuestion"
+      ],
+      "exported_functions": [
+        "bindAiInsightPage",
+        "renderAiInsightPage"
+      ],
+      "constants": [
+        "EN_MONTHS",
+        "feed",
+        "state"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "ai.ask"
+      ],
+      "storage_keys": [
+        "cqr_ai_context"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/check-raw.js",
+      "category": "Admin/Data Control",
+      "lines": 20,
+      "bytes": 10510,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/config.js"
+        },
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "../api.js",
+          "resolved": "ui-v2-local/app/assets/js/api.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../state.js": [
+          "getState",
+          "setFilter",
+          "setRawCheck"
+        ],
+        "../api.js": [
+          "callAuthorized"
+        ],
+        "../ui.js": [
+          "icon",
+          "statusPill",
+          "escapeHtml",
+          "showToast",
+          "optionMarkup"
+        ]
+      },
+      "functions": [
+        "applyStatus",
+        "bindCheckRawPage",
+        "poll",
+        "progress",
+        "readHistory",
+        "renderCheckRawPage",
+        "renderJobs",
+        "submit",
+        "tone",
+        "writeHistory"
+      ],
+      "exported_functions": [
+        "bindCheckRawPage",
+        "renderCheckRawPage"
+      ],
+      "constants": [
+        "ACTIVE_KEY",
+        "HISTORY_KEY",
+        "specificGames"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.n8n.raw.check",
+        "admin.n8n.raw.status"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/dashboard.js",
+      "category": "Dashboard",
+      "lines": 118,
+      "bytes": 11719,
+      "imports": [
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../state.js": [
+          "getState",
+          "setRoute"
+        ],
+        "../ui.js": [
+          "icon",
+          "formatNumber",
+          "statusPill"
+        ]
+      },
+      "functions": [
+        "bindDashboardPage",
+        "channelTable",
+        "dashboardData",
+        "gameMatrix",
+        "kpi",
+        "lineChart",
+        "renderDashboardPage"
+      ],
+      "exported_functions": [
+        "bindDashboardPage",
+        "renderDashboardPage"
+      ],
+      "constants": [
+        "area",
+        "channelFactor",
+        "d1",
+        "d14",
+        "d7",
+        "data",
+        "dots",
+        "gameFactor",
+        "grid",
+        "labels",
+        "period",
+        "plotW",
+        "points",
+        "registered",
+        "retention",
+        "rows",
+        "scale",
+        "state",
+        "weekly",
+        "width",
+        "x",
+        "xLabels",
+        "y"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/data-control.js",
+      "category": "Admin/Data Control",
+      "lines": 26,
+      "bytes": 15490,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/config.js"
+        },
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "../api.js",
+          "resolved": "ui-v2-local/app/assets/js/api.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../state.js": [
+          "getState",
+          "setControl",
+          "setFilters",
+          "setRoute"
+        ],
+        "../api.js": [
+          "callAuthorized",
+          "normalizePayload"
+        ],
+        "../ui.js": [
+          "escapeHtml",
+          "icon",
+          "optionMarkup",
+          "statusPill",
+          "showToast",
+          "openConfirmModal"
+        ]
+      },
+      "functions": [
+        "addLog",
+        "bindDataControlBuildPage",
+        "bindDataControlClearPage",
+        "bindDataControlHistoryPage",
+        "bindDataControlPreviewPage",
+        "build",
+        "clearNow",
+        "controlFilters",
+        "exactScope",
+        "guide",
+        "logs",
+        "lookup",
+        "preview",
+        "renderDataControlBuildPage",
+        "renderDataControlClearPage",
+        "renderDataControlHistoryPage",
+        "renderDataControlPreviewPage",
+        "selectedRun"
+      ],
+      "exported_functions": [
+        "bindDataControlBuildPage",
+        "bindDataControlClearPage",
+        "bindDataControlHistoryPage",
+        "bindDataControlPreviewPage",
+        "renderDataControlBuildPage",
+        "renderDataControlClearPage",
+        "renderDataControlHistoryPage",
+        "renderDataControlPreviewPage"
+      ],
+      "constants": [
+        "LOG_KEY"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.n8n.cleanup.preview",
+        "admin.n8n.cleanup.run",
+        "admin.n8n.master.run",
+        "admin.pipeline.run.lookup"
+      ],
+      "storage_keys": [
+        "cqr_data_control_handoff"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/data-health.js",
+      "category": "Admin/Data Control",
+      "lines": 16,
+      "bytes": 7307,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/config.js"
+        },
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "../api.js",
+          "resolved": "ui-v2-local/app/assets/js/api.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../state.js": [
+          "getState",
+          "setHealth",
+          "setPipeline",
+          "setFilters",
+          "setRoute"
+        ],
+        "../api.js": [
+          "callAuthorized"
+        ],
+        "../ui.js": [
+          "escapeHtml",
+          "icon",
+          "optionMarkup",
+          "statusPill",
+          "showToast"
+        ]
+      },
+      "functions": [
+        "bindDataHealthOverviewPage",
+        "bindPipelineCheckPage",
+        "filters",
+        "healthTable",
+        "normalize",
+        "renderDataHealthOverviewPage",
+        "renderPipelineCheckPage",
+        "run",
+        "summaryCards",
+        "tone"
+      ],
+      "exported_functions": [
+        "bindDataHealthOverviewPage",
+        "bindPipelineCheckPage",
+        "renderDataHealthOverviewPage",
+        "renderPipelineCheckPage"
+      ],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.pipeline.health"
+      ],
+      "storage_keys": [
+        "cqr_data_control_handoff"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/profile.js",
+      "category": "Other",
+      "lines": 11,
+      "bytes": 5133,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/config.js"
+        },
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../state.js": [
+          "getState",
+          "setFilters"
+        ],
+        "../ui.js": [
+          "escapeHtml",
+          "statusPill",
+          "showToast",
+          "optionMarkup"
+        ]
+      },
+      "functions": [
+        "bindPreferencesPage",
+        "bindProfilePage",
+        "prefs",
+        "renderPreferencesPage",
+        "renderProfilePage"
+      ],
+      "exported_functions": [
+        "bindPreferencesPage",
+        "bindProfilePage",
+        "renderPreferencesPage",
+        "renderProfilePage"
+      ],
+      "constants": [
+        "PREF_KEY"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/shared.js",
+      "category": "Other",
+      "lines": 5,
+      "bytes": 429,
+      "imports": [
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../ui.js": [
+          "icon"
+        ]
+      },
+      "functions": [
+        "accessDeniedPage"
+      ],
+      "exported_functions": [
+        "accessDeniedPage"
+      ],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/user-access.js",
+      "category": "User Access",
+      "lines": 12,
+      "bytes": 6095,
+      "imports": [
+        {
+          "specifier": "../api.js",
+          "resolved": "ui-v2-local/app/assets/js/api.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../api.js": [
+          "callAuthorized"
+        ],
+        "../ui.js": [
+          "escapeHtml",
+          "showToast",
+          "statusPill",
+          "openConfirmModal"
+        ]
+      },
+      "functions": [
+        "bindUserAccessPage",
+        "form",
+        "load",
+        "remove",
+        "renderUserAccessPage",
+        "save"
+      ],
+      "exported_functions": [
+        "bindUserAccessPage",
+        "renderUserAccessPage"
+      ],
+      "constants": [
+        "ROLES"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.users.delete",
+        "admin.users.list",
+        "admin.users.upsert"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/permissions.js",
+      "category": "Auth/Permission",
+      "lines": 39,
+      "bytes": 1155,
+      "imports": [],
+      "named_imports": {},
+      "functions": [
+        "canSeeAdminPanel",
+        "hasPermission"
+      ],
+      "exported_functions": [
+        "canSeeAdminPanel",
+        "hasPermission"
+      ],
+      "constants": [
+        "PERMISSIONS",
+        "PREVIEW_PERMISSION_SETS"
+      ],
+      "exported_constants": [
+        "PERMISSIONS",
+        "PREVIEW_PERMISSION_SETS"
+      ],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "category": "Core/Shared",
+      "lines": 313,
+      "bytes": 17751,
+      "imports": [
+        {
+          "specifier": "./config.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/config.js"
+        },
+        {
+          "specifier": "./session.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/session.js"
+        }
+      ],
+      "named_imports": {
+        "./config.js": [
+          "APP_CONFIG"
+        ],
+        "./session.js": [
+          "getSavedSession",
+          "isPreviewSession"
+        ]
+      },
+      "functions": [
+        "appsScriptRequestKey",
+        "assertSuccessfulPayload",
+        "callAppsScript",
+        "callAppsScriptOnce",
+        "callAuthorized",
+        "normalizePayload",
+        "parseJsonString",
+        "previewBackend",
+        "previewHealth",
+        "previewLookup",
+        "previewRawStatus",
+        "wait"
+      ],
+      "exported_functions": [
+        "assertSuccessfulPayload",
+        "callAppsScript",
+        "callAuthorized",
+        "normalizePayload"
+      ],
+      "constants": [
+        "appsScriptInFlight",
+        "attempts",
+        "before",
+        "buildRows",
+        "callback",
+        "candidates",
+        "cleanup",
+        "clearInFlight",
+        "completed",
+        "elapsed",
+        "email",
+        "entries",
+        "finish",
+        "firstBuild",
+        "game",
+        "games",
+        "index",
+        "issues",
+        "item",
+        "key",
+        "month",
+        "next",
+        "now",
+        "payload",
+        "previewRawRequests",
+        "previewUserAuditLogs",
+        "previewUserLoginLogs",
+        "previewUsers",
+        "query",
+        "queued",
+        "recommendations",
+        "repair",
+        "repairRows",
+        "request_id",
+        "result",
+        "retryable",
+        "running",
+        "safeAction",
+        "scope_rows",
+        "script",
+        "session",
+        "skipLargeAiHistory",
+        "status",
+        "task",
+        "text",
+        "timer",
+        "unwrapKeys"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.n8n.cleanup.preview",
+        "admin.n8n.cleanup.run",
+        "admin.n8n.master.run",
+        "admin.n8n.raw.check",
+        "admin.n8n.raw.status",
+        "admin.pipeline.health",
+        "admin.pipeline.run.lookup",
+        "admin.users.audit",
+        "admin.users.delete",
+        "admin.users.list",
+        "admin.users.login_history",
+        "admin.users.upsert",
+        "ai.ask",
+        "dashboard.data",
+        "session.me"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/app.js",
+      "category": "Core/Shared",
+      "lines": 96,
+      "bytes": 3304,
+      "imports": [
+        {
+          "specifier": "./state.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/state.js"
+        },
+        {
+          "specifier": "./topbar.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/topbar.js"
+        },
+        {
+          "specifier": "./router.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/router.js"
+        },
+        {
+          "specifier": "./session.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/session.js"
+        }
+      ],
+      "named_imports": {
+        "./state.js": [
+          "getState",
+          "subscribe",
+          "setRoute",
+          "setUser"
+        ],
+        "./topbar.js": [
+          "renderTopbar",
+          "bindTopbarEvents"
+        ],
+        "./router.js": [
+          "renderCurrentPage"
+        ],
+        "./session.js": [
+          "getSavedSession",
+          "userFromSession"
+        ]
+      },
+      "functions": [
+        "bootstrap",
+        "dashboardEntryUrl",
+        "ensurePreviewSelfTestSession",
+        "isLocalV2Entry",
+        "maybeRunSelfTest",
+        "redirectLegacyDashboard",
+        "renderApp"
+      ],
+      "exported_functions": [],
+      "constants": [
+        "existing",
+        "params",
+        "preferences",
+        "route",
+        "session",
+        "target",
+        "topbar"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": [
+        "cqr_auth",
+        "cqr_user_preferences"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/config.js",
+      "category": "Core/Shared",
+      "lines": 46,
+      "bytes": 2025,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [
+        "APP_CONFIG"
+      ],
+      "exported_constants": [
+        "APP_CONFIG"
+      ],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "category": "Other",
+      "lines": 147,
+      "bytes": 9804,
+      "imports": [
+        {
+          "specifier": "./api.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/api.js"
+        },
+        {
+          "specifier": "./session.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/session.js"
+        },
+        {
+          "specifier": "./ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        }
+      ],
+      "named_imports": {
+        "./api.js": [
+          "callAuthorized",
+          "assertSuccessfulPayload",
+          "normalizePayload"
+        ],
+        "./session.js": [
+          "getSavedSession",
+          "isPreviewSession"
+        ],
+        "./ui.js": [
+          "escapeHtml",
+          "statusPill"
+        ]
+      },
+      "functions": [
+        "render",
+        "row",
+        "runFunctionalSelfTest",
+        "test"
+      ],
+      "exported_functions": [
+        "runFunctionalSelfTest"
+      ],
+      "constants": [
+        "audit",
+        "before",
+        "content",
+        "failed",
+        "health",
+        "key",
+        "list",
+        "listPayload",
+        "listResult",
+        "login",
+        "params",
+        "parsed",
+        "passed",
+        "payload",
+        "reloaded",
+        "requested",
+        "result",
+        "row",
+        "rows",
+        "runs",
+        "saved",
+        "savedPayload",
+        "savedResult",
+        "scopeRows",
+        "session",
+        "testEmail",
+        "users"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.n8n.cleanup.preview",
+        "admin.n8n.cleanup.run",
+        "admin.n8n.master.run",
+        "admin.n8n.raw.check",
+        "admin.n8n.raw.status",
+        "admin.pipeline.health",
+        "admin.pipeline.run.lookup",
+        "admin.users.audit",
+        "admin.users.delete",
+        "admin.users.list",
+        "admin.users.login_history",
+        "admin.users.upsert",
+        "ai.ask"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/navigation.js",
+      "category": "Other",
+      "lines": 44,
+      "bytes": 1721,
+      "imports": [
+        {
+          "specifier": "./permissions.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/permissions.js"
+        }
+      ],
+      "named_imports": {
+        "./permissions.js": [
+          "PERMISSIONS"
+        ]
+      },
+      "functions": [],
+      "exported_functions": [],
+      "constants": [
+        "NAVIGATION"
+      ],
+      "exported_constants": [
+        "NAVIGATION"
+      ],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/ai-insight.js",
+      "category": "AI",
+      "lines": 642,
+      "bytes": 25840,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/config.js"
+        },
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/state.js"
+        },
+        {
+          "specifier": "../api.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/api.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../state.js": [
+          "getState",
+          "addAiMessage",
+          "clearAiMessages",
+          "setAiStatus"
+        ],
+        "../api.js": [
+          "callAuthorized",
+          "assertSuccessfulPayload",
+          "normalizePayload"
+        ],
+        "../ui.js": [
+          "icon",
+          "escapeHtml",
+          "downloadText",
+          "showToast",
+          "statusPill",
+          "optionMarkup"
+        ]
+      },
+      "functions": [
+        "aiConversationId",
+        "allowedAiGames",
+        "analyzingMarkup",
+        "bindAiInsightPage",
+        "classifyAiInsight",
+        "cleanAiMarkdown",
+        "cleanAnswer",
+        "configuredAiPeriods",
+        "context",
+        "formatAiAnswer",
+        "formatAiInline",
+        "groundingMarkup",
+        "insightEmoji",
+        "keepAnalyzingVisible",
+        "loadAiCatalogFromDirectMaster",
+        "monthEnglish",
+        "readAiContext",
+        "recentMarkup",
+        "renderAiInsightPage",
+        "renderMessages",
+        "sendQuestion",
+        "writeAiContext"
+      ],
+      "exported_functions": [
+        "bindAiInsightPage",
+        "renderAiInsightPage"
+      ],
+      "constants": [
+        "AI_CHAT_UX_STYLE",
+        "AI_CONTEXT_KEY",
+        "AI_CONTEXT_VERSION",
+        "AI_CONVERSATION_KEY",
+        "AI_PROMPT_VERSION",
+        "MONTHS",
+        "PRESETS",
+        "actionTerms",
+        "analyzingStartedAt",
+        "answer",
+        "assistant",
+        "blocks",
+        "bullet",
+        "content",
+        "ctx",
+        "current",
+        "currentInput",
+        "data",
+        "draftInput",
+        "emoji",
+        "feed",
+        "finalKind",
+        "flushList",
+        "game",
+        "input",
+        "isGameTitle",
+        "isGrounded",
+        "isSectionTitle",
+        "kind",
+        "label",
+        "line",
+        "lines",
+        "maxScrollTop",
+        "message",
+        "months",
+        "next",
+        "parsed",
+        "payload",
+        "period",
+        "plain",
+        "positiveTerms",
+        "question",
+        "remaining",
+        "request",
+        "resolvedPeriod",
+        "result",
+        "riskTerms",
+        "rows",
+        "saveDraftState",
+        "saved",
+        "select",
+        "state",
+        "status",
+        "text",
+        "title",
+        "warningTerms"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "ai.ask",
+        "dashboard.data"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js",
+      "category": "Admin/Data Control",
+      "lines": 140,
+      "bytes": 13393,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/config.js"
+        },
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/state.js"
+        },
+        {
+          "specifier": "../api.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/api.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../state.js": [
+          "getState",
+          "setFilters",
+          "setRawCheck"
+        ],
+        "../api.js": [
+          "callAuthorized",
+          "assertSuccessfulPayload",
+          "normalizePayload"
+        ],
+        "../ui.js": [
+          "icon",
+          "statusPill",
+          "escapeHtml",
+          "showToast",
+          "optionMarkup"
+        ]
+      },
+      "functions": [
+        "applyStatus",
+        "bindCheckRawPage",
+        "clearPollTimer",
+        "poll",
+        "progress",
+        "readActive",
+        "readHistory",
+        "renderCheckRawPage",
+        "renderJobs",
+        "submit",
+        "tone",
+        "writeActive",
+        "writeHistory"
+      ],
+      "exported_functions": [
+        "bindCheckRawPage",
+        "renderCheckRawPage"
+      ],
+      "constants": [
+        "ACTIVE_KEY",
+        "HISTORY_KEY",
+        "active",
+        "applied",
+        "current",
+        "details",
+        "game",
+        "history",
+        "job",
+        "jobs",
+        "month",
+        "parsed",
+        "payload",
+        "raw",
+        "requestId",
+        "result",
+        "specificGames",
+        "state",
+        "status",
+        "terminal"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.n8n.raw.check",
+        "admin.n8n.raw.status"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/dashboard.js",
+      "category": "Dashboard",
+      "lines": 118,
+      "bytes": 11719,
+      "imports": [
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/state.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../state.js": [
+          "getState",
+          "setRoute"
+        ],
+        "../ui.js": [
+          "icon",
+          "formatNumber",
+          "statusPill"
+        ]
+      },
+      "functions": [
+        "bindDashboardPage",
+        "channelTable",
+        "dashboardData",
+        "gameMatrix",
+        "kpi",
+        "lineChart",
+        "renderDashboardPage"
+      ],
+      "exported_functions": [
+        "bindDashboardPage",
+        "renderDashboardPage"
+      ],
+      "constants": [
+        "area",
+        "channelFactor",
+        "d1",
+        "d14",
+        "d7",
+        "data",
+        "dots",
+        "gameFactor",
+        "grid",
+        "labels",
+        "period",
+        "plotW",
+        "points",
+        "registered",
+        "retention",
+        "rows",
+        "scale",
+        "state",
+        "weekly",
+        "width",
+        "x",
+        "xLabels",
+        "y"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js",
+      "category": "Admin/Data Control",
+      "lines": 718,
+      "bytes": 36575,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/config.js"
+        },
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/state.js"
+        },
+        {
+          "specifier": "../api.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/api.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../state.js": [
+          "getState",
+          "setControl",
+          "setFilters",
+          "setRoute"
+        ],
+        "../api.js": [
+          "callAuthorized",
+          "normalizePayload",
+          "assertSuccessfulPayload"
+        ],
+        "../ui.js": [
+          "escapeHtml",
+          "icon",
+          "optionMarkup",
+          "statusPill",
+          "showToast",
+          "openConfirmModal"
+        ]
+      },
+      "functions": [
+        "addLog",
+        "applyFirstBuildScope",
+        "bindDataControlBuildPage",
+        "bindDataControlClearPage",
+        "bindDataControlHistoryPage",
+        "bindDataControlPreviewPage",
+        "build",
+        "clearNow",
+        "consumeHandoff",
+        "controlFilters",
+        "exactScope",
+        "extractRuns",
+        "firstBuildIsReady",
+        "firstBuildPrerequisites",
+        "firstBuildScopeFromRow",
+        "guide",
+        "lockedScopeForRun",
+        "logs",
+        "lookup",
+        "normalizeHealth",
+        "persistFirstBuild",
+        "prepareFirstBuild",
+        "preview",
+        "readFirstBuild",
+        "renderDataControlBuildPage",
+        "renderDataControlClearPage",
+        "renderDataControlHistoryPage",
+        "renderDataControlPreviewPage",
+        "selectedRun"
+      ],
+      "exported_functions": [
+        "bindDataControlBuildPage",
+        "bindDataControlClearPage",
+        "bindDataControlHistoryPage",
+        "bindDataControlPreviewPage",
+        "renderDataControlBuildPage",
+        "renderDataControlClearPage",
+        "renderDataControlHistoryPage",
+        "renderDataControlPreviewPage"
+      ],
+      "constants": [
+        "FIRST_BUILD_KEY",
+        "HANDOFF_KEY",
+        "LOG_KEY",
+        "control",
+        "current",
+        "errorStep",
+        "firstBuild",
+        "firstChecks",
+        "firstReady",
+        "firstSteps",
+        "game",
+        "handoff",
+        "healthResult",
+        "latest",
+        "latestRow",
+        "mode",
+        "modeLabel",
+        "month",
+        "noMatches",
+        "params",
+        "payload",
+        "payloadParams",
+        "phrase",
+        "query",
+        "raw",
+        "rawReady",
+        "ready",
+        "receipt",
+        "repairReady",
+        "repairSteps",
+        "result",
+        "row",
+        "rows",
+        "run",
+        "runGame",
+        "runMonth",
+        "runs",
+        "saved",
+        "scope",
+        "selected",
+        "state",
+        "stateLabel",
+        "status",
+        "steps",
+        "value"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.n8n.cleanup.preview",
+        "admin.n8n.cleanup.run",
+        "admin.n8n.master.run",
+        "admin.pipeline.health",
+        "admin.pipeline.run.lookup"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/data-health.js",
+      "category": "Admin/Data Control",
+      "lines": 198,
+      "bytes": 12986,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/config.js"
+        },
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/state.js"
+        },
+        {
+          "specifier": "../api.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/api.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../state.js": [
+          "getState",
+          "setHealth",
+          "setPipeline",
+          "setFilters",
+          "setRoute"
+        ],
+        "../api.js": [
+          "callAuthorized",
+          "assertSuccessfulPayload",
+          "normalizePayload"
+        ],
+        "../ui.js": [
+          "escapeHtml",
+          "icon",
+          "optionMarkup",
+          "statusPill"
+        ]
+      },
+      "functions": [
+        "actionControl",
+        "bindDataHealthOverviewPage",
+        "bindHealthActions",
+        "bindPipelineCheckPage",
+        "filters",
+        "handoffFromRow",
+        "healthTable",
+        "normalize",
+        "recommendationAction",
+        "renderDataHealthOverviewPage",
+        "renderPipelineCheckPage",
+        "run",
+        "summaryCards",
+        "tone"
+      ],
+      "exported_functions": [
+        "bindDataHealthOverviewPage",
+        "bindPipelineCheckPage",
+        "renderDataHealthOverviewPage",
+        "renderPipelineCheckPage"
+      ],
+      "constants": [
+        "HANDOFF_KEY",
+        "action",
+        "data",
+        "direct",
+        "game",
+        "health",
+        "mode",
+        "month",
+        "payload",
+        "pipeline",
+        "recommendation",
+        "result",
+        "row",
+        "rows",
+        "setter",
+        "source",
+        "state",
+        "summary",
+        "value"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.pipeline.health"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/profile.js",
+      "category": "Other",
+      "lines": 11,
+      "bytes": 5133,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/config.js"
+        },
+        {
+          "specifier": "../state.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/state.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../state.js": [
+          "getState",
+          "setFilters"
+        ],
+        "../ui.js": [
+          "escapeHtml",
+          "statusPill",
+          "showToast",
+          "optionMarkup"
+        ]
+      },
+      "functions": [
+        "bindPreferencesPage",
+        "bindProfilePage",
+        "prefs",
+        "renderPreferencesPage",
+        "renderProfilePage"
+      ],
+      "exported_functions": [
+        "bindPreferencesPage",
+        "bindProfilePage",
+        "renderPreferencesPage",
+        "renderProfilePage"
+      ],
+      "constants": [
+        "PREF_KEY"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/shared.js",
+      "category": "Other",
+      "lines": 5,
+      "bytes": 429,
+      "imports": [
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../ui.js": [
+          "icon"
+        ]
+      },
+      "functions": [
+        "accessDeniedPage"
+      ],
+      "exported_functions": [
+        "accessDeniedPage"
+      ],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js",
+      "category": "User Access",
+      "lines": 275,
+      "bytes": 18561,
+      "imports": [
+        {
+          "specifier": "../config.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/config.js"
+        },
+        {
+          "specifier": "../api.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/api.js"
+        },
+        {
+          "specifier": "../session.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/session.js"
+        },
+        {
+          "specifier": "../ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        }
+      ],
+      "named_imports": {
+        "../config.js": [
+          "APP_CONFIG"
+        ],
+        "../api.js": [
+          "callAuthorized",
+          "assertSuccessfulPayload",
+          "normalizePayload"
+        ],
+        "../session.js": [
+          "getSavedSession",
+          "updateSavedSession"
+        ],
+        "../ui.js": [
+          "escapeHtml",
+          "showToast",
+          "statusPill",
+          "openConfirmModal"
+        ]
+      },
+      "functions": [
+        "bindPicker",
+        "bindUserAccessPage",
+        "checkedValues",
+        "choice",
+        "csv",
+        "extractUsers",
+        "form",
+        "historyTable",
+        "labels",
+        "loadHistory",
+        "loadUsers",
+        "mismatch",
+        "normalizeScopeParts",
+        "picker",
+        "refreshSelfSession",
+        "remove",
+        "renderScopeTags",
+        "renderUserAccessPage",
+        "row",
+        "save",
+        "scopeTagClass",
+        "selected",
+        "serialize",
+        "updateScopePreview",
+        "verifySaved"
+      ],
+      "exported_functions": [
+        "bindUserAccessPage",
+        "renderUserAccessPage"
+      ],
+      "constants": [
+        "GAMES",
+        "REGIONS",
+        "ROLES",
+        "STATUSES",
+        "all",
+        "allSelected",
+        "auditPayload",
+        "bad",
+        "code",
+        "configured",
+        "deleteBlocked",
+        "displayName",
+        "email",
+        "fields",
+        "games",
+        "invalid",
+        "loginPayload",
+        "map",
+        "normalized",
+        "parsed",
+        "parts",
+        "payload",
+        "region",
+        "regions",
+        "requested",
+        "result",
+        "saved",
+        "selectedLower",
+        "selectedUser",
+        "selectedValues",
+        "specific",
+        "target",
+        "text",
+        "user",
+        "values"
+      ],
+      "exported_constants": [],
+      "api_actions": [
+        "admin.users.audit",
+        "admin.users.delete",
+        "admin.users.list",
+        "admin.users.login_history",
+        "admin.users.upsert",
+        "session.me"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/permissions.js",
+      "category": "Auth/Permission",
+      "lines": 39,
+      "bytes": 1155,
+      "imports": [],
+      "named_imports": {},
+      "functions": [
+        "canSeeAdminPanel",
+        "hasPermission"
+      ],
+      "exported_functions": [
+        "canSeeAdminPanel",
+        "hasPermission"
+      ],
+      "constants": [
+        "PERMISSIONS",
+        "PREVIEW_PERMISSION_SETS"
+      ],
+      "exported_constants": [
+        "PERMISSIONS",
+        "PREVIEW_PERMISSION_SETS"
+      ],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/router.js",
+      "category": "Core/Shared",
+      "lines": 37,
+      "bytes": 2722,
+      "imports": [
+        {
+          "specifier": "./permissions.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/permissions.js"
+        },
+        {
+          "specifier": "./state.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/state.js"
+        },
+        {
+          "specifier": "./pages/dashboard.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/pages/dashboard.js"
+        },
+        {
+          "specifier": "./pages/ai-insight.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/pages/ai-insight.js"
+        },
+        {
+          "specifier": "./pages/user-access.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js"
+        },
+        {
+          "specifier": "./pages/data-health.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/pages/data-health.js"
+        },
+        {
+          "specifier": "./pages/check-raw.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js"
+        },
+        {
+          "specifier": "./pages/data-control.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js"
+        },
+        {
+          "specifier": "./pages/profile.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/pages/profile.js"
+        },
+        {
+          "specifier": "./pages/shared.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/pages/shared.js"
+        }
+      ],
+      "named_imports": {
+        "./permissions.js": [
+          "hasPermission",
+          "PERMISSIONS"
+        ],
+        "./state.js": [
+          "getState",
+          "setRoute"
+        ],
+        "./pages/dashboard.js": [
+          "renderDashboardPage",
+          "bindDashboardPage"
+        ],
+        "./pages/ai-insight.js": [
+          "renderAiInsightPage",
+          "bindAiInsightPage"
+        ],
+        "./pages/user-access.js": [
+          "renderUserAccessPage",
+          "bindUserAccessPage"
+        ],
+        "./pages/data-health.js": [
+          "renderDataHealthOverviewPage",
+          "bindDataHealthOverviewPage",
+          "renderPipelineCheckPage",
+          "bindPipelineCheckPage"
+        ],
+        "./pages/check-raw.js": [
+          "renderCheckRawPage",
+          "bindCheckRawPage"
+        ],
+        "./pages/data-control.js": [
+          "renderDataControlHistoryPage",
+          "bindDataControlHistoryPage",
+          "renderDataControlPreviewPage",
+          "bindDataControlPreviewPage",
+          "renderDataControlClearPage",
+          "bindDataControlClearPage",
+          "renderDataControlBuildPage",
+          "bindDataControlBuildPage"
+        ],
+        "./pages/profile.js": [
+          "renderProfilePage",
+          "bindProfilePage",
+          "renderPreferencesPage",
+          "bindPreferencesPage"
+        ],
+        "./pages/shared.js": [
+          "accessDeniedPage"
+        ]
+      },
+      "functions": [
+        "renderCurrentPage"
+      ],
+      "exported_functions": [
+        "renderCurrentPage"
+      ],
+      "constants": [
+        "ROUTES",
+        "allowed",
+        "content",
+        "route",
+        "state"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/session.js",
+      "category": "Auth/Permission",
+      "lines": 73,
+      "bytes": 2786,
+      "imports": [
+        {
+          "specifier": "./permissions.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/permissions.js"
+        }
+      ],
+      "named_imports": {
+        "./permissions.js": [
+          "PREVIEW_PERMISSION_SETS"
+        ]
+      },
+      "functions": [
+        "clearSession",
+        "dashboardEntryUrl",
+        "getSavedSession",
+        "isLocalV2Entry",
+        "isPreviewSession",
+        "normalizedPermissions",
+        "permissionsForSession",
+        "signOutAndRedirect",
+        "updateSavedSession",
+        "userFromSession"
+      ],
+      "exported_functions": [
+        "clearSession",
+        "getSavedSession",
+        "isPreviewSession",
+        "permissionsForSession",
+        "signOutAndRedirect",
+        "updateSavedSession",
+        "userFromSession"
+      ],
+      "constants": [
+        "SESSION_KEY",
+        "current",
+        "displayName",
+        "email",
+        "explicit",
+        "initials",
+        "next",
+        "role",
+        "session"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/sidebar.js",
+      "category": "Other",
+      "lines": 46,
+      "bytes": 4878,
+      "imports": [
+        {
+          "specifier": "./navigation.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/navigation.js"
+        },
+        {
+          "specifier": "./permissions.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/permissions.js"
+        },
+        {
+          "specifier": "./state.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/state.js"
+        },
+        {
+          "specifier": "./ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        },
+        {
+          "specifier": "./session.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/session.js"
+        }
+      ],
+      "named_imports": {
+        "./navigation.js": [
+          "NAVIGATION"
+        ],
+        "./permissions.js": [
+          "hasPermission"
+        ],
+        "./state.js": [
+          "getState",
+          "setRoute",
+          "toggleGroup",
+          "toggleSidebar"
+        ],
+        "./ui.js": [
+          "icon"
+        ],
+        "./session.js": [
+          "signOutAndRedirect"
+        ]
+      },
+      "functions": [
+        "allowed",
+        "bindSidebarEvents",
+        "containsRoute",
+        "parentItem",
+        "renderSidebar",
+        "simpleItem"
+      ],
+      "exported_functions": [
+        "bindSidebarEvents",
+        "renderSidebar"
+      ],
+      "constants": [
+        "active",
+        "children",
+        "className",
+        "content",
+        "groups",
+        "items",
+        "open",
+        "popover",
+        "sectionActive",
+        "sidebar",
+        "state",
+        "toggle"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/state.js",
+      "category": "Core/Shared",
+      "lines": 145,
+      "bytes": 6747,
+      "imports": [
+        {
+          "specifier": "./config.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/config.js"
+        }
+      ],
+      "named_imports": {
+        "./config.js": [
+          "APP_CONFIG"
+        ]
+      },
+      "functions": [
+        "addAiMessage",
+        "clearAiMessages",
+        "getState",
+        "normalizedFilters",
+        "persistAiMessages",
+        "persistControlState",
+        "readJsonStorage",
+        "setAiStatus",
+        "setControl",
+        "setFilter",
+        "setFilters",
+        "setHealth",
+        "setPipeline",
+        "setRawCheck",
+        "setRoute",
+        "setState",
+        "setUser",
+        "subscribe",
+        "updateState"
+      ],
+      "exported_functions": [
+        "addAiMessage",
+        "clearAiMessages",
+        "getState",
+        "setAiStatus",
+        "setControl",
+        "setFilter",
+        "setFilters",
+        "setHealth",
+        "setPipeline",
+        "setRawCheck",
+        "setRoute",
+        "setState",
+        "setUser",
+        "subscribe",
+        "updateState"
+      ],
+      "constants": [
+        "AI_MESSAGES_KEY",
+        "CONTROL_STATE_KEY",
+        "DEFAULT_AI_MESSAGE",
+        "DEFAULT_GAME",
+        "DEFAULT_MONTH",
+        "INITIAL_CONTEXT",
+        "INITIAL_PREFERENCES",
+        "SAVED_AI_MESSAGES",
+        "SAVED_CONTROL_STATE",
+        "SPECIFIC_SCOPE_ROUTES",
+        "aiMessages",
+        "control",
+        "filters",
+        "initialState",
+        "keys",
+        "listeners",
+        "next",
+        "value"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": [
+        "cqr_ai_context",
+        "cqr_ai_context_v8"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/topbar.js",
+      "category": "Core/Shared",
+      "lines": 65,
+      "bytes": 5170,
+      "imports": [
+        {
+          "specifier": "./config.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/config.js"
+        },
+        {
+          "specifier": "./state.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/state.js"
+        },
+        {
+          "specifier": "./ui.js",
+          "resolved": "ui-v2-local/app/assets/js/presentation-final/ui.js"
+        }
+      ],
+      "named_imports": {
+        "./config.js": [
+          "APP_CONFIG"
+        ],
+        "./state.js": [
+          "getState",
+          "setFilter",
+          "setFilters"
+        ],
+        "./ui.js": [
+          "icon",
+          "optionMarkup",
+          "showToast",
+          "downloadText"
+        ]
+      },
+      "functions": [
+        "bindTopbarEvents",
+        "exportCurrentView",
+        "exportMenu",
+        "renderActions",
+        "renderTopbar",
+        "selectControl"
+      ],
+      "exported_functions": [
+        "bindTopbarEvents",
+        "renderTopbar"
+      ],
+      "constants": [
+        "ALL_MONTH",
+        "GAMES_SPECIFIC",
+        "MONTHS_ALL",
+        "MONTHS_SPECIFIC",
+        "PAGE_META",
+        "actions",
+        "base",
+        "menu",
+        "period",
+        "state"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/ui.js",
+      "category": "Core/Shared",
+      "lines": 123,
+      "bytes": 7917,
+      "imports": [],
+      "named_imports": {},
+      "functions": [
+        "downloadText",
+        "escapeHtml",
+        "formatNumber",
+        "icon",
+        "openConfirmModal",
+        "optionMarkup",
+        "showToast",
+        "statusPill"
+      ],
+      "exported_functions": [
+        "downloadText",
+        "escapeHtml",
+        "formatNumber",
+        "icon",
+        "openConfirmModal",
+        "optionMarkup",
+        "showToast",
+        "statusPill"
+      ],
+      "constants": [
+        "ICONS",
+        "blob",
+        "body",
+        "button",
+        "close",
+        "link",
+        "root",
+        "toast",
+        "tone",
+        "url"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/router.js",
+      "category": "Core/Shared",
+      "lines": 37,
+      "bytes": 2722,
+      "imports": [
+        {
+          "specifier": "./permissions.js",
+          "resolved": "ui-v2-local/app/assets/js/permissions.js"
+        },
+        {
+          "specifier": "./state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "./pages/dashboard.js",
+          "resolved": "ui-v2-local/app/assets/js/pages/dashboard.js"
+        },
+        {
+          "specifier": "./pages/ai-insight.js",
+          "resolved": "ui-v2-local/app/assets/js/pages/ai-insight.js"
+        },
+        {
+          "specifier": "./pages/user-access.js",
+          "resolved": "ui-v2-local/app/assets/js/pages/user-access.js"
+        },
+        {
+          "specifier": "./pages/data-health.js",
+          "resolved": "ui-v2-local/app/assets/js/pages/data-health.js"
+        },
+        {
+          "specifier": "./pages/check-raw.js",
+          "resolved": "ui-v2-local/app/assets/js/pages/check-raw.js"
+        },
+        {
+          "specifier": "./pages/data-control.js",
+          "resolved": "ui-v2-local/app/assets/js/pages/data-control.js"
+        },
+        {
+          "specifier": "./pages/profile.js",
+          "resolved": "ui-v2-local/app/assets/js/pages/profile.js"
+        },
+        {
+          "specifier": "./pages/shared.js",
+          "resolved": "ui-v2-local/app/assets/js/pages/shared.js"
+        }
+      ],
+      "named_imports": {
+        "./permissions.js": [
+          "hasPermission",
+          "PERMISSIONS"
+        ],
+        "./state.js": [
+          "getState",
+          "setRoute"
+        ],
+        "./pages/dashboard.js": [
+          "renderDashboardPage",
+          "bindDashboardPage"
+        ],
+        "./pages/ai-insight.js": [
+          "renderAiInsightPage",
+          "bindAiInsightPage"
+        ],
+        "./pages/user-access.js": [
+          "renderUserAccessPage",
+          "bindUserAccessPage"
+        ],
+        "./pages/data-health.js": [
+          "renderDataHealthOverviewPage",
+          "bindDataHealthOverviewPage",
+          "renderPipelineCheckPage",
+          "bindPipelineCheckPage"
+        ],
+        "./pages/check-raw.js": [
+          "renderCheckRawPage",
+          "bindCheckRawPage"
+        ],
+        "./pages/data-control.js": [
+          "renderDataControlHistoryPage",
+          "bindDataControlHistoryPage",
+          "renderDataControlPreviewPage",
+          "bindDataControlPreviewPage",
+          "renderDataControlClearPage",
+          "bindDataControlClearPage",
+          "renderDataControlBuildPage",
+          "bindDataControlBuildPage"
+        ],
+        "./pages/profile.js": [
+          "renderProfilePage",
+          "bindProfilePage",
+          "renderPreferencesPage",
+          "bindPreferencesPage"
+        ],
+        "./pages/shared.js": [
+          "accessDeniedPage"
+        ]
+      },
+      "functions": [
+        "renderCurrentPage"
+      ],
+      "exported_functions": [
+        "renderCurrentPage"
+      ],
+      "constants": [
+        "ROUTES",
+        "allowed",
+        "content",
+        "route",
+        "state"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/session.js",
+      "category": "Auth/Permission",
+      "lines": 54,
+      "bytes": 2165,
+      "imports": [
+        {
+          "specifier": "./permissions.js",
+          "resolved": "ui-v2-local/app/assets/js/permissions.js"
+        }
+      ],
+      "named_imports": {
+        "./permissions.js": [
+          "PREVIEW_PERMISSION_SETS"
+        ]
+      },
+      "functions": [
+        "clearSession",
+        "getSavedSession",
+        "isPreviewSession",
+        "normalizedPermissions",
+        "permissionsForSession",
+        "signOutAndRedirect",
+        "userFromSession"
+      ],
+      "exported_functions": [
+        "clearSession",
+        "getSavedSession",
+        "isPreviewSession",
+        "permissionsForSession",
+        "signOutAndRedirect",
+        "userFromSession"
+      ],
+      "constants": [
+        "SESSION_KEY",
+        "displayName",
+        "email",
+        "explicit",
+        "initials",
+        "role",
+        "session"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/shared-shell/shared-sidebar.js",
+      "category": "Shared Shell",
+      "lines": 448,
+      "bytes": 22544,
+      "imports": [],
+      "named_imports": {},
+      "functions": [
+        "copilotEntryName",
+        "currentRoute",
+        "dashboardEntryName",
+        "escapeHtml",
+        "getSession",
+        "getUser",
+        "hasPermission",
+        "icon",
+        "isLocalV2Entry",
+        "isProductionEntry",
+        "itemAllowed",
+        "parsePermissions",
+        "preservedPreview",
+        "routeUrl"
+      ],
+      "exported_functions": [],
+      "constants": [
+        "ALL_PERMISSIONS",
+        "COLLAPSE_KEY",
+        "GROUP_PREFIX",
+        "ICONS",
+        "NAVIGATION",
+        "SESSION_KEY",
+        "active",
+        "childActive",
+        "childHtml",
+        "children",
+        "css",
+        "current",
+        "displayName",
+        "email",
+        "groups",
+        "id",
+        "initials",
+        "items",
+        "open",
+        "popover",
+        "preview",
+        "profile",
+        "role",
+        "route",
+        "session",
+        "stored",
+        "target",
+        "user",
+        "value"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/sidebar.js",
+      "category": "Other",
+      "lines": 46,
+      "bytes": 4878,
+      "imports": [
+        {
+          "specifier": "./navigation.js",
+          "resolved": "ui-v2-local/app/assets/js/navigation.js"
+        },
+        {
+          "specifier": "./permissions.js",
+          "resolved": "ui-v2-local/app/assets/js/permissions.js"
+        },
+        {
+          "specifier": "./state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "./ui.js",
+          "resolved": "ui-v2-local/app/assets/js/ui.js"
+        },
+        {
+          "specifier": "./session.js",
+          "resolved": "ui-v2-local/app/assets/js/session.js"
+        }
+      ],
+      "named_imports": {
+        "./navigation.js": [
+          "NAVIGATION"
+        ],
+        "./permissions.js": [
+          "hasPermission"
+        ],
+        "./state.js": [
+          "getState",
+          "setRoute",
+          "toggleGroup",
+          "toggleSidebar"
+        ],
+        "./ui.js": [
+          "icon"
+        ],
+        "./session.js": [
+          "signOutAndRedirect"
+        ]
+      },
+      "functions": [
+        "allowed",
+        "bindSidebarEvents",
+        "containsRoute",
+        "parentItem",
+        "renderSidebar",
+        "simpleItem"
+      ],
+      "exported_functions": [
+        "bindSidebarEvents",
+        "renderSidebar"
+      ],
+      "constants": [
+        "active",
+        "children",
+        "className",
+        "content",
+        "groups",
+        "items",
+        "open",
+        "popover",
+        "sectionActive",
+        "sidebar",
+        "state",
+        "toggle"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/state.js",
+      "category": "Core/Shared",
+      "lines": 62,
+      "bytes": 5001,
+      "imports": [
+        {
+          "specifier": "./config.js",
+          "resolved": "ui-v2-local/app/assets/js/config.js"
+        }
+      ],
+      "named_imports": {
+        "./config.js": [
+          "APP_CONFIG"
+        ]
+      },
+      "functions": [
+        "addAiMessage",
+        "clearAiMessages",
+        "getState",
+        "normalizedFilters",
+        "readJsonStorage",
+        "setControl",
+        "setFilter",
+        "setFilters",
+        "setHealth",
+        "setPipeline",
+        "setRawCheck",
+        "setRoute",
+        "setState",
+        "setUser",
+        "subscribe",
+        "toggleGroup",
+        "toggleSidebar",
+        "updateState"
+      ],
+      "exported_functions": [
+        "addAiMessage",
+        "clearAiMessages",
+        "getState",
+        "setControl",
+        "setFilter",
+        "setFilters",
+        "setHealth",
+        "setPipeline",
+        "setRawCheck",
+        "setRoute",
+        "setState",
+        "setUser",
+        "subscribe",
+        "toggleGroup",
+        "toggleSidebar",
+        "updateState"
+      ],
+      "constants": [
+        "DEFAULT_GAME",
+        "DEFAULT_MONTH",
+        "INITIAL_CONTEXT",
+        "INITIAL_PREFERENCES",
+        "SPECIFIC_SCOPE_ROUTES",
+        "filters",
+        "initialState",
+        "listeners"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": [
+        "cqr_ui_sidebar_collapsed"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/topbar.js",
+      "category": "Core/Shared",
+      "lines": 65,
+      "bytes": 5169,
+      "imports": [
+        {
+          "specifier": "./config.js",
+          "resolved": "ui-v2-local/app/assets/js/config.js"
+        },
+        {
+          "specifier": "./state.js",
+          "resolved": "ui-v2-local/app/assets/js/state.js"
+        },
+        {
+          "specifier": "./ui.js",
+          "resolved": "ui-v2-local/app/assets/js/ui.js"
+        }
+      ],
+      "named_imports": {
+        "./config.js": [
+          "APP_CONFIG"
+        ],
+        "./state.js": [
+          "getState",
+          "setFilter",
+          "setFilters"
+        ],
+        "./ui.js": [
+          "icon",
+          "optionMarkup",
+          "showToast",
+          "downloadText"
+        ]
+      },
+      "functions": [
+        "bindTopbarEvents",
+        "exportCurrentView",
+        "exportMenu",
+        "renderActions",
+        "renderTopbar",
+        "selectControl"
+      ],
+      "exported_functions": [
+        "bindTopbarEvents",
+        "renderTopbar"
+      ],
+      "constants": [
+        "ALL_MONTH",
+        "GAMES_SPECIFIC",
+        "MONTHS_ALL",
+        "MONTHS_SPECIFIC",
+        "PAGE_META",
+        "actions",
+        "base",
+        "menu",
+        "period",
+        "state"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/ui.js",
+      "category": "Core/Shared",
+      "lines": 117,
+      "bytes": 7739,
+      "imports": [],
+      "named_imports": {},
+      "functions": [
+        "downloadText",
+        "escapeHtml",
+        "formatNumber",
+        "icon",
+        "openConfirmModal",
+        "optionMarkup",
+        "showToast",
+        "statusPill"
+      ],
+      "exported_functions": [
+        "downloadText",
+        "escapeHtml",
+        "formatNumber",
+        "icon",
+        "openConfirmModal",
+        "optionMarkup",
+        "showToast",
+        "statusPill"
+      ],
+      "constants": [
+        "ICONS",
+        "blob",
+        "body",
+        "close",
+        "link",
+        "root",
+        "toast",
+        "tone",
+        "url"
+      ],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/base.css",
+      "category": "CSS",
+      "lines": 29,
+      "bytes": 1141,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/components.css",
+      "category": "CSS",
+      "lines": 183,
+      "bytes": 16445,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/dashboard-final-r11.css",
+      "category": "CSS",
+      "lines": 1177,
+      "bytes": 39082,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/dashboard-final.css",
+      "category": "CSS",
+      "lines": 394,
+      "bytes": 13052,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/layout.css",
+      "category": "CSS",
+      "lines": 49,
+      "bytes": 1675,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/pages.css",
+      "category": "CSS",
+      "lines": 108,
+      "bytes": 11446,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/base.css",
+      "category": "CSS",
+      "lines": 29,
+      "bytes": 1141,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/components.css",
+      "category": "CSS",
+      "lines": 183,
+      "bytes": 16445,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/copilot-final.css",
+      "category": "CSS",
+      "lines": 1588,
+      "bytes": 76756,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/functional-fixes.css",
+      "category": "CSS",
+      "lines": 14,
+      "bytes": 548,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/layout.css",
+      "category": "CSS",
+      "lines": 49,
+      "bytes": 1675,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/pages.css",
+      "category": "CSS",
+      "lines": 108,
+      "bytes": 11446,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/presentation-final.css",
+      "category": "CSS",
+      "lines": 47,
+      "bytes": 4443,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/responsive.css",
+      "category": "CSS",
+      "lines": 54,
+      "bytes": 3315,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/shell-r3.css",
+      "category": "CSS",
+      "lines": 102,
+      "bytes": 5815,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/shell-r4.css",
+      "category": "CSS",
+      "lines": 128,
+      "bytes": 7334,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/tokens.css",
+      "category": "CSS",
+      "lines": 59,
+      "bytes": 1738,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/responsive.css",
+      "category": "CSS",
+      "lines": 54,
+      "bytes": 3315,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/shared-shell/shared-sidebar-host.css",
+      "category": "Shared Shell",
+      "lines": 72,
+      "bytes": 1950,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/shell-r3.css",
+      "category": "CSS",
+      "lines": 102,
+      "bytes": 5815,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/shell-r4.css",
+      "category": "CSS",
+      "lines": 128,
+      "bytes": 7334,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/tokens.css",
+      "category": "CSS",
+      "lines": 59,
+      "bytes": 1738,
+      "imports": [],
+      "named_imports": {},
+      "functions": [],
+      "exported_functions": [],
+      "constants": [],
+      "exported_constants": [],
+      "api_actions": [],
+      "storage_keys": []
+    }
+  ],
+  "ownership": {
+    "Dashboard": [
+      "ui-v2-local/app/assets/js/dashboard-final-r11.js",
+      "ui-v2-local/app/assets/js/pages/dashboard.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/dashboard.js"
+    ],
+    "AI": [
+      "ui-v2-local/app/assets/js/pages/ai-insight.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/ai-insight.js"
+    ],
+    "Admin/Data Control": [
+      "ui-v2-local/app/assets/js/pages/check-raw.js",
+      "ui-v2-local/app/assets/js/pages/data-control.js",
+      "ui-v2-local/app/assets/js/pages/data-health.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/data-health.js"
+    ],
+    "User Access": [
+      "ui-v2-local/app/assets/js/pages/user-access.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js"
+    ],
+    "Auth/Permission": [
+      "ui-v2-local/app/assets/js/permissions.js",
+      "ui-v2-local/app/assets/js/presentation-final/permissions.js",
+      "ui-v2-local/app/assets/js/presentation-final/session.js",
+      "ui-v2-local/app/assets/js/session.js"
+    ],
+    "Core/Shared": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/app.js",
+      "ui-v2-local/app/assets/js/config.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/app.js",
+      "ui-v2-local/app/assets/js/presentation-final/config.js",
+      "ui-v2-local/app/assets/js/presentation-final/router.js",
+      "ui-v2-local/app/assets/js/presentation-final/state.js",
+      "ui-v2-local/app/assets/js/presentation-final/topbar.js",
+      "ui-v2-local/app/assets/js/presentation-final/ui.js",
+      "ui-v2-local/app/assets/js/router.js",
+      "ui-v2-local/app/assets/js/state.js",
+      "ui-v2-local/app/assets/js/topbar.js",
+      "ui-v2-local/app/assets/js/ui.js"
+    ],
+    "Shared Shell": [
+      "ui-v2-local/app/assets/css/shared-shell/shared-sidebar-host.css",
+      "ui-v2-local/app/assets/js/dashboard-shared-shell-r4.js",
+      "ui-v2-local/app/assets/js/shared-shell/shared-sidebar.js"
+    ],
+    "Entry/HTML": [
+      "copilot.html",
+      "index.html",
+      "ui-v2-local/app/copilot-v2.html",
+      "ui-v2-local/app/dashboard-v2.html"
+    ],
+    "CSS": [
+      "ui-v2-local/app/assets/css/base.css",
+      "ui-v2-local/app/assets/css/components.css",
+      "ui-v2-local/app/assets/css/dashboard-final-r11.css",
+      "ui-v2-local/app/assets/css/dashboard-final.css",
+      "ui-v2-local/app/assets/css/layout.css",
+      "ui-v2-local/app/assets/css/pages.css",
+      "ui-v2-local/app/assets/css/presentation-final/base.css",
+      "ui-v2-local/app/assets/css/presentation-final/components.css",
+      "ui-v2-local/app/assets/css/presentation-final/copilot-final.css",
+      "ui-v2-local/app/assets/css/presentation-final/functional-fixes.css",
+      "ui-v2-local/app/assets/css/presentation-final/layout.css",
+      "ui-v2-local/app/assets/css/presentation-final/pages.css",
+      "ui-v2-local/app/assets/css/presentation-final/presentation-final.css",
+      "ui-v2-local/app/assets/css/presentation-final/responsive.css",
+      "ui-v2-local/app/assets/css/presentation-final/shell-r3.css",
+      "ui-v2-local/app/assets/css/presentation-final/shell-r4.css",
+      "ui-v2-local/app/assets/css/presentation-final/tokens.css",
+      "ui-v2-local/app/assets/css/responsive.css",
+      "ui-v2-local/app/assets/css/shell-r3.css",
+      "ui-v2-local/app/assets/css/shell-r4.css",
+      "ui-v2-local/app/assets/css/tokens.css"
+    ]
+  },
+  "shared_modules_ranked": [
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/ui.js",
+      "incoming_count": 11,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/ai-insight.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/dashboard.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/data-health.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/profile.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/shared.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js",
+        "ui-v2-local/app/assets/js/presentation-final/sidebar.js",
+        "ui-v2-local/app/assets/js/presentation-final/topbar.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/state.js",
+      "incoming_count": 11,
+      "incoming": [
+        "ui-v2-local/app/assets/js/app.js",
+        "ui-v2-local/app/assets/js/dashboard-shared-shell-r4.js",
+        "ui-v2-local/app/assets/js/pages/ai-insight.js",
+        "ui-v2-local/app/assets/js/pages/check-raw.js",
+        "ui-v2-local/app/assets/js/pages/dashboard.js",
+        "ui-v2-local/app/assets/js/pages/data-control.js",
+        "ui-v2-local/app/assets/js/pages/data-health.js",
+        "ui-v2-local/app/assets/js/pages/profile.js",
+        "ui-v2-local/app/assets/js/router.js",
+        "ui-v2-local/app/assets/js/sidebar.js",
+        "ui-v2-local/app/assets/js/topbar.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": [
+        "cqr_ui_sidebar_collapsed"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/state.js",
+      "incoming_count": 10,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/app.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/ai-insight.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/dashboard.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/data-health.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/profile.js",
+        "ui-v2-local/app/assets/js/presentation-final/router.js",
+        "ui-v2-local/app/assets/js/presentation-final/sidebar.js",
+        "ui-v2-local/app/assets/js/presentation-final/topbar.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": [
+        "cqr_ai_context",
+        "cqr_ai_context_v8"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/ui.js",
+      "incoming_count": 10,
+      "incoming": [
+        "ui-v2-local/app/assets/js/pages/ai-insight.js",
+        "ui-v2-local/app/assets/js/pages/check-raw.js",
+        "ui-v2-local/app/assets/js/pages/dashboard.js",
+        "ui-v2-local/app/assets/js/pages/data-control.js",
+        "ui-v2-local/app/assets/js/pages/data-health.js",
+        "ui-v2-local/app/assets/js/pages/profile.js",
+        "ui-v2-local/app/assets/js/pages/shared.js",
+        "ui-v2-local/app/assets/js/pages/user-access.js",
+        "ui-v2-local/app/assets/js/sidebar.js",
+        "ui-v2-local/app/assets/js/topbar.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/config.js",
+      "incoming_count": 9,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/api.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/ai-insight.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/data-health.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/profile.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js",
+        "ui-v2-local/app/assets/js/presentation-final/state.js",
+        "ui-v2-local/app/assets/js/presentation-final/topbar.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/config.js",
+      "incoming_count": 8,
+      "incoming": [
+        "ui-v2-local/app/assets/js/api.js",
+        "ui-v2-local/app/assets/js/pages/ai-insight.js",
+        "ui-v2-local/app/assets/js/pages/check-raw.js",
+        "ui-v2-local/app/assets/js/pages/data-control.js",
+        "ui-v2-local/app/assets/js/pages/data-health.js",
+        "ui-v2-local/app/assets/js/pages/profile.js",
+        "ui-v2-local/app/assets/js/state.js",
+        "ui-v2-local/app/assets/js/topbar.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "incoming_count": 6,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/ai-insight.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/data-health.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [
+        "admin.n8n.cleanup.preview",
+        "admin.n8n.cleanup.run",
+        "admin.n8n.master.run",
+        "admin.n8n.raw.check",
+        "admin.n8n.raw.status",
+        "admin.pipeline.health",
+        "admin.pipeline.run.lookup",
+        "admin.users.audit",
+        "admin.users.delete",
+        "admin.users.list",
+        "admin.users.login_history",
+        "admin.users.upsert",
+        "ai.ask",
+        "dashboard.data",
+        "session.me"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/api.js",
+      "incoming_count": 5,
+      "incoming": [
+        "ui-v2-local/app/assets/js/pages/ai-insight.js",
+        "ui-v2-local/app/assets/js/pages/check-raw.js",
+        "ui-v2-local/app/assets/js/pages/data-control.js",
+        "ui-v2-local/app/assets/js/pages/data-health.js",
+        "ui-v2-local/app/assets/js/pages/user-access.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [
+        "admin.n8n.cleanup.preview",
+        "admin.n8n.cleanup.run",
+        "admin.n8n.master.run",
+        "admin.n8n.raw.check",
+        "admin.n8n.raw.status",
+        "admin.pipeline.health",
+        "admin.pipeline.run.lookup",
+        "admin.users.delete",
+        "admin.users.list",
+        "admin.users.upsert",
+        "ai.ask"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/session.js",
+      "incoming_count": 5,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/api.js",
+        "ui-v2-local/app/assets/js/presentation-final/app.js",
+        "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+        "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js",
+        "ui-v2-local/app/assets/js/presentation-final/sidebar.js"
+      ],
+      "category": "Auth/Permission",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/permissions.js",
+      "incoming_count": 4,
+      "incoming": [
+        "ui-v2-local/app/assets/js/navigation.js",
+        "ui-v2-local/app/assets/js/router.js",
+        "ui-v2-local/app/assets/js/session.js",
+        "ui-v2-local/app/assets/js/sidebar.js"
+      ],
+      "category": "Auth/Permission",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/permissions.js",
+      "incoming_count": 4,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/navigation.js",
+        "ui-v2-local/app/assets/js/presentation-final/router.js",
+        "ui-v2-local/app/assets/js/presentation-final/session.js",
+        "ui-v2-local/app/assets/js/presentation-final/sidebar.js"
+      ],
+      "category": "Auth/Permission",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/session.js",
+      "incoming_count": 4,
+      "incoming": [
+        "ui-v2-local/app/assets/js/api.js",
+        "ui-v2-local/app/assets/js/app.js",
+        "ui-v2-local/app/assets/js/dashboard-shared-shell-r4.js",
+        "ui-v2-local/app/assets/js/sidebar.js"
+      ],
+      "category": "Auth/Permission",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/sidebar.js",
+      "incoming_count": 2,
+      "incoming": [
+        "ui-v2-local/app/assets/js/app.js",
+        "ui-v2-local/app/assets/js/dashboard-shared-shell-r4.js"
+      ],
+      "category": "Other",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/navigation.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/sidebar.js"
+      ],
+      "category": "Other",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/ai-insight.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/router.js"
+      ],
+      "category": "AI",
+      "api_actions": [
+        "ai.ask"
+      ],
+      "storage_keys": [
+        "cqr_ai_context"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/check-raw.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/router.js"
+      ],
+      "category": "Admin/Data Control",
+      "api_actions": [
+        "admin.n8n.raw.check",
+        "admin.n8n.raw.status"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/dashboard.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/router.js"
+      ],
+      "category": "Dashboard",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/data-control.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/router.js"
+      ],
+      "category": "Admin/Data Control",
+      "api_actions": [
+        "admin.n8n.cleanup.preview",
+        "admin.n8n.cleanup.run",
+        "admin.n8n.master.run",
+        "admin.pipeline.run.lookup"
+      ],
+      "storage_keys": [
+        "cqr_data_control_handoff"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/data-health.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/router.js"
+      ],
+      "category": "Admin/Data Control",
+      "api_actions": [
+        "admin.pipeline.health"
+      ],
+      "storage_keys": [
+        "cqr_data_control_handoff"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/profile.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/router.js"
+      ],
+      "category": "Other",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/shared.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/router.js"
+      ],
+      "category": "Other",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/pages/user-access.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/router.js"
+      ],
+      "category": "User Access",
+      "api_actions": [
+        "admin.users.delete",
+        "admin.users.list",
+        "admin.users.upsert"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/navigation.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/sidebar.js"
+      ],
+      "category": "Other",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/ai-insight.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/router.js"
+      ],
+      "category": "AI",
+      "api_actions": [
+        "ai.ask",
+        "dashboard.data"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/router.js"
+      ],
+      "category": "Admin/Data Control",
+      "api_actions": [
+        "admin.n8n.raw.check",
+        "admin.n8n.raw.status"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/dashboard.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/router.js"
+      ],
+      "category": "Dashboard",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/router.js"
+      ],
+      "category": "Admin/Data Control",
+      "api_actions": [
+        "admin.n8n.cleanup.preview",
+        "admin.n8n.cleanup.run",
+        "admin.n8n.master.run",
+        "admin.pipeline.health",
+        "admin.pipeline.run.lookup"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/data-health.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/router.js"
+      ],
+      "category": "Admin/Data Control",
+      "api_actions": [
+        "admin.pipeline.health"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/profile.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/router.js"
+      ],
+      "category": "Other",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/shared.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/router.js"
+      ],
+      "category": "Other",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/router.js"
+      ],
+      "category": "User Access",
+      "api_actions": [
+        "admin.users.audit",
+        "admin.users.delete",
+        "admin.users.list",
+        "admin.users.login_history",
+        "admin.users.upsert",
+        "session.me"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/router.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/app.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/topbar.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/presentation-final/app.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/router.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/app.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/topbar.js",
+      "incoming_count": 1,
+      "incoming": [
+        "ui-v2-local/app/assets/js/app.js"
+      ],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "copilot.html",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Entry/HTML",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "index.html",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Entry/HTML",
+      "api_actions": [
+        "ai.ask",
+        "dashboard.data",
+        "session.me"
+      ],
+      "storage_keys": [
+        "cqr_ai_context",
+        "cqr_auth"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/base.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/components.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/dashboard-final-r11.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/dashboard-final.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/layout.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/pages.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/base.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/components.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/copilot-final.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/functional-fixes.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/layout.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/pages.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/presentation-final.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/responsive.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/shell-r3.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/shell-r4.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/presentation-final/tokens.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/responsive.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/shared-shell/shared-sidebar-host.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Shared Shell",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/shell-r3.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/shell-r4.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/css/tokens.css",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "CSS",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/app.js",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": [
+        "cqr_user_preferences"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/dashboard-final-r11.js",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Dashboard",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/dashboard-final.js",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Other",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/dashboard-preview-data.js",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Other",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/dashboard-shared-shell-r4.js",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Shared Shell",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/app.js",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Core/Shared",
+      "api_actions": [],
+      "storage_keys": [
+        "cqr_auth",
+        "cqr_user_preferences"
+      ]
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Other",
+      "api_actions": [
+        "admin.n8n.cleanup.preview",
+        "admin.n8n.cleanup.run",
+        "admin.n8n.master.run",
+        "admin.n8n.raw.check",
+        "admin.n8n.raw.status",
+        "admin.pipeline.health",
+        "admin.pipeline.run.lookup",
+        "admin.users.audit",
+        "admin.users.delete",
+        "admin.users.list",
+        "admin.users.login_history",
+        "admin.users.upsert",
+        "ai.ask"
+      ],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/presentation-final/sidebar.js",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Other",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/assets/js/shared-shell/shared-sidebar.js",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Shared Shell",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/copilot-v2.html",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Entry/HTML",
+      "api_actions": [],
+      "storage_keys": []
+    },
+    {
+      "path": "ui-v2-local/app/dashboard-v2.html",
+      "incoming_count": 0,
+      "incoming": [],
+      "category": "Entry/HTML",
+      "api_actions": [
+        "ai.ask",
+        "dashboard.data",
+        "session.me"
+      ],
+      "storage_keys": [
+        "cqr_ai_context",
+        "cqr_auth"
+      ]
+    }
+  ],
+  "api_action_usage": {
+    "admin.n8n.cleanup.preview": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/data-control.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js"
+    ],
+    "admin.n8n.cleanup.run": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/data-control.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js"
+    ],
+    "admin.n8n.master.run": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/data-control.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js"
+    ],
+    "admin.n8n.raw.check": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/check-raw.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js"
+    ],
+    "admin.n8n.raw.status": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/check-raw.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js"
+    ],
+    "admin.pipeline.health": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/data-health.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/data-health.js"
+    ],
+    "admin.pipeline.run.lookup": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/data-control.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/data-control.js"
+    ],
+    "admin.users.audit": [
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js"
+    ],
+    "admin.users.delete": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/user-access.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js"
+    ],
+    "admin.users.list": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/user-access.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js"
+    ],
+    "admin.users.login_history": [
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js"
+    ],
+    "admin.users.upsert": [
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/user-access.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js"
+    ],
+    "ai.ask": [
+      "index.html",
+      "ui-v2-local/app/assets/js/api.js",
+      "ui-v2-local/app/assets/js/pages/ai-insight.js",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/functional-self-test.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/ai-insight.js",
+      "ui-v2-local/app/dashboard-v2.html"
+    ],
+    "dashboard.data": [
+      "index.html",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/ai-insight.js",
+      "ui-v2-local/app/dashboard-v2.html"
+    ],
+    "session.me": [
+      "index.html",
+      "ui-v2-local/app/assets/js/presentation-final/api.js",
+      "ui-v2-local/app/assets/js/presentation-final/pages/user-access.js",
+      "ui-v2-local/app/dashboard-v2.html"
+    ]
+  }
+}

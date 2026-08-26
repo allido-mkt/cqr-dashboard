@@ -1,0 +1,17 @@
+{
+  "source_workflow": "CQR_N8N_Master_Data_Update_V7_Direct_Master_Cumulative",
+  "source_active": false,
+  "purpose": "Daily Retention Production Backfill reference logic",
+  "nodes": [
+    "Set Runtime Config",
+    "Build Work Units",
+    "Prepare Tab Plan",
+    "Prepare Master Write Payload",
+    "Build Rows - CohortMaturity",
+    "Build Rows - DataQualitySummary",
+    "Build Rows - CohortSummary"
+  ],
+  "production_write_enabled": false,
+  "central_db_write_enabled": false,
+  "master_file_write_enabled": false
+}

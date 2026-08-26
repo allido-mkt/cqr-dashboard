@@ -29,7 +29,7 @@ const initialState = {
   health:{ status:"idle", score:null, checkedAt:"", rawReady:0, review:0, repair:0, updated:0, result:null, error:"" },
   pipeline:{ status:"idle", checkedAt:"", result:null, error:"" },
   control:{ previewToken:"", previewAt:"", selectedRuns:[], lookupRuns:[], lookupResult:null, lookupQuery:"", previewResult:null, previewScope:null, lastClearAt:"", clearResult:null, lastBuildAt:"", buildResult:null, buildProgress:0, error:"" },
-  aiMessages:[{ role:"assistant", text:"พร้อมช่วยอ่าน CQR ครับ เลือก Game และ Period แล้วถามเรื่อง Retention, Channel Quality หรือ Weekly Alert ได้เลย" }],
+  aiMessages:[{ role:"assistant", text:"วันนี้มีอะไรให้ช่วยดูหรือวิเคราะห์ไหมครับ" }],
 };
 let state = structuredClone(initialState);
 
@@ -58,4 +58,4 @@ export function setHealth(patch) { setState({ health:{ ...state.health, ...patch
 export function setPipeline(patch) { setState({ pipeline:{ ...state.pipeline, ...patch } }); }
 export function setControl(patch) { setState({ control:{ ...state.control, ...patch } }); }
 export function addAiMessage(role, text) { setState({ aiMessages:[...state.aiMessages, { role, text }] }); }
-export function clearAiMessages() { setState({ aiMessages:[{ role:"assistant", text:"ล้างบทสนทนาแล้วครับ เริ่มถามจาก Context ปัจจุบันได้เลย" }] }); }
+export function clearAiMessages() { setState({ aiMessages:[{ role:"assistant", text:"วันนี้มีอะไรให้ช่วยดูหรือวิเคราะห์ไหมครับ" }] }); }

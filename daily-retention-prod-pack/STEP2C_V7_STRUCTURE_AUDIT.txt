@@ -1,0 +1,569 @@
+========================================
+STEP 2C - V7 STRUCTURE AUDIT
+========================================
+
+WORKFLOW
+----------------------------------------
+name: CQR_N8N_Master_Data_Update_V7_Direct_Master_Cumulative
+active: False
+node_count: 56
+
+ALL NODES
+----------------------------------------
+01. name=Manual Trigger | type=n8n-nodes-base.manualTrigger | disabled=False
+02. name=Sunday 16:00 Master Update Schedule | type=n8n-nodes-base.scheduleTrigger | disabled=True
+03. name=Set Runtime Config | type=n8n-nodes-base.set | disabled=False
+04. name=Read Central DB - SourceFiles | type=n8n-nodes-base.googleSheets | disabled=False
+05. name=Read Central DB - DataIndex | type=n8n-nodes-base.googleSheets | disabled=False
+06. name=Build Work Units | type=n8n-nodes-base.code | disabled=False
+07. name=Split In Batches - One Game | type=n8n-nodes-base.splitInBatches | disabled=False
+08. name=Prepare Tab Plan | type=n8n-nodes-base.code | disabled=False
+09. name=Read Raw - Registered | type=n8n-nodes-base.googleSheets | disabled=False
+10. name=Read Raw - DAU | type=n8n-nodes-base.googleSheets | disabled=False
+11. name=Read Raw - Returners | type=n8n-nodes-base.googleSheets | disabled=False
+12. name=Read Raw - Late Starters | type=n8n-nodes-base.googleSheets | disabled=False
+13. name=Read Raw - Login | type=n8n-nodes-base.googleSheets | disabled=False
+14. name=Prepare Master Write Payload | type=n8n-nodes-base.code | disabled=False
+15. name=Append Central DB - PipelineLogs | type=n8n-nodes-base.googleSheets | disabled=False
+16. name=Run Summary | type=n8n-nodes-base.code | disabled=False
+17. name=Build Rows - RawImports | type=n8n-nodes-base.code | disabled=False
+18. name=Append Master - RawImports | type=n8n-nodes-base.googleSheets | disabled=False
+19. name=Build Rows - UserCohort | type=n8n-nodes-base.code | disabled=False
+20. name=Append Master - UserCohort | type=n8n-nodes-base.googleSheets | disabled=False
+21. name=Build Rows - ChannelDaily | type=n8n-nodes-base.code | disabled=False
+22. name=Append Master - ChannelDaily | type=n8n-nodes-base.googleSheets | disabled=False
+23. name=Build Rows - ChannelWeekly | type=n8n-nodes-base.code | disabled=False
+24. name=Append Master - ChannelWeekly | type=n8n-nodes-base.googleSheets | disabled=False
+25. name=Build Rows - ChannelMonthly | type=n8n-nodes-base.code | disabled=False
+26. name=Append Master - ChannelMonthly | type=n8n-nodes-base.googleSheets | disabled=False
+27. name=Build Rows - DAUDaily | type=n8n-nodes-base.code | disabled=False
+28. name=Append Master - DAUDaily | type=n8n-nodes-base.googleSheets | disabled=False
+29. name=Build Rows - Returners | type=n8n-nodes-base.code | disabled=False
+30. name=Append Master - Returners | type=n8n-nodes-base.googleSheets | disabled=False
+31. name=Build Rows - LateFirstLogin | type=n8n-nodes-base.code | disabled=False
+32. name=Append Master - LateFirstLogin | type=n8n-nodes-base.googleSheets | disabled=False
+33. name=Build Rows - QualitySignals | type=n8n-nodes-base.code | disabled=False
+34. name=Append Master - QualitySignals | type=n8n-nodes-base.googleSheets | disabled=False
+35. name=Build Rows - TransformLog | type=n8n-nodes-base.code | disabled=False
+36. name=Append Master - TransformLog | type=n8n-nodes-base.googleSheets | disabled=False
+37. name=Build Rows - Central DataIndex | type=n8n-nodes-base.code | disabled=False
+38. name=Append Central DB - DataIndex | type=n8n-nodes-base.googleSheets | disabled=False
+39. name=Build Rows - Central PipelineLogs | type=n8n-nodes-base.code | disabled=False
+40. name=Read Central DB - RawIngestionLogs | type=n8n-nodes-base.googleSheets | disabled=False
+41. name=Build AI Warm-up Hook Payload | type=n8n-nodes-base.code | disabled=False
+42. name=Start AI Warm-up Worker Async | type=n8n-nodes-base.executeWorkflow | disabled=True
+43. name=Build Rows - PlayerTypeMonthly | type=n8n-nodes-base.code | disabled=False
+44. name=Append Master - PlayerTypeMonthly | type=n8n-nodes-base.googleSheets | disabled=False
+45. name=Build Rows - TotalRetentionMonthly | type=n8n-nodes-base.code | disabled=False
+46. name=Append Master - TotalRetentionMonthly | type=n8n-nodes-base.googleSheets | disabled=False
+47. name=Build Rows - CohortMaturity | type=n8n-nodes-base.code | disabled=False
+48. name=Append Master - CohortMaturity | type=n8n-nodes-base.googleSheets | disabled=False
+49. name=Build Rows - DataQualitySummary | type=n8n-nodes-base.code | disabled=False
+50. name=Append Master - DataQualitySummary | type=n8n-nodes-base.googleSheets | disabled=False
+51. name=Build Rows - Central CohortMaturity | type=n8n-nodes-base.code | disabled=False
+52. name=Append Central DB - CohortMaturity | type=n8n-nodes-base.googleSheets | disabled=False
+53. name=Build Rows - Central DataQualitySummary | type=n8n-nodes-base.code | disabled=False
+54. name=Append Central DB - DataQualitySummary | type=n8n-nodes-base.googleSheets | disabled=False
+55. name=Build Rows - CohortSummary | type=n8n-nodes-base.code | disabled=False
+56. name=Append Master - CohortSummary | type=n8n-nodes-base.googleSheets | disabled=False
+
+GOOGLE SHEETS / WRITE NODES
+----------------------------------------
+
+NODE: Read Central DB - SourceFiles
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': '={{ $json.central_db_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'SourceFiles', 'mode': 'name'}
+options: {}
+
+NODE: Read Central DB - DataIndex
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Set Runtime Config').first().json.central_db_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'DataIndex', 'mode': 'name'}
+options: {}
+
+NODE: Build Work Units
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Read Raw - Registered
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': '={{ $json.source_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': '={{ `Registered_${$json.target_month}` }}', 'mode': 'name'}
+options: {}
+
+NODE: Read Raw - DAU
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Prepare Tab Plan').first().json.source_file_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': "={{ `DAU_${$('Prepare Tab Plan').first().json.target_month}` }}", 'mode': 'name'}
+options: {}
+
+NODE: Read Raw - Returners
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Prepare Tab Plan').first().json.source_file_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': "={{ `Returners_${$('Prepare Tab Plan').first().json.target_month}` }}", 'mode': 'name'}
+options: {}
+
+NODE: Read Raw - Late Starters
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Prepare Tab Plan').first().json.source_file_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': "={{ `Late_Starters_${$('Prepare Tab Plan').first().json.target_month}` }}", 'mode': 'name'}
+options: {}
+
+NODE: Read Raw - Login
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Prepare Tab Plan').first().json.source_file_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': "={{ `Login_${$('Prepare Tab Plan').first().json.target_month}` }}", 'mode': 'name'}
+options: {}
+
+NODE: Prepare Master Write Payload
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Central DB - PipelineLogs
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.central_db_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'PipelineLogs', 'mode': 'name'}
+options: {}
+
+NODE: Run Summary
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Build Rows - RawImports
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - RawImports
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'RawImports', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - UserCohort
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - UserCohort
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'UserCohort', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - ChannelDaily
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - ChannelDaily
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'ChannelDaily', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - ChannelWeekly
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - ChannelWeekly
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'ChannelWeekly', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - ChannelMonthly
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - ChannelMonthly
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'ChannelMonthly', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - DAUDaily
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - DAUDaily
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'DAUDaily', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - Returners
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - Returners
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'Returners', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - LateFirstLogin
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - LateFirstLogin
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'LateFirstLogin', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - QualitySignals
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - QualitySignals
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'QualitySignals', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - TransformLog
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - TransformLog
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'TransformLog', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - Central DataIndex
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Central DB - DataIndex
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.central_db_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'DataIndex', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - Central PipelineLogs
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Read Central DB - RawIngestionLogs
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Set Runtime Config').first().json.central_db_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'RawIngestionLogs', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - PlayerTypeMonthly
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - PlayerTypeMonthly
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'PlayerTypeMonthly', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - TotalRetentionMonthly
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - TotalRetentionMonthly
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'TotalRetentionMonthly', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - CohortMaturity
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - CohortMaturity
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'CohortMaturity', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - DataQualitySummary
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - DataQualitySummary
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'DataQualitySummary', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - Central CohortMaturity
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Central DB - CohortMaturity
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': "={{ $('Prepare Master Write Payload').first().json.central_db_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'CohortMaturity', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - Central DataQualitySummary
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Central DB - DataQualitySummary
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': "={{ $('Prepare Master Write Payload').first().json.central_db_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'DataQualitySummary', 'mode': 'name'}
+options: {}
+
+NODE: Build Rows - CohortSummary
+TYPE: n8n-nodes-base.code
+DISABLED: False
+
+NODE: Append Master - CohortSummary
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'CohortSummary', 'mode': 'name'}
+options: {}
+
+TRANSFORM / RETENTION NODES
+----------------------------------------
+
+NODE: Prepare Master Write Payload
+HITS: cumulativeFlags, MILESTONES, retained_d1, retained_d3, retained_d7, retained_d14, data_complete_through, dataCompleteDate
+
+NODE: Append Master - ChannelDaily
+HITS: retained_d1, retained_d3, retained_d7, retained_d14
+
+SOURCE READ NODES
+----------------------------------------
+
+NODE: Read Central DB - SourceFiles
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': '={{ $json.central_db_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'SourceFiles', 'mode': 'name'}
+
+NODE: Read Central DB - DataIndex
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Set Runtime Config').first().json.central_db_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'DataIndex', 'mode': 'name'}
+
+NODE: Read Raw - Registered
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': '={{ $json.source_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': '={{ `Registered_${$json.target_month}` }}', 'mode': 'name'}
+
+NODE: Read Raw - DAU
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Prepare Tab Plan').first().json.source_file_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': "={{ `DAU_${$('Prepare Tab Plan').first().json.target_month}` }}", 'mode': 'name'}
+
+NODE: Read Raw - Returners
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Prepare Tab Plan').first().json.source_file_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': "={{ `Returners_${$('Prepare Tab Plan').first().json.target_month}` }}", 'mode': 'name'}
+
+NODE: Read Raw - Late Starters
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Prepare Tab Plan').first().json.source_file_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': "={{ `Late_Starters_${$('Prepare Tab Plan').first().json.target_month}` }}", 'mode': 'name'}
+
+NODE: Read Raw - Login
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Prepare Tab Plan').first().json.source_file_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': "={{ `Login_${$('Prepare Tab Plan').first().json.target_month}` }}", 'mode': 'name'}
+
+NODE: Append Central DB - PipelineLogs
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.central_db_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'PipelineLogs', 'mode': 'name'}
+
+NODE: Append Master - RawImports
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'RawImports', 'mode': 'name'}
+
+NODE: Append Master - UserCohort
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'UserCohort', 'mode': 'name'}
+
+NODE: Append Master - ChannelDaily
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'ChannelDaily', 'mode': 'name'}
+
+NODE: Append Master - ChannelWeekly
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'ChannelWeekly', 'mode': 'name'}
+
+NODE: Append Master - ChannelMonthly
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'ChannelMonthly', 'mode': 'name'}
+
+NODE: Append Master - DAUDaily
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'DAUDaily', 'mode': 'name'}
+
+NODE: Append Master - Returners
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'Returners', 'mode': 'name'}
+
+NODE: Append Master - LateFirstLogin
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'LateFirstLogin', 'mode': 'name'}
+
+NODE: Append Master - QualitySignals
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'QualitySignals', 'mode': 'name'}
+
+NODE: Append Master - TransformLog
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'TransformLog', 'mode': 'name'}
+
+NODE: Append Central DB - DataIndex
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.central_db_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'DataIndex', 'mode': 'name'}
+
+NODE: Read Central DB - RawIngestionLogs
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+documentId: {'__rl': True, 'value': "={{ $('Set Runtime Config').first().json.central_db_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'RawIngestionLogs', 'mode': 'name'}
+
+NODE: Append Master - PlayerTypeMonthly
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'PlayerTypeMonthly', 'mode': 'name'}
+
+NODE: Append Master - TotalRetentionMonthly
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'TotalRetentionMonthly', 'mode': 'name'}
+
+NODE: Append Master - CohortMaturity
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'CohortMaturity', 'mode': 'name'}
+
+NODE: Append Master - DataQualitySummary
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'DataQualitySummary', 'mode': 'name'}
+
+NODE: Append Central DB - CohortMaturity
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': "={{ $('Prepare Master Write Payload').first().json.central_db_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'CohortMaturity', 'mode': 'name'}
+
+NODE: Append Central DB - DataQualitySummary
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': "={{ $('Prepare Master Write Payload').first().json.central_db_id }}", 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'DataQualitySummary', 'mode': 'name'}
+
+NODE: Append Master - CohortSummary
+TYPE: n8n-nodes-base.googleSheets
+DISABLED: False
+operation: append
+documentId: {'__rl': True, 'value': '={{ $json.master_file_id }}', 'mode': 'id'}
+sheetName: {'__rl': True, 'value': 'CohortSummary', 'mode': 'name'}
+
+SAFETY SUMMARY
+----------------------------------------
+schedule_nodes: 1
+enabled_schedule: []
+write_like_nodes: 49
+retention_transform_nodes: ['Prepare Master Write Payload', 'Append Master - ChannelDaily']
+
+PASS: V7 structure audit complete

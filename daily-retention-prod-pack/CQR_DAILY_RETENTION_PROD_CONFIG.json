@@ -1,0 +1,37 @@
+{
+  "environment": "PROD",
+  "contract_version": "daily_retention_v1",
+  "production_enabled": true,
+  "serve_enabled": false,
+  "discord_send_enabled": false,
+  "api_cache_seconds": 21600,
+  "report_timezone": "Asia/Bangkok",
+  "data_complete_through": "2026-08-18",
+  "retention_source_mode": "raw_registered_login_milestones",
+  "ads_page_joined": false,
+  "dashboard_data_changed": false,
+  "game_registry_role": "identity_only",
+  "missing_value_policy": "blank_not_zero",
+  "dq_gate_required": true,
+  "production_spreadsheet_id": "1LKYwNQAVuMk3ptLEsA1bm2BjEk8G1Hys-mcpMf89DJs",
+  "sources": {
+    "CBM_TH": "1UsDCekjtHS5U51cMs_tPL4YRIIXrJAXwyslIKYm1aSo",
+    "CBM_SEA": "1vyS4-KYpo0OG_WdVADOJVUZ12bKx9gy92ypc1vZJxFA",
+    "CBPC_TH": "1Iu4kSlR2PdtOCiqlVkxWoRUipBKxaGcgcf3_Mi3S8l8",
+    "CBPC_SEA": "1p8fL06Vi_03Na2k2d5QH2NpH4-ZRQnJ766gbYpeKvZM"
+  },
+  "retention_maturity_days": {
+    "d1_rate": 1,
+    "d3_rate": 3,
+    "d7_rate": 7,
+    "d14_rate": 14
+  },
+  "known_data_incidents": [
+    {
+      "game_code": "CBPC_TH",
+      "metric": "dau",
+      "date": "2026-08-06",
+      "policy": "keep_missing_and_suppress_affected_dau_anomaly"
+    }
+  ]
+}

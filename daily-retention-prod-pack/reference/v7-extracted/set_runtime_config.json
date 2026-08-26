@@ -1,0 +1,84 @@
+{
+  "parameters": {
+    "assignments": {
+      "assignments": [
+        {
+          "id": "central-db-id",
+          "name": "central_db_id",
+          "value": "={{ $json.central_db_id || '1uM85a9Fqt3j4NAM1XcEI2ORIw0Uef7Unr-JmIIbpm2g' }}",
+          "type": "string"
+        },
+        {
+          "id": "run-mode",
+          "name": "run_mode",
+          "value": "={{ $json.run_mode || 'incremental' }}",
+          "type": "string"
+        },
+        {
+          "id": "target-month",
+          "name": "target_month",
+          "value": "={{ $json.target_month || new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString().slice(0, 7) }}",
+          "type": "string"
+        },
+        {
+          "id": "target-games",
+          "name": "target_games_csv",
+          "value": "={{ $json.target_games_csv || $json.target_game_code || 'ALL' }}",
+          "type": "string"
+        },
+        {
+          "id": "tab-policy",
+          "name": "missing_tab_policy",
+          "value": "={{ $json.missing_tab_policy || 'partial' }}",
+          "type": "string"
+        },
+        {
+          "id": "prompt-version",
+          "name": "prompt_version",
+          "value": "={{ $json.prompt_version || 'master-data-v2-cumulative' }}",
+          "type": "string"
+        },
+        {
+          "id": "processed-hashes-json",
+          "name": "processed_hashes_json",
+          "value": "={{ $json.processed_hashes_json || '{}' }}",
+          "type": "string"
+        },
+        {
+          "id": "batch-id",
+          "name": "batch_id",
+          "value": "={{ $json.batch_id || ('BATCH-' + new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z') }}",
+          "type": "string"
+        },
+        {
+          "id": "require-raw-check",
+          "name": "require_raw_check",
+          "value": "={{ $json.require_raw_check || 'true' }}",
+          "type": "string"
+        },
+        {
+          "id": "target_months_csv",
+          "name": "target_months_csv",
+          "value": "={{ $json.target_months_csv || $json.target_month || 'AUTO' }}",
+          "type": "string"
+        },
+        {
+          "id": "cleanup-confirmed",
+          "name": "cleanup_confirmed",
+          "value": "={{ $json.cleanup_confirmed || 'false' }}",
+          "type": "string"
+        }
+      ]
+    },
+    "options": {}
+  },
+  "id": "05a654b2-3148-4721-8d3b-6cf75554ffa3",
+  "name": "Set Runtime Config",
+  "type": "n8n-nodes-base.set",
+  "typeVersion": 3.4,
+  "position": [
+    5552,
+    12288
+  ],
+  "notes": "ปรับ target_month / target_games_csv ได้ก่อนรัน manual"
+}

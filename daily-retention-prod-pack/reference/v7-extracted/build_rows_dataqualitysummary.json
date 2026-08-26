@@ -1,0 +1,14 @@
+{
+  "parameters": {
+    "jsCode": "const payload = $json.write_payloads.DataQualitySummary || [];\nreturn payload.map(row => ({ json: { master_file_id: $json.master_file_id, ...row } }));"
+  },
+  "id": "f88c5a2b-e464-4155-81dc-9813d7e99ccf",
+  "name": "Build Rows - DataQualitySummary",
+  "type": "n8n-nodes-base.code",
+  "typeVersion": 2,
+  "position": [
+    8736,
+    13424
+  ],
+  "notes": "Canonical Production V1 rows: DataQualitySummary; document source $json.master_file_id"
+}
