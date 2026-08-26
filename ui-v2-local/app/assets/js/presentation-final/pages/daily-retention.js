@@ -7,8 +7,8 @@ import {
   clearDailyRetentionClientCache,
 } from "../services/daily-retention-api.js?v=3301";
 
-const STYLE_ID = "cqr-daily-retention-v3303-style";
-const STYLE_HREF = "./assets/css/daily-retention.css?v=3303";
+const STYLE_ID = "cqr-daily-retention-v3402-style";
+const STYLE_HREF = "./assets/css/daily-retention.css?v=3402";
 const GAMES = [
   { value: "ALL", label: "ทุกเกม (4 เกม)" },
   { value: "CBM_TH", label: "CBM TH" },
@@ -24,6 +24,8 @@ const MONTHS_TH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.",
 const MILESTONE_DAYS = { D1: 1, D3: 3, D7: 7, D14: 14 };
 const CQR_DAILY_RETENTION_UX_PATCH_V2_SAFE_20260822 = true;
 const CQR_DAILY_RETENTION_APPROVED_UI_PATCH_V3_20260823 = true;
+const CQR_DAILY_RETENTION_AUDIT_FIX_V4_20260823 = true;
+const CQR_DAILY_RETENTION_AI_SUMMARY_FRONTEND_FIX2_20260825 = true;
 
 const view = {
   game: "ALL",
@@ -41,13 +43,14 @@ const view = {
   anomaliesEnvelope: null,
   summaryEnvelope: null,
   loadedKeys: new Set(),
+  requestId: 0,
+  summaryLoading: false,
+  summaryError: "",
 };
 
 function ensureStyle() {
-  document.querySelectorAll('[id^="cqr-daily-retention-v"][id$="-style"]').forEach((node) => {
-    if (node.id !== STYLE_ID) node.remove();
-  });
-  if (document.getElementById(STYLE_ID)) return;
+  const existing = document.getElementById(STYLE_ID);
+  if (existing) return;
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
@@ -162,24 +165,32 @@ function pill(state) {
 function baselineText() { return "ช่วงปกติของเกม"; }
 function pointDifference(value) {
   const out = n(value);
-  if (out === null) return "—";
-  if (out < 0) return `ลดลง ${Math.abs(out).toFixed(1)} จุด`;
-  if (out > 0) return `เพิ่มขึ้น ${out.toFixed(1)} จุด`;
-  return "ใกล้เคียงช่วงปกติ";
-}
-function historicalComparison(current, baseline, diff) {
-  return normalComparisonText(current, baseline);
+  if (out === null) return "ยังไม่มีข้อมูลเทียบระดับย้อนหลัง";
+  if (out < 0) return "ต่ำกว่าระดับย้อนหลัง";
+  if (out > 0) return "สูงกว่าระดับย้อนหลัง";
+  return "ใกล้เคียงระดับย้อนหลัง";
 }
 
-function channelComparison(current, gameRate, diff) {
+function historicalComparison(current, baseline, diffRelative) {
+  return normalComparisonText(baseline, diffRelative);
+}
+
+function channelComparison(current, gameRate, diffRelative, eligible) {
   const currentNum = n(current);
   const gameNum = n(gameRate);
   if (currentNum === null || gameNum === null) return "ยังไม่มีภาพรวมเกมให้เทียบ";
-  return `Channel นี้ ${pct(currentNum)} · ทั้งเกม ${pct(gameNum)} · ${pointDifference(diff)}`;
+  const move = relativeVsGamePresentation(diffRelative);
+  const count = n(eligible);
+  const caution = count !== null && count < 30
+    ? " · จำนวนผู้เล่นยังน้อย ควรติดตามเพิ่มก่อนสรุป"
+    : "";
+  return `ช่องทางนี้ ${pct(currentNum)} · ทั้งเกม ${pct(gameNum)}${move.text ? ` · ${move.icon} ${move.text}` : ""}${caution}`;
 }
+
 function diffText(value) {
   return pointDifference(value);
 }
+
 function options(items, value) {
   return items.map((item) => `<option value="${esc(item.value)}"${item.value === value ? " selected" : ""}>${esc(item.label)}</option>`).join("");
 }
@@ -278,6 +289,7 @@ function deriveMilestoneFromRows(rows, code) {
     eligible: source.eligible,
     baseline: source.baseline,
     diff_pp: source.diff_pp,
+    diff_relative: source.diff_relative,
     maturity_status: source.maturity_status,
     alert_state: source.alert_state,
   };
@@ -324,12 +336,14 @@ function allMilestonePoints(games) {
     value: n(item.value),
     baseline: n(item.baseline),
     diff: n(item.diff_pp),
+    diffRelative: n(item.diff_relative),
     retained: item.retained,
     eligible: item.eligible,
     cohortDate: item.cohort_date,
     state: String(item.alert_state || "none").toLowerCase(),
   }))).filter((item) => item.value !== null);
 }
+
 function maxBy(items, selector) {
   return items.reduce((best, item) => (!best || selector(item) > selector(best) ? item : best), null);
 }
@@ -415,27 +429,28 @@ function statePriority(state) {
 
 function performanceStateText(item) {
   const state = String(item?.state || "none").toLowerCase();
-  if (state === "critical") return "ผิดปกติชัดเจนเมื่อเทียบกับค่าปกติย้อนหลัง";
-  if (state === "warning") return "ควรตรวจสอบการเปลี่ยนแปลงจากค่าปกติย้อนหลัง";
-  if (state === "watch") return "ควรจับตาการเปลี่ยนแปลงจากค่าปกติย้อนหลัง";
-  return "Backend ยังไม่จัดเป็น Anomaly เมื่อเทียบกับค่าปกติย้อนหลัง";
+  if (state === "critical") return "ผิดปกติชัดเจนเมื่อเทียบกับระดับย้อนหลัง";
+  if (state === "warning") return "ควรตรวจสอบการเปลี่ยนแปลงจากระดับย้อนหลัง";
+  if (state === "watch") return "ควรจับตาการเปลี่ยนแปลงจากระดับย้อนหลัง";
+  return "ยังไม่พบสัญญาณผิดปกติจากเกณฑ์ของระบบในรอบนี้";
 }
 
 function movementText(item) {
-  if (!item || item.diff === null) return "ยังไม่มีข้อมูลเทียบค่าปกติย้อนหลัง";
-  return `${item.game} · ${item.code}: ${historicalComparison(item.value, item.baseline, item.diff)}`;
+  if (!item || item.diffRelative === null) return "ยังไม่มีข้อมูลเทียบระดับย้อนหลัง";
+  return `${item.game} · ${item.code}: ${historicalComparison(item.value, item.baseline, item.diffRelative)}`;
 }
 
 function leaderDetailText(games, leader) {
   if (!leader) return "ยังไม่มีข้อมูลพอสำหรับสรุปเกมเด่น";
   if (view.game !== "ALL") {
-    const points = allMilestonePoints(games).filter((item) => item.diff !== null);
-    const strongest = maxBy(points, (item) => item.diff);
+    const points = allMilestonePoints(games).filter((item) => item.diffRelative !== null);
+    const strongest = maxBy(points, (item) => item.diffRelative);
     if (!strongest) return "ยังไม่มีข้อมูลพอสำหรับสรุปจุดเด่น";
-    return `${strongest.code} อยู่ที่ ${pct(strongest.value)} และ${diffText(strongest.diff)}เมื่อเทียบกับค่าปกติย้อนหลัง`;
+    const movement = relativeChangePresentation(strongest.diffRelative);
+    return `${strongest.code} อยู่ที่ ${pct(strongest.value)} และ ${movement.icon} ${movement.text} เมื่อเทียบกับระดับย้อนหลัง`;
   }
   if (leader.tied) {
-    return `วันนี้มีมากกว่า 1 เกมที่ทำค่า Retention สูงสุดในจำนวนช่วงเท่ากัน`;
+    return "วันนี้มีมากกว่า 1 เกมที่ทำค่า Retention สูงสุดในจำนวนช่วงเท่ากัน";
   }
   const values = ["D1", "D3", "D7", "D14"]
     .map((code) => {
@@ -446,7 +461,6 @@ function leaderDetailText(games, leader) {
     .join(" · ");
   return `${leader.game} นำ ${leader.count} จาก 4 ช่วง${values ? ` — ${values}` : ""}`;
 }
-
 
 function currentAiSummary() {
   const data = view.summaryEnvelope?.data;
@@ -524,29 +538,41 @@ function plainAiSummaryBlock(scopeType, title, emptyText = "") {
 
 function deltaPresentation(diff) {
   const value = n(diff);
-  if (value === null) return { cls: "flat", icon: "•", text: "ยังไม่มีข้อมูลเทียบกับช่วงปกติ" };
-  if (value < 0) return { cls: "down", icon: "↓", text: `ลดลง ${Math.abs(value).toFixed(1)} จุด` };
-  if (value > 0) return { cls: "up", icon: "↑", text: `เพิ่มขึ้น ${value.toFixed(1)} จุด` };
-  return { cls: "flat", icon: "•", text: "ใกล้เคียงช่วงปกติ" };
+  if (value === null) return { cls: "flat", icon: "→", text: "ยังไม่มีข้อมูลเทียบระดับย้อนหลัง" };
+  if (value < 0) return { cls: "down", icon: "↓", text: "ต่ำกว่าระดับย้อนหลัง" };
+  if (value > 0) return { cls: "up", icon: "↑", text: "สูงกว่าระดับย้อนหลัง" };
+  return { cls: "flat", icon: "→", text: "ใกล้เคียงระดับย้อนหลัง" };
 }
 
-function relativeChangePresentation(current, baseline) {
-  const currentNum = n(current);
-  const baselineNum = n(baseline);
-  if (currentNum === null || baselineNum === null || Math.abs(baselineNum) < 1e-12) {
+function relativeChangePresentation(diffRelative) {
+  const relative = n(diffRelative);
+  if (relative === null) {
     return { cls: "flat", icon: "→", text: "ยังไม่มีข้อมูลเทียบย้อนหลัง", percent: null };
   }
-  const relative = ((currentNum - baselineNum) / Math.abs(baselineNum)) * 100;
-  const rounded = Math.round(Math.abs(relative));
-  if (relative < 0) return { cls: "down", icon: "↓", text: `วันนี้ลดลง ${rounded}%`, percent: -rounded };
-  if (relative > 0) return { cls: "up", icon: "↑", text: `วันนี้เพิ่มขึ้น ${rounded}%`, percent: rounded };
-  return { cls: "flat", icon: "→", text: "วันนี้ใกล้เคียงเดิม", percent: 0 };
+
+  const rounded = Math.round(Math.abs(relative) * 100);
+  const latest = !selectedReportDate() || !dataCompleteThrough() || selectedReportDate() === dataCompleteThrough();
+  const downLabel = latest ? "วันนี้ลดลง" : "วันที่เลือกลดลง";
+  const upLabel = latest ? "วันนี้เพิ่มขึ้น" : "วันที่เลือกเพิ่มขึ้น";
+
+  if (relative < 0) return { cls: "down", icon: "↓", text: `${downLabel} ${rounded}%`, percent: -rounded };
+  if (relative > 0) return { cls: "up", icon: "↑", text: `${upLabel} ${rounded}%`, percent: rounded };
+  return { cls: "flat", icon: "→", text: "ใกล้เคียงระดับย้อนหลัง", percent: 0 };
 }
 
-function normalComparisonText(current, baseline) {
+function relativeVsGamePresentation(diffRelative) {
+  const relative = n(diffRelative);
+  if (relative === null) return { cls: "flat", icon: "", text: "" };
+  const rounded = Math.round(Math.abs(relative) * 100);
+  if (relative < 0) return { cls: "down", icon: "↓", text: `ต่ำกว่าภาพรวมเกมประมาณ ${rounded}%` };
+  if (relative > 0) return { cls: "up", icon: "↑", text: `สูงกว่าภาพรวมเกมประมาณ ${rounded}%` };
+  return { cls: "flat", icon: "→", text: "ใกล้เคียงภาพรวมเกม" };
+}
+
+function normalComparisonText(baseline, diffRelative) {
   const baselineNum = n(baseline);
   if (baselineNum === null) return "ยังไม่มีข้อมูลย้อนหลังให้เทียบ";
-  const movement = relativeChangePresentation(current, baseline);
+  const movement = relativeChangePresentation(diffRelative);
   return `ปกติอยู่ราว ${pct(baselineNum)} · ${movement.icon} ${movement.text}`;
 }
 
@@ -583,16 +609,21 @@ function deterministicDailyFallback(games) {
 }
 
 function overallSummary(data) {
-  const games = data.games || [];
   const ai = currentAiSummary();
-  const aiParagraphs = [
-    String(ai?.key_finding || "").trim(),
-    String(ai?.attention_point || "").trim(),
-    String(ai?.recommended_check || "").trim(),
-  ].filter(Boolean);
-  const summaryText = aiParagraphs.length
-    ? aiParagraphs.join("\n\n")
-    : (String(ai?.summary_text || "").trim() || deterministicDailyFallback(games));
+  const summaryText = ai
+    ? (
+        String(ai.summary_text || "").trim()
+        || [ai.key_finding, ai.attention_point, ai.recommended_check]
+          .map((value) => String(value || "").trim())
+          .filter(Boolean)
+          .join("\n\n")
+      )
+    : "";
+
+  const displayText = summaryText
+    || (view.summaryLoading
+      ? "กำลังโหลด AI Summary สำหรับวันที่เลือก..."
+      : (view.summaryError || "AI Summary ยังไม่พร้อมสำหรับวันที่เลือก"));
 
   return `
     <section class="dr-overall dr-ai-summary dr-ai-summary-free">
@@ -601,12 +632,11 @@ function overallSummary(data) {
           <div class="dr-overall-kicker">${icon("spark", "dr-ico dr-ico-sm")} สรุปประจำวัน · ข้อมูล ณ ${esc(formatDateTh(selectedReportDate()))}</div>
           <div class="dr-ai-summary-title">ภาพรวม Retention เป็นอย่างไร?</div>
         </div>
-        ${ai ? `<span class="dr-ai-ready">${icon("spark", "dr-ico dr-ico-sm")} AI Summary</span>` : ""}
+        ${summaryText ? `<span class="dr-ai-ready">${icon("spark", "dr-ico dr-ico-sm")} AI Summary</span>` : ""}
       </div>
-      <div class="dr-ai-summary-prose">${aiSummaryParagraphs(summaryText)}</div>
+      <div class="dr-ai-summary-prose">${aiSummaryParagraphs(displayText)}</div>
     </section>`;
 }
-
 
 function metricBadge(code) {
   return `<div class="dr-metric-badge">${esc(code)}</div>`;
@@ -627,7 +657,11 @@ function highlights(data) {
     .sort((a, b) => {
       const severity = statePriority(b.state) - statePriority(a.state);
       if (severity) return severity;
-      return (a.diff ?? 0) - (b.diff ?? 0);
+      const relative = Math.abs(b.diffRelative ?? 0) - Math.abs(a.diffRelative ?? 0);
+      if (relative) return relative;
+      const sample = (n(b.eligible) ?? 0) - (n(a.eligible) ?? 0);
+      if (sample) return sample;
+      return String(b.cohortDate || "").localeCompare(String(a.cohortDate || ""));
     });
   const singleGame = view.game !== "ALL";
 
@@ -649,7 +683,7 @@ function highlights(data) {
   if (flagged.length) {
     const item = flagged[0];
     attentionValue = `${item.game} · ${item.code} ${pct(item.value)}`;
-    const movement = relativeChangePresentation(item.value, item.baseline);
+    const movement = relativeChangePresentation(item.diffRelative);
     attentionText = n(item.baseline) !== null
       ? `ปกติอยู่ราว ${pct(item.baseline)} · ${movement.icon} ${movement.text} · ควรตรวจสอบ`
       : "จุดนี้มีการเปลี่ยนแปลงมากพอที่จะควรเปิดดูรายละเอียด";
@@ -681,7 +715,7 @@ function comparison(data) {
     const rank = rankLabel(games, game.game_code, code);
     const showRank = rank.startsWith("สูงสุด") || rank.startsWith("ต่ำสุด");
     const alert = alertLabel(state);
-    const movement = relativeChangePresentation(metric.value, metric.baseline);
+    const movement = relativeChangePresentation(metric.diff_relative);
 
     return `<div class="dr-comp-cell">
       <div class="dr-comp-top">
@@ -710,7 +744,7 @@ function retentionCard(game, item) {
   const state = String(item?.alert_state || "none").toLowerCase();
   const retained = int(item?.retained);
   const eligible = int(item?.eligible);
-  const movement = relativeChangePresentation(item?.value, item?.baseline);
+  const movement = relativeChangePresentation(item?.diff_relative);
 
   return `<div class="dr-ret ${state}">
     <div class="dr-ret-head">
@@ -730,7 +764,7 @@ function retentionCard(game, item) {
       <strong>${esc(movement.text)}</strong>
     </div>
 
-    <div class="dr-ret-date">กลุ่มผู้สมัครวันที่ ${formatDateTh(item?.cohort_date)}</div>
+    <div class="dr-ret-date">ผู้สมัครวันที่ ${formatDateTh(item?.cohort_date)}</div>
     ${trend.length >= 2 ? `<div class="dr-ret-trend-label">แนวโน้มย้อนหลัง ${view.window} วัน</div>${sparkline(trend)}` : ""}
     ${state !== "none" ? `<div class="dr-ret-pill">${pill(state)}</div>` : ""}
   </div>`;
@@ -746,14 +780,14 @@ function gameInsight(game) {
   }).filter(Boolean);
 
   const biggestMove = maxBy(
-    (game.milestones || []).filter((item) => n(item.diff_pp) !== null),
-    (item) => Math.abs(n(item.diff_pp)),
+    (game.milestones || []).filter((item) => n(item.diff_relative) !== null),
+    (item) => Math.abs(n(item.diff_relative)),
   );
 
   if (!biggestMove) return `${values.join(" · ")}`;
   const code = metricCode(biggestMove.metric);
-  const movement = relativeChangePresentation(biggestMove.value, biggestMove.baseline);
-  return `${values.join(" · ")} · จุดที่เปลี่ยนจากช่วงย้อนหลังมากที่สุดคือ ${code} ${movement.icon} ${movement.text}`;
+  const movement = relativeChangePresentation(biggestMove.diff_relative);
+  return `${values.join(" · ")} · จุดที่เปลี่ยนจากระดับย้อนหลังมากที่สุดคือ ${code} ${movement.icon} ${movement.text}`;
 }
 
 function gameCard(game) {
@@ -777,7 +811,7 @@ function renderOverview() {
   const games = data.games || [];
   return `<section class="dr-context-card">
       <div><strong>ข้อมูล ณ วันที่ ${formatDateTh(selectedReportDate())}</strong></div>
-      <div>D1–D14 อาจอ้างอิง Cohort คนละวัน กรุณาดูวันที่ Cohort และ Sample Size ประกอบก่อนสรุปผล</div>
+      <div>D1–D14 ใช้กลุ่มผู้สมัครคนละวันในการวัด กรุณาดูวันที่สมัครและจำนวนคนประกอบก่อนสรุปผล</div>
       <div class="dr-context-muted">ข้อมูลครบถึง ${formatDateTh(dataCompleteThrough())}</div>
     </section>${overallSummary({ ...data, games })}${highlights({ ...data, games })}${comparison({ ...data, games })}
     <section class="dr-section dr-section-spacious"><div class="dr-section-head"><div><h3 class="dr-section-title">รายละเอียดรายเกม</h3><div class="dr-section-sub">ดูเปอร์เซ็นต์จริง จำนวนคนที่กลับมา เทียบค่าปกติย้อนหลัง และคำแนะนำสั้น ๆ ของแต่ละเกม</div></div></div>
@@ -786,7 +820,7 @@ function renderOverview() {
 
 function milestoneCell(item) {
   if (!item || String(item.maturity_status) === "collecting" || n(item.rate) === null) return `<div class="dr-cell-main">ยังวัดไม่ได้</div><div class="dr-cell-sub">ยังไม่ถึงช่วงวันที่ใช้วัด Retention นี้</div>`;
-  return `<div class="dr-cell-main">${pct(item.rate)}</div><div class="dr-cell-sub">${int(item.retained)} จาก ${int(item.eligible)} คนกลับมาเล่น · ${historicalComparison(item.rate, item.baseline, item.diff_pp)}</div>`;
+  return `<div class="dr-cell-main">${pct(item.rate)}</div><div class="dr-cell-sub">${int(item.retained)} จาก ${int(item.eligible)} คนกลับมาเล่น · ${historicalComparison(item.rate, item.baseline, item.diff_relative)}</div>`;
 }
 function selectedRangeText() {
   const { start, end } = visibleDateRange();
@@ -821,10 +855,11 @@ function channelCell(item) {
   }
   return `<div class="dr-cell-main">${pct(item.rate)}</div>
     <div class="dr-cell-sub">${int(item.retained)} จาก ${int(item.eligible)} คนกลับมาเล่น</div>
-    <div class="dr-cell-sub">${channelComparison(item.rate, item.game_rate, item.diff_vs_game_pp)}</div>`;
+    <div class="dr-cell-sub">${channelComparison(item.rate, item.game_rate, item.diff_vs_game_relative, item.eligible)}</div>`;
 }
+
 function renderChannels() {
-  if (view.game === "ALL") return `<div class="dr-intro-note"><strong>เลือกเกมจากตัวกรองด้านบนก่อน</strong><br>จากนั้นดู Rate พร้อมจำนวนคนของ Facebook Ads, Google Ads หรือ Organic / Unknown เพื่อไม่ให้ Percentage จาก Sample เล็กทำให้เข้าใจผิด</div>`;
+  if (view.game === "ALL") return `<div class="dr-intro-note"><strong>เลือกเกมจากตัวกรองด้านบนก่อน</strong><br>จากนั้นดูเปอร์เซ็นต์พร้อมจำนวนผู้เล่นของ Facebook Ads, Google Ads หรือ Organic / Unknown โดยถ้าจำนวนคนยังน้อยควรติดตามเพิ่มก่อนสรุป</div>`;
   const data = view.channelsEnvelope?.data;
   if (!data) return loadingOrError();
   const rows = rowsVisibleByReport(data.rows || [], "cohort_date");
@@ -854,11 +889,11 @@ function renderAnomalies() {
   );
   return `${ai}
   <div class="dr-intro-note"><strong>จุดผิดปกติ:</strong> รวมจุดที่ Retention เปลี่ยนจากรูปแบบเดิมมากพอที่จะควรเปิดดูรายละเอียดต่อ</div>
-  <div class="dr-panel"><div class="dr-panel-head"><div><div class="dr-panel-title">จุดผิดปกติของ Retention</div><div class="dr-panel-sub">ใช้ดูว่า Game / Metric / วันที่ไหนควรถูกตรวจสอบก่อน</div></div>
+  <div class="dr-panel"><div class="dr-panel-head"><div><div class="dr-panel-title">จุดผิดปกติของ Retention</div><div class="dr-panel-sub">ใช้ดูว่า เกม / ช่วง Retention / วันที่ไหนควรถูกตรวจสอบก่อน</div></div>
   <div class="dr-controls"><label class="dr-control"><span class="dr-control-label">สถานะ</span><select id="dr-anomaly-status"><option value="open"${view.anomalyStatus === "open" ? " selected" : ""}>เปิดอยู่</option><option value="resolved"${view.anomalyStatus === "resolved" ? " selected" : ""}>แก้ไขแล้ว</option><option value="all"${view.anomalyStatus === "all" ? " selected" : ""}>ทั้งหมด</option></select></label>
   <label class="dr-control"><span class="dr-control-label">ระดับ</span><select id="dr-anomaly-severity"><option value="">ทั้งหมด</option><option value="critical"${view.anomalySeverity === "critical" ? " selected" : ""}>ผิดปกติชัดเจน</option><option value="warning"${view.anomalySeverity === "warning" ? " selected" : ""}>ควรตรวจสอบ</option><option value="watch"${view.anomalySeverity === "watch" ? " selected" : ""}>ควรจับตา</option></select></label></div></div>
-  <div class="dr-table-wrap"><table class="dr-table"><thead><tr><th>วันที่</th><th>เกม</th><th>Metric</th><th>ระดับ</th><th>สถานะ</th><th class="dr-num">ค่าปัจจุบัน</th><th class="dr-num">ค่าปกติ</th><th class="dr-num">ผลต่าง</th><th class="dr-num">Eligible users</th></tr></thead><tbody>
-  ${rows.length ? rows.map((row) => `<tr><td>${formatDateTh(row.metric_date)}</td><td><strong>${esc(row.game_code)}</strong></td><td>${row.metric_family === "retention" ? esc(metricCode(row.metric_name)) : esc(row.metric_name)}</td><td>${pill(row.severity)}</td><td>${esc(row.status || "—")}</td><td class="dr-num">${anomalyValue(row, "actual_value")}</td><td class="dr-num">${anomalyValue(row, "baseline_value")}</td><td class="dr-num">${row.metric_family === "retention" ? deltaPresentation(row.diff_pp).text : "—"}</td><td class="dr-num">${int(row.eligible_sample)}</td></tr>`).join("") : `<tr><td colspan="9"><div class="dr-empty">ยังไม่พบจุดที่ต้องตรวจสอบในช่วง ${esc(selectedRangeText())}</div></td></tr>`}
+  <div class="dr-table-wrap"><table class="dr-table"><thead><tr><th>วันที่</th><th>เกม</th><th>ช่วง</th><th>ระดับ</th><th>สถานะ</th><th class="dr-num">ค่าปัจจุบัน</th><th class="dr-num">ค่าปกติ</th><th class="dr-num">ผลต่าง</th><th class="dr-num">จำนวนผู้เล่น</th></tr></thead><tbody>
+  ${rows.length ? rows.map((row) => `<tr><td>${formatDateTh(row.metric_date)}</td><td><strong>${esc(row.game_code)}</strong></td><td>${row.metric_family === "retention" ? esc(metricCode(row.metric_name)) : esc(row.metric_name)}</td><td>${pill(row.severity)}</td><td>${esc(row.status || "—")}</td><td class="dr-num">${anomalyValue(row, "actual_value")}</td><td class="dr-num">${anomalyValue(row, "baseline_value")}</td><td class="dr-num">${row.metric_family === "retention" ? `${relativeChangePresentation(row.diff_relative).icon} ${relativeChangePresentation(row.diff_relative).text}` : "—"}</td><td class="dr-num">${int(row.eligible_sample)}</td></tr>`).join("") : `<tr><td colspan="9"><div class="dr-empty">ยังไม่พบจุดที่ต้องตรวจสอบในช่วง ${esc(selectedRangeText())}</div></td></tr>`}
   </tbody></table></div></div>`;
 }
 function loadingOrError() {
@@ -916,20 +951,30 @@ function bindHeaderTools() {
     view.overviewEnvelope = view.trendEnvelope = view.cohortsEnvelope = view.channelsEnvelope = view.anomaliesEnvelope = view.summaryEnvelope = null;
     await loadCurrent();
   });
-  document.querySelectorAll("[data-window]").forEach((button) => button.addEventListener("click", async () => {
+
+  document.querySelectorAll("[data-window]").forEach((button) => button.addEventListener("click", () => {
     view.window = Number(button.dataset.window);
     document.querySelectorAll("[data-window]").forEach((item) => item.classList.toggle("active", item === button));
-    update();
+    updateContentOnly();
   }));
+
   document.getElementById("dr-report-date")?.addEventListener("change", async (event) => {
     const next = event.target.value;
     const bounds = calendarBounds();
     if (!next || (bounds.min && next < bounds.min) || (bounds.max && next > bounds.max)) return;
+
     view.reportDate = next;
     view.summaryEnvelope = null;
+    const requestId = ++view.requestId;
     update();
-    await loadSummary();
+
+    if (!view.trendEnvelope) await ensureTrendEnvelope({ requestId });
+    if (requestId !== view.requestId) return;
+
+    updateContentOnly();
+    void loadSummary({ requestId });
   });
+
   document.getElementById("dr-refresh")?.addEventListener("click", async () => {
     clearDailyRetentionClientCache();
     view.loadedKeys.clear();
@@ -937,6 +982,7 @@ function bindHeaderTools() {
     await loadCurrent({ refresh: true });
   });
 }
+
 function renderShell() {
   ensureStyle();
   return `<section class="dr-page" id="dr-page" data-ui-version="2.11.0" aria-label="Daily Retention">
@@ -951,6 +997,12 @@ function update() {
   bindDynamic();
 }
 
+function updateContentOnly() {
+  const node = document.getElementById("dr-content");
+  if (node) node.innerHTML = content();
+  bindDynamic();
+}
+
 function key() {
   if (view.tab === "overview") return `overview|${view.game}|${view.window}|${selectedReportDate()}`;
   if (view.tab === "cohorts") return `cohorts|${view.game}|${view.window}|${selectedReportDate()}`;
@@ -962,19 +1014,64 @@ function summaryKey() {
   return `summary|${view.game}|${selectedReportDate()}`;
 }
 
-async function loadSummary({ refresh = false } = {}) {
-  const reportDate = selectedReportDate();
-  if (!reportDate) return;
+async function loadSummary({
+  refresh = false,
+  requestId = view.requestId,
+  reportDate = selectedReportDate(),
+  game = view.game,
+} = {}) {
+  if (!reportDate || requestId !== view.requestId) return;
+
+  view.summaryLoading = true;
+  view.summaryError = "";
+  if (!view.summaryEnvelope) updateContentOnly();
+
   try {
-    view.summaryEnvelope = await fetchDailySummaries(
-      { game: view.game, reportDate },
-      { refresh },
-    );
+    const envelope = await fetchDailySummaries({ game, reportDate }, { refresh });
+
+    if (requestId !== view.requestId || game !== view.game) return;
+    const activeReportDate = view.reportDate || selectedReportDate();
+    if (activeReportDate && activeReportDate !== reportDate) return;
+
+    view.summaryEnvelope = envelope;
+    if (!currentAiSummary()) {
+      view.summaryError = "AI Summary ยังไม่พร้อมสำหรับวันที่เลือก";
+    }
   } catch (error) {
-    // AI Summary is an enhancement. It must never block deterministic Retention data.
-    view.summaryEnvelope = null;
+    if (requestId === view.requestId && game === view.game) {
+      view.summaryEnvelope = null;
+      view.summaryError = "AI Summary โหลดไม่สำเร็จ กรุณากดอัปเดตข้อมูลอีกครั้ง";
+    }
+  } finally {
+    if (requestId === view.requestId && game === view.game) {
+      view.summaryLoading = false;
+      updateContentOnly();
+    }
   }
-  update();
+}
+
+async function ensureTrendEnvelope({ refresh = false, requestId = view.requestId } = {}) {
+  if (view.trendEnvelope && !refresh) return view.trendEnvelope;
+
+  const game = view.game;
+  const envelope = await fetchDailyCohorts({ game, window: HISTORY_WINDOW }, { refresh });
+
+  if (requestId !== view.requestId || game !== view.game) return null;
+
+  view.trendEnvelope = envelope;
+  return envelope;
+}
+
+async function loadOverviewEnhancements({ refresh = false, requestId = view.requestId } = {}) {
+  const reportDate = selectedReportDate();
+  const game = view.game;
+
+  await Promise.allSettled([
+    loadSummary({ refresh, requestId, reportDate, game }),
+    ensureTrendEnvelope({ refresh, requestId }).then(() => {
+      if (requestId === view.requestId) updateContentOnly();
+    }),
+  ]);
 }
 
 async function loadCurrent({ refresh = false } = {}) {
@@ -983,48 +1080,63 @@ async function loadCurrent({ refresh = false } = {}) {
     update();
     return;
   }
+
   const currentKey = key();
   if (!refresh && view.loadedKeys.has(currentKey)) {
     update();
-    if (!view.summaryEnvelope) await loadSummary();
+    if (!view.summaryEnvelope) void loadSummary({ requestId: view.requestId });
     return;
   }
+
+  const requestId = ++view.requestId;
   view.loading = true;
   view.error = "";
   update();
+
   try {
     if (view.tab === "overview") {
-      const [overview, trend] = await Promise.all([
-        fetchDailyOverview({ refresh }),
-        fetchDailyCohorts({ game: view.game, window: HISTORY_WINDOW }, { refresh }),
-      ]);
+      const overview = await fetchDailyOverview({ refresh });
+      if (requestId !== view.requestId) return;
+
       view.overviewEnvelope = overview;
-      view.trendEnvelope = trend;
       syncReportDateFromEnvelope(overview);
-      syncReportDateFromEnvelope(trend);
-      await loadSummary({ refresh });
-    } else if (view.tab === "cohorts") {
-      view.cohortsEnvelope = await fetchDailyCohorts({ game: view.game, window: HISTORY_WINDOW }, { refresh });
-      syncReportDateFromEnvelope(view.cohortsEnvelope);
-      await loadSummary({ refresh });
+      view.loadedKeys.add(key());
+      view.loading = false;
+      update();
+
+      void loadOverviewEnhancements({ refresh, requestId });
+      return;
+    }
+
+    if (view.tab === "cohorts") {
+      const envelope = await fetchDailyCohorts({ game: view.game, window: HISTORY_WINDOW }, { refresh });
+      if (requestId !== view.requestId) return;
+      view.cohortsEnvelope = envelope;
+      syncReportDateFromEnvelope(envelope);
     } else if (view.tab === "channels") {
-      view.channelsEnvelope = await fetchDailyChannels({ game: view.game, window: HISTORY_WINDOW }, { refresh });
-      syncReportDateFromEnvelope(view.channelsEnvelope);
-      await loadSummary({ refresh });
+      const envelope = await fetchDailyChannels({ game: view.game, window: HISTORY_WINDOW }, { refresh });
+      if (requestId !== view.requestId) return;
+      view.channelsEnvelope = envelope;
+      syncReportDateFromEnvelope(envelope);
     } else {
-      view.anomaliesEnvelope = await fetchDailyAnomalies({
+      const envelope = await fetchDailyAnomalies({
         game: view.game,
         window: HISTORY_WINDOW,
         status: view.anomalyStatus,
         severity: view.anomalySeverity,
       }, { refresh });
-      syncReportDateFromEnvelope(view.anomaliesEnvelope);
-      await loadSummary({ refresh });
+      if (requestId !== view.requestId) return;
+      view.anomaliesEnvelope = envelope;
+      syncReportDateFromEnvelope(envelope);
     }
-    view.loadedKeys.add(currentKey);
+
+    view.loadedKeys.add(key());
+    view.loading = false;
+    update();
+    void loadSummary({ refresh, requestId });
   } catch (error) {
+    if (requestId !== view.requestId) return;
     view.error = error?.message || String(error);
-  } finally {
     view.loading = false;
     update();
   }
