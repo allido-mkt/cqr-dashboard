@@ -182,6 +182,12 @@ td{padding:8px 5px;border-bottom:1px solid #f4f2ef;text-align:right;vertical-ali
 .desc{font-size:12px;}
 th{text-align:center;vertical-align:middle;}
 td{vertical-align:middle;}
+.channel-quality-table th:nth-child(n+2):nth-child(-n+6),
+.channel-quality-table td:nth-child(n+2):nth-child(-n+6){text-align:center;}
+.channel-quality-table th:first-child,
+.channel-quality-table td:first-child,
+.channel-quality-table th:last-child,
+.channel-quality-table td:last-child{text-align:left;}
 .gm-table th:not(:first-child),.gm-table td:not(:first-child){text-align:center;}
 .gm-table td.num{text-align:center;}
 .gm-table .pill{min-width:42px;text-align:center;}
@@ -313,7 +319,7 @@ td{vertical-align:middle;}
         <div class="title">CHANNEL QUALITY SUMMARY</div>
         <div class="desc">เปรียบเทียบคุณภาพผู้เล่นที่ได้จากแต่ละช่องทางการตลาด โดยวัดจากอัตราการกลับมาใช้งานซ้ำ (Retention Rate) ไม่ใช่เพียงปริมาณ Register</div>
         <div style="overflow-x:auto;margin-top:10px;">
-          <table><thead><tr><th>Channel</th><th>Reg</th><th>D1</th><th>D3</th><th>D7</th><th>D14</th><th style="text-align:left;padding-left:14px;">ข้อสังเกต</th></tr></thead>
+          <table class="channel-quality-table"><thead><tr><th>Channel</th><th>Reg</th><th>D1</th><th>D3</th><th>D7</th><th>D14</th><th style="text-align:left;padding-left:14px;">ข้อสังเกต</th></tr></thead>
           <tbody id="channel-tbody"></tbody></table>
         </div>
       </div>
