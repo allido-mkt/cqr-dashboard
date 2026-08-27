@@ -5,10 +5,10 @@ import {
   fetchDailyAnomalies,
   fetchDailySummaries,
   clearDailyRetentionClientCache,
-} from "../services/daily-retention-api.js?v=3301";
+} from "../services/daily-retention-api.js?v=3502";
 
-const STYLE_ID = "cqr-daily-retention-v3402-style";
-const STYLE_HREF = "./assets/css/daily-retention.css?v=3402";
+const STYLE_ID = "cqr-daily-retention-v3502-style";
+const STYLE_HREF = new URL("../../../css/daily-retention.css?v=3502", import.meta.url).href;
 const GAMES = [
   { value: "ALL", label: "ทุกเกม (4 เกม)" },
   { value: "CBM_TH", label: "CBM TH" },
@@ -50,7 +50,12 @@ const view = {
 
 function ensureStyle() {
   const existing = document.getElementById(STYLE_ID);
-  if (existing) return;
+  if (existing) {
+    window.setTimeout(() => {
+      if (!existing.sheet && existing.isConnected) existing.href = `${STYLE_HREF}&retry=${Date.now()}`;
+    }, 1200);
+    return;
+  }
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
@@ -813,7 +818,7 @@ function renderOverview() {
       <div><strong>ข้อมูล ณ วันที่ ${formatDateTh(selectedReportDate())}</strong></div>
       <div>D1–D14 ใช้กลุ่มผู้สมัครคนละวันในการวัด กรุณาดูวันที่สมัครและจำนวนคนประกอบก่อนสรุปผล</div>
       <div class="dr-context-muted">ข้อมูลครบถึง ${formatDateTh(dataCompleteThrough())}</div>
-    </section>${overallSummary({ ...data, games })}${highlights({ ...data, games })}${comparison({ ...data, games })}
+    </section><div class="dr-overview-hero-grid">${overallSummary({ ...data, games })}${highlights({ ...data, games })}</div>${comparison({ ...data, games })}
     <section class="dr-section dr-section-spacious"><div class="dr-section-head"><div><h3 class="dr-section-title">รายละเอียดรายเกม</h3><div class="dr-section-sub">ดูเปอร์เซ็นต์จริง จำนวนคนที่กลับมา เทียบค่าปกติย้อนหลัง และคำแนะนำสั้น ๆ ของแต่ละเกม</div></div></div>
     <div class="dr-games">${games.map(gameCard).join("")}</div></section>`;
 }

@@ -284,6 +284,7 @@
       return preservedPreview(new URL(`./${dashboardEntryName()}`, location.href));
     }
     const target = preservedPreview(new URL(`./${copilotEntryName()}`, location.href));
+    target.searchParams.set("v", "3502");
     target.hash = `/${route}`;
     return target;
   }

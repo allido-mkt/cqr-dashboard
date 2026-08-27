@@ -485,7 +485,7 @@ function unlockDashboard(profile, authToken){
   window.dispatchEvent(new CustomEvent('cqr-dashboard-auth',{detail:session}));
   const returnRoute = new URLSearchParams(location.search).get('return');
   if(returnRoute && returnRoute !== 'dashboard') {
-    location.replace(`./ui-v2-local/app/copilot-v2.html#/${encodeURIComponent(returnRoute)}`);
+    location.replace(`./ui-v2-local/app/copilot-v2.html?v=3502#/${encodeURIComponent(returnRoute)}`);
     return;
   }
   loadSecureData(authToken);
@@ -1314,7 +1314,7 @@ initAuth();
 
 <script src="./ui-v2-local/app/assets/js/dashboard-final-r11.js"></script>
   <!-- CQR SHARED SIDEBAR START -->
-  <script src="./ui-v2-local/app/assets/js/shared-shell/shared-sidebar.js"></script>
+  <script src="./ui-v2-local/app/assets/js/shared-shell/shared-sidebar.js?v=3502"></script>
   <!-- CQR SHARED SIDEBAR END -->
 </body>
 </html>

@@ -537,3 +537,76 @@
 .dr-ret-delta.up,.dr-comp-delta.up{color:#157347}
 .dr-ret-delta.down,.dr-comp-delta.down{color:#b42318}
 .dr-ret-delta.flat,.dr-comp-delta.flat{color:var(--text-muted,#64748b)}
+
+/* CQR DAILY RETENTION V5 — MOCKUP HERO + DASHBOARD CARD MATERIAL */
+.dr-page{
+  --dr-dashboard-raised:var(--cqr-v2-raised,
+    15px 16px 36px rgba(116,134,162,.25),
+    -13px -13px 31px rgba(255,255,255,.98),
+    inset 1px 1px 2px rgba(255,255,255,.84));
+  --dr-dashboard-mini-raised:var(--cqr-v2-mini-raised,
+    7px 8px 17px rgba(116,134,162,.16),
+    -7px -7px 16px rgba(255,255,255,.94),
+    inset 1px 1px 1px rgba(255,255,255,.74));
+}
+
+/* Mock-up: one large summary card + 2x2 decision cards. */
+.dr-overview-hero-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr);
+  gap:16px;
+  align-items:stretch;
+}
+.dr-overview-hero-grid .dr-overall{
+  min-height:316px;
+  height:100%;
+}
+.dr-overview-hero-grid .dr-highlights{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(0,1fr));
+  gap:16px;
+  height:100%;
+}
+.dr-overview-hero-grid .dr-highlight{
+  min-height:150px;
+  height:100%;
+}
+
+/* Match Dashboard outer-card framing without borrowing Dashboard layout. */
+.dr-overall,
+.dr-highlight,
+.dr-comparison,
+.dr-game-card,
+.dr-panel,
+.dr-context-card{
+  border-color:rgba(255,255,255,.94);
+  box-shadow:var(--dr-dashboard-raised);
+  outline:0;
+}
+.dr-overall,
+.dr-highlight,
+.dr-comparison,
+.dr-game-card,
+.dr-panel{
+  border-radius:24px;
+}
+.dr-context-card{border-radius:20px}
+.dr-highlight-attention{border-color:rgba(255,255,255,.94)}
+
+/* Dashboard hierarchy: nested cards use the smaller raised material. */
+.dr-ret,
+.dr-ai-summary-item,
+.dr-ai-inline,
+.dr-intro-note{
+  border-color:rgba(255,255,255,.88);
+  box-shadow:var(--dr-dashboard-mini-raised);
+}
+.dr-ret{border-radius:18px}
+
+@media(max-width:1180px){
+  .dr-overview-hero-grid{grid-template-columns:1fr}
+  .dr-overview-hero-grid .dr-overall{min-height:0}
+}
+@media(max-width:760px){
+  .dr-overview-hero-grid .dr-highlights{grid-template-columns:1fr;grid-template-rows:none}
+}
