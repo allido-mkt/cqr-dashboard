@@ -26,7 +26,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);border-
 .hbar{max-width:1360px;margin:0 auto;padding:16px 22px;display:grid;grid-template-columns:minmax(280px,1fr);gap:12px;}
 .hbar h1{font-size:16px;font-weight:800;margin:0;white-space:nowrap;}
 .hbar h1 span{color:var(--accent2);}
-.hfilters{display:grid;grid-template-columns:minmax(210px,1.15fr) minmax(180px,1fr) minmax(180px,.95fr) minmax(170px,.9fr) 160px 150px auto auto;gap:8px;align-items:center;background:linear-gradient(135deg,#fffaf0 0%,#fff 100%);border:1px solid #fed7aa;border-radius:18px;padding:10px;box-shadow:0 20px 52px -36px rgba(154,52,18,.8);}
+.hfilters{display:grid;grid-template-columns:minmax(170px,1.05fr) minmax(150px,.95fr) minmax(160px,.95fr) minmax(250px,1.15fr) minmax(150px,.9fr) 150px;gap:8px;align-items:center;background:linear-gradient(135deg,#fffaf0 0%,#fff 100%);border:1px solid #fed7aa;border-radius:18px;padding:10px;box-shadow:0 20px 52px -36px rgba(154,52,18,.8);}
 .hfilters select{font-family:'Sarabun';font-size:12px;padding:7px 11px;border-radius:12px;border:1px solid #e7e3dc;background:#fff;min-width:0;height:42px;font-weight:800;color:var(--ink);box-shadow:0 10px 24px -24px rgba(20,23,31,.8);}
 .hfilters select:focus{outline:none;border-color:#fdba74;background:#fff;box-shadow:0 0 0 3px #ffedd5;}
 .export-menu{position:relative;width:150px;justify-self:end;}
@@ -99,20 +99,6 @@ td{padding:8px 5px;border-bottom:1px solid #f4f2ef;text-align:right;vertical-ali
 .stat-label{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--sub);}
 .statval{font-size:24px;font-weight:800;line-height:1.1;}
 .stat-desc{font-size:9.5px;color:var(--sub);max-width:230px;line-height:1.45;}
-.daily-data-toolbar{margin-top:12px;border:1px solid #fed7aa;background:#fffaf0;border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:minmax(180px,260px) 1fr minmax(220px,auto);gap:10px;align-items:center;}
-.daily-data-toolbar label{display:flex;flex-direction:column;gap:4px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#9a4310;}
-.daily-data-toolbar select{font-family:'Sarabun';font-size:12px;font-weight:800;color:var(--ink);height:36px;border:1px solid #fdba74;border-radius:10px;background:#fff;padding:0 10px;min-width:0;}
-.daily-data-toolbar select:focus{outline:none;border-color:#f97316;box-shadow:0 0 0 3px #ffedd5;}
-.daily-data-note{font-size:10.5px;color:#7c2d12;line-height:1.45;}
-.daily-data-value{display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:112px;}
-.daily-data-value span{font-size:9.5px;color:#9a4310;font-weight:800;text-transform:uppercase;letter-spacing:.04em;}
-.daily-data-value strong{font-family:'Inter',sans-serif;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);line-height:1.05;}
-.daily-data-metrics{display:grid;grid-template-columns:repeat(2,minmax(96px,1fr));gap:5px;min-width:220px;}
-.daily-data-metric{border:1px solid #fed7aa;background:#fff;border-radius:9px;padding:6px 8px;}
-.daily-data-metric span{display:block;font-size:8.5px;color:#9a4310;font-weight:800;text-transform:uppercase;letter-spacing:.035em;line-height:1.2;}
-.daily-data-metric strong{display:block;margin-top:2px;font-family:'Inter',sans-serif;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);line-height:1.05;}
-.daily-heat-note{font-size:10px;color:var(--sub);line-height:1.45;margin-top:6px;}
-@media(max-width:760px){.daily-data-toolbar{grid-template-columns:1fr;}.daily-data-value{align-items:flex-start;}.daily-data-metrics{min-width:0;}}
 
 /* ── Game x Channel Detail: ใช้ table จริง แก้ปัญหา column ลอย ── */
 .sm-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;}
@@ -245,7 +231,8 @@ td{vertical-align:middle;}
 .chat-foot input{border-radius:10px;background:#fbfaf8;}
 .chat-send-btn{border-radius:10px;background:#d97706;}
 .chat-note{background:#fff;color:#94a3b8;padding:0 14px 12px;}
-.period-hidden{visibility:hidden;pointer-events:none;}
+.period-hidden{display:none!important;}
+.period-type-source{display:none!important;}
 @media(max-width:700px){.brand-title{min-width:0}.brand-main{font-size:16px}.brand-mark{width:32px;height:32px}.card>.title{font-size:16px}.metric-row{grid-template-columns:1fr .45fr;}.metric-bar{grid-column:1/-1}.mini-ret{grid-template-columns:1fr 1fr;}.ptype-grid{grid-template-columns:1fr;}.chartbox{height:240px;}}
 
 .auth-screen{position:fixed;inset:0;z-index:999;background:radial-gradient(circle at 15% 12%,rgba(254,215,170,.85),transparent 26%),linear-gradient(135deg,#fffaf0 0%,#f6f4f0 48%,#ecfdf5 100%);display:flex;align-items:center;justify-content:center;padding:24px;}
@@ -306,11 +293,18 @@ td{vertical-align:middle;}
         <option>Facebook Ads</option><option>Google Ads</option>
         <option>In-App Register</option><option>Organic / Unknown</option></select>
       <select id="f-month" onchange="syncWeekOptions();renderAll()"></select>
-      <select id="f-period-type" onchange="syncWeekOptions();renderAll()">
-        <option value="month" selected>Monthly View</option>
-        <option value="week">Weekly View</option>
+      <select id="f-period-type" class="period-type-source" aria-hidden="true" tabindex="-1">
+        <option value="day">Daily</option>
+        <option value="week">Weekly</option>
+        <option value="month" selected>Monthly</option>
       </select>
-      <select id="f-week" class="period-hidden" onchange="renderAll()"></select>
+      <div class="dashboard-period-segment" role="group" aria-label="View period">
+        <button type="button" class="segment-button" data-period-mode="day" onclick="setPeriodMode('day')">Daily</button>
+        <button type="button" class="segment-button" data-period-mode="week" onclick="setPeriodMode('week')">Weekly</button>
+        <button type="button" class="segment-button active" data-period-mode="month" onclick="setPeriodMode('month')">Monthly</button>
+      </div>
+      <select id="f-daily-date" class="period-hidden" aria-label="Date" onchange="setDailyDataDate(this.value)"></select>
+      <select id="f-week" class="period-hidden" aria-label="Week" onchange="renderAll()"></select>
       <details class="export-menu">
         <summary>EXPORT</summary>
         <div class="export-options">
@@ -351,13 +345,11 @@ td{vertical-align:middle;}
     <div class="card section-curve">
       <div class="title">CHANNEL RETENTION CURVE</div>
       <div class="desc" id="curve-desc"></div>
-      <div class="freshness-line" id="curve-freshness"></div>
       <div id="curve" style="height:300px;margin-top:8px;"></div>
     </div>
     <div class="card section-player-type">
       <div class="title">PLAYER TYPE BREAKDOWN</div>
       <div class="desc">แบ่งผู้เล่น Active ตามประเภทจากข้อมูล Login รายเดือน</div>
-      <div class="freshness-line" id="player-type-freshness"></div>
       <div id="player-type-box" class="ptype-grid" style="margin-top:12px;">
         <div id="pie" class="chartbox"></div>
         <div id="pie-stats" class="ptype-stats"></div>
@@ -369,13 +361,11 @@ td{vertical-align:middle;}
     <div class="card section-new-retention">
       <div class="title">NEW USER RETENTION</div>
       <div class="desc">Flow: Registered → Active ≥1 วัน → Active ≥2 วัน → Retained &gt;3 วัน</div>
-      <div class="freshness-line" id="new-retention-freshness"></div>
       <div id="funnel" style="height:280px;margin-top:8px;"></div>
     </div>
     <div class="card section-total-retention">
       <div class="title">TOTAL USER RETENTION</div>
       <div class="desc">User Retention (Total Players) · Same cohort cumulative retention</div>
-      <div class="freshness-line" id="total-retention-freshness"></div>
       <div id="total-retention-box" style="margin-top:10px;">
         <div id="ret" class="chartbox"></div>
       </div>
@@ -386,22 +376,12 @@ td{vertical-align:middle;}
   <div class="card dashboard-full-chart-card dau-card" style="margin-top:16px;">
     <div class="title">DAILY ACTIVE USERS (DAU) TREND</div>
     <div class="desc">ช่วยวิเคราะห์ผลกระทบของกิจกรรม/วันหยุด (Spikes) · จุดสูงสุดถูก Mark ไว้อัตโนมัติ</div>
-    <div class="freshness-line" id="dau-freshness"></div>
-    <div class="daily-data-toolbar">
-      <label for="f-daily-date">Daily Snapshot
-        <select id="f-daily-date" onchange="setDailyDataDate(this.value)"></select>
-      </label>
-      <div class="daily-data-note" id="daily-data-note">เลือกวันที่เพื่อดู New Register, Paid Ads Register, First Login และ DAU รายวันเท่านั้น · Retention รายสัปดาห์/รายเดือน และ Monthly metrics ใช้รอบเดิม</div>
-      <div class="daily-data-metrics" id="daily-data-metrics"></div>
-    </div>
     <div id="dau" style="height:300px;margin-top:8px;"></div>
   </div>
 
   <div class="card dashboard-full-chart-card heat-card" style="margin-top:16px;">
     <div class="title">LOGIN ACTIVITY HEATMAP</div>
     <div class="desc">สีไล่ระดับ (Gradient) · สีเข้ม = ช่วงที่ผู้เล่นหนาแน่น (Peak)</div>
-    <div class="freshness-line" id="heat-freshness"></div>
-    <div class="daily-heat-note" id="daily-heat-note"></div>
     <div id="heat" style="height:300px;margin-top:8px;"></div>
   </div>
 
@@ -800,6 +780,13 @@ function dateShortLabel(dateKey){
   return `${Number(date.slice(8, 10))} ${monthName} ${date.slice(0, 4)}`;
 }
 
+function monthFreshLabel(key){
+  const monthKey = normalizeMonthKey(key);
+  if(!monthKey) return String(key || '');
+  const monthName = THAI_MONTHS_SHORT[Number(monthKey.slice(5, 7)) - 1] || monthKey;
+  return `${monthName} ${monthKey.slice(0, 4)}`;
+}
+
 function escapeHtml(value){
   return String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&':'&amp;',
@@ -880,6 +867,28 @@ function dailyMetricData(game, periodKey){
   })).filter(row => row.date)};
 }
 
+function currentPeriodMode(){
+  return document.getElementById('f-period-type')?.value || 'month';
+}
+
+function setPeriodMode(mode){
+  const safeMode = ['day','week','month'].includes(mode) ? mode : 'month';
+  const source = document.getElementById('f-period-type');
+  if(source) source.value = safeMode;
+  if(safeMode !== 'day') selectedDailyDate = '';
+  syncWeekOptions();
+  renderAll();
+}
+
+function syncPeriodButtons(){
+  const mode = currentPeriodMode();
+  document.querySelectorAll('[data-period-mode]').forEach(button => {
+    const active = button.dataset.periodMode === mode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+}
+
 function setDailyDataDate(value){
   selectedDailyDate = value || '';
   renderAll();
@@ -887,55 +896,37 @@ function setDailyDataDate(value){
 
 function syncDailyDataToolbar(dauRows, metricRows, metricStatus){
   const select = document.getElementById('f-daily-date');
-  if(!select) return {date:'', value:null};
+  if(!select) return {date:'', dau:null, metrics:null};
+
+  const isDailyView = currentPeriodMode() === 'day';
   const dauDates = (dauRows || []).map(row => row.date);
-  const metricSource = dauDates.length ? (metricRows || []).filter(row => dauDates.includes(row.date)) : (metricRows || []);
-  const dates = [...new Set([...dauDates, ...metricSource.map(row => row.date)])].sort();
+  const metricSource = dauDates.length
+    ? (metricRows || []).filter(row => dauDates.includes(row.date))
+    : (metricRows || []);
+  const dates = [...new Set([...dauDates, ...metricSource.map(row => row.date)])].filter(Boolean).sort();
+
   if(selectedDailyDate && !dates.includes(selectedDailyDate)) selectedDailyDate = '';
-  select.innerHTML = `<option value="">ทุกวันที่มีข้อมูล</option>` + dates.map(date => `<option value="${date}">${date}</option>`).join('');
+  if(isDailyView && !selectedDailyDate && dates.length) selectedDailyDate = dates[dates.length - 1];
+
+  select.disabled = !dates.length;
+  select.innerHTML = dates.length
+    ? dates.map(date => `<option value="${date}">${dateShortLabel(date)}</option>`).join('')
+    : '<option value="">ไม่มีข้อมูลรายวัน</option>';
   select.value = selectedDailyDate || '';
-  const selectedDau = selectedDailyDate ? dauRows.find(row => row.date === selectedDailyDate) : null;
+
+  if(!isDailyView) return {date:'', dau:null, metrics:null};
+
+  const selectedDau = selectedDailyDate ? (dauRows || []).find(row => row.date === selectedDailyDate) : null;
   const selectedMetrics = selectedDailyDate ? metricSource.find(row => row.date === selectedDailyDate) : null;
-  const metricsNode = document.getElementById('daily-data-metrics');
-  if(metricsNode){
-    const supported = metricStatus?.supported_fields || {};
-    const showAll = !selectedDailyDate || String(metricStatus?.status || '') === 'loading';
-    const items = [
-      ['New Register', selectedMetrics?.new_register, supported.new_register || showAll],
-      ['Paid Ads', selectedMetrics?.paid_register, supported.paid_register || showAll],
-      ['First Login', selectedMetrics?.first_login, supported.first_login || showAll],
-      ['DAU', selectedDau?.value ?? selectedMetrics?.dau, true]
-    ].filter(([, , visible]) => visible);
-    metricsNode.innerHTML = items.map(([label, value]) => `<div class="daily-data-metric"><span>${label}</span><strong class="num">${value === null || value === undefined ? '-' : Number(value).toLocaleString()}</strong></div>`).join('');
-  }
-  const note = document.getElementById('daily-data-note');
-  if(note){
-    const status = String(metricStatus?.status || '');
-    if(status === 'loading') note.textContent = 'กำลังโหลด New Register, Paid Ads Register และ First Login จาก Master ChannelDaily · DAU ใช้ข้อมูลรายวันที่โหลดแล้ว';
-    else if(status === 'error') note.textContent = `โหลด KPI รายวันบางส่วนไม่สำเร็จ: ${metricStatus.error || 'Daily data unavailable'} · DAU ยังใช้ข้อมูลรายวันที่โหลดแล้ว`;
-    else note.textContent = selectedDailyDate
-      ? `กำลังดูตัวเลขรายวันของ ${dateShortLabel(selectedDailyDate)} จาก Master ChannelDaily/DAUDaily · First Login เป็นของ cohort วันที่สมัคร · Retention, Returners และ MAU ใช้รอบเดิม`
-      : 'เลือกวันที่เพื่อดู New Register, Paid Ads Register, First Login และ DAU รายวันเท่านั้น · Retention รายสัปดาห์/รายเดือน และ Monthly metrics ใช้รอบเดิม';
-  }
-  const heatNote = document.getElementById('daily-heat-note');
-  if(heatNote) heatNote.textContent = selectedDailyDate
-    ? 'Heatmap ยังคงแสดงภาพรวมรายเดือน เพราะข้อมูล heatmap ชุดนี้ไม่มี date key ที่ยืนยัน mapping รายวันได้'
-    : '';
   return {date:selectedDailyDate || '', dau:selectedDau ? selectedDau.value : null, metrics:selectedMetrics || null};
 }
 
 function freshnessChip(kind, text){
-  if(!text) return '';
-  return `<span class="freshness-chip ${kind}">${escapeHtml(text)}</span>`;
+  return '';
 }
 
 function periodFreshness(period, status){
-  const monthText = monthShortLabel(period.key);
-  if(period.key.includes('-W')) return freshnessChip('weekly', `อัปเดตรายสัปดาห์ · ถึง ${monthText}`);
-  if(String(status?.maturity_status || status?.status || '').toLowerCase() === 'matured') {
-    return freshnessChip('matured', `อัปเดตรายเดือน · ถึง ${monthText}`);
-  }
-  return freshnessChip('weekly', `อัปเดตรายสัปดาห์ · ถึง ${monthText}`);
+  return '';
 }
 
 function setFreshness(id, html){
@@ -974,7 +965,7 @@ function getAiAskFilters(){
     game: document.getElementById('f-game')?.value || 'ALL',
     channel: channel === 'all' ? 'ALL' : channel,
     period: activePeriod().key || document.getElementById('f-month')?.value || DASHBOARD_MONTHS[0] || REPORT_START_MONTH,
-    view: periodType === 'week' ? 'weekly' : 'monthly'
+    view: periodType === 'week' ? 'weekly' : (periodType === 'day' ? 'daily' : 'monthly')
   };
 }
 
@@ -1292,7 +1283,7 @@ function renderMau(game,month){
   document.getElementById('v-mau-desc').textContent = mau===null || mau===undefined ? 'รอ Login_YYYY-MM จาก Martech' : 'Unique Login Users รายเดือน';
   document.querySelector('#v-mau')?.closest('.statcard')?.querySelector('.stat-fresh')?.remove();
   if(mau!==null && mau!==undefined){
-    document.querySelector('#v-mau')?.closest('.statcard')?.insertAdjacentHTML('beforeend', `<div class="stat-fresh">${freshnessChip('weekly', `อัปเดตรายเดือน · ถึง ${monthShortLabel(month)}`)}</div>`);
+    document.querySelector('#v-mau')?.closest('.statcard')?.insertAdjacentHTML('beforeend', `<div class="stat-fresh">${freshnessChip('weekly', `รายเดือน · ${monthFreshLabel(month)}`)}</div>`);
   }
 }
 
@@ -1300,19 +1291,24 @@ function syncWeekOptions(){
   if(!D) return;
   const month = document.getElementById('f-month').value;
   const weekSelect = document.getElementById('f-week');
-  const periodType = document.getElementById('f-period-type').value;
+  const dateSelect = document.getElementById('f-daily-date');
+  const periodType = currentPeriodMode();
   const previous = weekSelect.value;
   const weeks = D.weeks_by_month?.[month] || [];
+
   weekSelect.innerHTML = weeks.map(w=>`<option value="${w.key}">${w.label}</option>`).join('');
   if(weeks.some(w=>w.key===previous)) weekSelect.value = previous;
   else if(weeks.length) weekSelect.value = weeks[weeks.length-1].key;
+
   weekSelect.classList.toggle('period-hidden', periodType !== 'week');
+  if(dateSelect) dateSelect.classList.toggle('period-hidden', periodType !== 'day');
+  syncPeriodButtons();
 }
 
 function activePeriod(){
   syncWeekOptions();
   const month = document.getElementById('f-month').value;
-  const periodType = document.getElementById('f-period-type').value;
+  const periodType = currentPeriodMode();
   if(periodType === 'week'){
     const week = document.getElementById('f-week');
     return {key:week.value, label:week.options[week.selectedIndex]?.text || week.value, mode:'สัปดาห์'};
@@ -1389,37 +1385,48 @@ function renderAll(){
 
   /* ---- OVERVIEW (ผูกกับเกมแล้ว) ---- */
   const dauThrough = latestDauDate(L);
-  const dailyChip = dauThrough ? freshnessChip('daily', `อัปเดตรายวัน · ถึง ${dateShortLabel(dauThrough)}`) : '';
+  const dailyChip = dauThrough ? freshnessChip('daily', `รายวัน · ข้อมูลถึง ${dateShortLabel(dauThrough)}`) : '';
   const dailyRows = dailyDauRows(L);
   ensureDailyMetricData(game, periodKey);
   const dailyMetrics = dailyMetricData(game, periodKey);
   const dailySelection = syncDailyDataToolbar(dailyRows, dailyMetrics.rows, dailyMetrics);
   const retentionChip = periodFreshness(period, status);
-  const selectedDailyChip = dailySelection.date ? freshnessChip('daily', `อัปเดตรายวัน · ถึง ${dateShortLabel(dailySelection.date)}`) : '';
-  const selectedMetricChip = dailySelection.date && dailySelection.metrics ? selectedDailyChip : '';
-  document.getElementById('ov-desc').textContent = `ตัวเลขสรุปตาม${period.mode} ${period.label} · ${GAME_LABEL[game]}`;
+  const selectedDailyChip = dailySelection.date ? freshnessChip('daily', `รายวัน · ${dateShortLabel(dailySelection.date)}`) : '';
+  const dailyFieldSupported = field => dailyMetrics?.supported_fields?.[field] === true;
+  const selectedMetricChip = field => dailySelection.date && dailySelection.metrics && dailyFieldSupported(field) ? selectedDailyChip : '';
+  document.getElementById('ov-desc').textContent = currentPeriodMode() === 'day' && dailySelection.date
+    ? `วันที่ ${dateShortLabel(dailySelection.date)} · New Register, Paid Ads Register, First Login และ DAU เปลี่ยนตามวันที่`
+    : `ตัวเลขสรุปตาม${period.mode} ${period.label} · ${GAME_LABEL[game]}`;
   setFreshness('curve-freshness', retentionChip);
   setFreshness('new-retention-freshness', retentionChip);
   setFreshness('total-retention-freshness', retentionChip);
   setFreshness('dau-freshness', dailyChip);
   setFreshness('heat-freshness', dailyChip);
   const playerType = D.player_type_breakdown?.[`${game}|${periodKey}`] || null;
-  setFreshness('player-type-freshness', playerType?.has_login ? freshnessChip('weekly', `อัปเดตรายเดือน · ถึง ${monthShortLabel(periodKey)}`) : '');
+  setFreshness('player-type-freshness', playerType?.has_login ? freshnessChip('weekly', `รายเดือน · ${monthFreshLabel(periodKey)}`) : '');
   const activeUser = playerType && Number.isFinite(Number(playerType.total_active)) ? Number(playerType.total_active) : null;
-  const dailyCardValue = (key, fallback) => {
-    const value = dailySelection.metrics?.[key];
-    return value === null || value === undefined ? fallback : Number(value).toLocaleString();
+  const dailyCardValue = (field, fallback) => {
+    if(!dailySelection.date) return fallback;
+    if(!dailyFieldSupported(field)) return '-';
+    const value = dailySelection.metrics?.[field];
+    return value === null || value === undefined ? '-' : Number(value).toLocaleString();
   };
-  const selectedPaidRegister = dailySelection.metrics?.paid_register;
-  const selectedNewRegister = dailySelection.metrics?.new_register;
-  const paidShareBase = selectedDailyChip && selectedNewRegister !== null && selectedNewRegister !== undefined ? Number(selectedNewRegister) : Number(ov.new_register || 0);
-  const paidShareValue = selectedDailyChip && selectedPaidRegister !== null && selectedPaidRegister !== undefined ? Number(selectedPaidRegister) : Number(ov.paid_register || 0);
+  const dailyCardSub = (field, selectedText, baseText) => {
+    if(!dailySelection.date) return baseText;
+    if(!dailyFieldSupported(field)) return 'ไม่มีข้อมูลรายวันสำหรับวันที่เลือก';
+    return dailySelection.metrics ? selectedText : 'ไม่มีข้อมูลรายวันสำหรับวันที่เลือก';
+  };
+  const selectedPaidRegister = dailyFieldSupported('paid_register') ? dailySelection.metrics?.paid_register : null;
+  const selectedNewRegister = dailyFieldSupported('new_register') ? dailySelection.metrics?.new_register : null;
+  const hasDailyPaidShare = dailySelection.date && selectedNewRegister !== null && selectedNewRegister !== undefined && selectedPaidRegister !== null && selectedPaidRegister !== undefined;
+  const paidShareBase = hasDailyPaidShare ? Number(selectedNewRegister) : Number(ov.new_register || 0);
+  const paidShareValue = hasDailyPaidShare ? Number(selectedPaidRegister) : Number(ov.paid_register || 0);
   const cards = [
-    {key:'new_register',icon:'userPlus',bg:'c1',val:dailyCardValue('new_register', Number(ov.new_register || 0).toLocaleString()),lbl:'New Register',sub:selectedMetricChip?'รวมทุก Channel ในวันที่เลือก':'ทุก Channel รวมกัน',fresh:selectedMetricChip},
-    {key:'paid_register',icon:'megaphone',bg:'c6',val:dailyCardValue('paid_register', Number(ov.paid_register || 0).toLocaleString()),lbl:'Paid Ads Register',sub:`${paidShareBase ? Math.round(1000*paidShareValue/paidShareBase)/10 : 0}% ของทั้งหมด${selectedMetricChip?'ในวันที่เลือก':''}`,fresh:selectedMetricChip},
-    {key:'first_login',icon:'star',bg:'c3',val:dailyCardValue('first_login', Number(ov.first_login ?? ov.new_register ?? 0).toLocaleString()),lbl:'First Login',sub:selectedMetricChip?'Register cohort วันที่เลือกที่เข้าเกมครั้งแรกแล้ว':'Register cohort ที่เข้าเกมครั้งแรกแล้ว',fresh:selectedMetricChip},
+    {key:'new_register',icon:'userPlus',bg:'c1',val:dailyCardValue('new_register', Number(ov.new_register || 0).toLocaleString()),lbl:'New Register',sub:dailyCardSub('new_register','รวมทุก Channel ในวันที่เลือก','ทุก Channel รวมกัน'),fresh:selectedMetricChip('new_register')},
+    {key:'paid_register',icon:'megaphone',bg:'c6',val:dailyCardValue('paid_register', Number(ov.paid_register || 0).toLocaleString()),lbl:'Paid Ads Register',sub:dailySelection.date ? (hasDailyPaidShare ? `${Math.round(1000*paidShareValue/paidShareBase)/10}% ของทั้งหมดในวันที่เลือก` : 'ไม่มีข้อมูลรายวันสำหรับวันที่เลือก') : `${paidShareBase ? Math.round(1000*paidShareValue/paidShareBase)/10 : 0}% ของทั้งหมด`,fresh:selectedMetricChip('paid_register')},
+    {key:'first_login',icon:'star',bg:'c3',val:dailyCardValue('first_login', Number(ov.first_login ?? ov.new_register ?? 0).toLocaleString()),lbl:'First Login',sub:dailyCardSub('first_login','ผู้สมัครของวันที่เลือกที่เข้าเกมครั้งแรกแล้ว','Register cohort ที่เข้าเกมครั้งแรกแล้ว'),fresh:selectedMetricChip('first_login')},
     {key:'recall_user',icon:'recall',bg:'c4',val:Number(ov.recall_user || 0).toLocaleString(),lbl:'Recall User',sub:'กลับมาหลังหายไป (Returners)',fresh:retentionChip},
-    {key:'active_user',icon:'activeUser',bg:'c7',val:activeUser===null?'-':activeUser.toLocaleString(),lbl:'Active User',sub:period.mode==='สัปดาห์'?'ผู้เล่นที่มี Login ในสัปดาห์นี้':'ผู้เล่นที่มี Login ในเดือนนี้',fresh:playerType?.has_login?freshnessChip('weekly', `อัปเดตรายเดือน · ถึง ${monthShortLabel(periodKey)}`):''},
+    {key:'active_user',icon:'activeUser',bg:'c7',val:activeUser===null?'-':activeUser.toLocaleString(),lbl:'Active User',sub:period.mode==='สัปดาห์'?'ผู้เล่นที่มี Login ในสัปดาห์นี้':'ผู้เล่นที่มี Login ในเดือนนี้',fresh:playerType?.has_login?freshnessChip('weekly', `รายเดือน · ${monthFreshLabel(periodKey)}`):''},
     {key:'avg_days_active',icon:'streak',bg:'c5',val:Number(ov.avg_days_active || 0),unit:' วัน',lbl:'Avg. Days Active',sub:'จาก Register Cohort'},
     {key:'d3',circle:'D3',bg:'c7',val:ov.d3,unit:'%',lbl:'Day 3 Retention',sub:'% ที่ยังกลับมาใช้งาน',fresh:retentionChip},
     {key:'d7',circle:'D7',bg:'c8',val:ov.d7,unit:'%',lbl:'Day 7 Retention',sub:'% ที่ยังกลับมาใช้งาน',fresh:retentionChip},
