@@ -244,6 +244,13 @@ td{vertical-align:middle;}
 .auth-error{display:none;border:1px solid #fecdd3;background:#fff1f2;color:#be123c;border-radius:12px;padding:10px 12px;font-size:11.5px;line-height:1.5;margin-top:12px;}
 .auth-note{font-size:10.5px;color:#94a3b8;line-height:1.55;margin-top:12px;}
 .data-loading{border:1.5px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--sub);font-size:12px;line-height:1.65;background:#fbfaf8;}
+.freshness-line{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;align-items:center;}
+.freshness-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;background:#fbfaf8;color:var(--sub);font-size:9.5px;font-weight:800;line-height:1;padding:5px 8px;white-space:nowrap;}
+.freshness-chip.daily{background:var(--good-bg);border-color:#99f6e4;color:#0f766e;}
+.freshness-chip.weekly{background:var(--warn-bg);border-color:#fed7aa;color:#92400e;}
+.freshness-chip.matured{background:var(--accent-bg);border-color:#c7d2fe;color:#3730a3;}
+.kfresh{display:inline-flex;margin-top:7px;}
+.stat-fresh{margin-top:5px;}
 
 </style>
 
@@ -330,11 +337,13 @@ td{vertical-align:middle;}
     <div class="card section-curve">
       <div class="title">CHANNEL RETENTION CURVE</div>
       <div class="desc" id="curve-desc"></div>
+      <div class="freshness-line" id="curve-freshness"></div>
       <div id="curve" style="height:300px;margin-top:8px;"></div>
     </div>
     <div class="card section-player-type">
       <div class="title">PLAYER TYPE BREAKDOWN</div>
       <div class="desc">แบ่งผู้เล่น Active ตามประเภทจากข้อมูล Login รายเดือน</div>
+      <div class="freshness-line" id="player-type-freshness"></div>
       <div id="player-type-box" class="ptype-grid" style="margin-top:12px;">
         <div id="pie" class="chartbox"></div>
         <div id="pie-stats" class="ptype-stats"></div>
@@ -346,11 +355,13 @@ td{vertical-align:middle;}
     <div class="card section-new-retention">
       <div class="title">NEW USER RETENTION</div>
       <div class="desc">Flow: Registered → Active ≥1 วัน → Active ≥2 วัน → Retained &gt;3 วัน</div>
+      <div class="freshness-line" id="new-retention-freshness"></div>
       <div id="funnel" style="height:280px;margin-top:8px;"></div>
     </div>
     <div class="card section-total-retention">
       <div class="title">TOTAL USER RETENTION</div>
       <div class="desc">User Retention (Total Players) · Same cohort cumulative retention</div>
+      <div class="freshness-line" id="total-retention-freshness"></div>
       <div id="total-retention-box" style="margin-top:10px;">
         <div id="ret" class="chartbox"></div>
       </div>
@@ -361,12 +372,14 @@ td{vertical-align:middle;}
   <div class="card dashboard-full-chart-card dau-card" style="margin-top:16px;">
     <div class="title">DAILY ACTIVE USERS (DAU) TREND</div>
     <div class="desc">ช่วยวิเคราะห์ผลกระทบของกิจกรรม/วันหยุด (Spikes) · จุดสูงสุดถูก Mark ไว้อัตโนมัติ</div>
+    <div class="freshness-line" id="dau-freshness"></div>
     <div id="dau" style="height:300px;margin-top:8px;"></div>
   </div>
 
   <div class="card dashboard-full-chart-card heat-card" style="margin-top:16px;">
     <div class="title">LOGIN ACTIVITY HEATMAP</div>
     <div class="desc">สีไล่ระดับ (Gradient) · สีเข้ม = ช่วงที่ผู้เล่นหนาแน่น (Peak)</div>
+    <div class="freshness-line" id="heat-freshness"></div>
     <div id="heat" style="height:300px;margin-top:8px;"></div>
   </div>
 
@@ -747,6 +760,44 @@ function monthLabel(key, withYear = false){
   return withYear ? `${monthName} ${year}` : monthName;
 }
 
+function escapeHtml(value){
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[ch]));
+}
+
+function isoDate(value){
+  const match = String(value || '').match(/\b(20\d{2}-\d{2}-\d{2})\b/);
+  return match ? match[1] : '';
+}
+
+function latestDauDate(legacy){
+  const dates = Array.isArray(legacy?.dau_x) ? legacy.dau_x.map(isoDate).filter(Boolean).sort() : [];
+  return dates.length ? dates[dates.length - 1] : '';
+}
+
+function freshnessChip(kind, text){
+  if(!text) return '';
+  return `<span class="freshness-chip ${kind}">${escapeHtml(text)}</span>`;
+}
+
+function periodFreshness(period, status){
+  if(period.key.includes('-W')) return freshnessChip('weekly', `Weekly · ${period.label}`);
+  if(String(status?.maturity_status || status?.status || '').toLowerCase() === 'matured') {
+    return freshnessChip('matured', `Matured · through ${period.key}`);
+  }
+  return freshnessChip('weekly', `Weekly/Matured · through ${period.key}`);
+}
+
+function setFreshness(id, html){
+  const node = document.getElementById(id);
+  if(node) node.innerHTML = html || '';
+}
+
 function refreshDashboardMonths(){
   DASHBOARD_MONTHS = knownDashboardMonths();
   MONTH_TH = DASHBOARD_MONTHS.reduce((acc, key) => {
@@ -967,6 +1018,8 @@ function showDashboardUnavailable(message){
     const el = document.getElementById(id);
     if(el) el.innerHTML = `<div class="data-loading">${message}</div>`;
   });
+  ['curve-freshness','player-type-freshness','new-retention-freshness','total-retention-freshness','dau-freshness','heat-freshness'].forEach(id=>setFreshness(id, ''));
+  document.querySelectorAll('.stat-fresh').forEach(node=>node.remove());
   ['v-dau','v-wau','v-mau'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='-'; });
 }
 
@@ -1091,6 +1144,10 @@ function renderMau(game,month){
   const mau = D.total_mau[key];
   document.getElementById('v-mau').textContent = mau===null || mau===undefined ? '-' : mau.toLocaleString();
   document.getElementById('v-mau-desc').textContent = mau===null || mau===undefined ? 'รอ Login_YYYY-MM จาก Martech' : 'Unique Login Users รายเดือน';
+  document.querySelector('#v-mau')?.closest('.statcard')?.querySelector('.stat-fresh')?.remove();
+  if(mau!==null && mau!==undefined){
+    document.querySelector('#v-mau')?.closest('.statcard')?.insertAdjacentHTML('beforeend', `<div class="stat-fresh">${freshnessChip('weekly', `Monthly Login · through ${month.slice(0, 7)}`)}</div>`);
+  }
 }
 
 function syncWeekOptions(){
@@ -1178,27 +1235,37 @@ function renderAll(){
   const chData = D.channel_data[`${game}|${periodKey}`] || [];
   const ov = D.overview_data?.[`${game}|${periodKey}`];
   const L = D.legacy?.[`${game}|${periodKey}`];
+  const status = D.data_status?.[`${game}|${periodKey}`] || {};
   if(!ov || !L || !Array.isArray(chData) || !chData.length){
     showDashboardUnavailable(`ยังไม่มีข้อมูลสำหรับ ${game} / ${periodKey}`);
     return;
   }
 
   /* ---- OVERVIEW (ผูกกับเกมแล้ว) ---- */
+  const dauThrough = latestDauDate(L);
+  const dailyChip = dauThrough ? freshnessChip('daily', `Daily · Data through ${dauThrough}`) : '';
+  const retentionChip = periodFreshness(period, status);
   document.getElementById('ov-desc').textContent = `ตัวเลขสรุปตาม${period.mode} ${period.label} · ${GAME_LABEL[game]}`;
+  setFreshness('curve-freshness', retentionChip);
+  setFreshness('new-retention-freshness', retentionChip);
+  setFreshness('total-retention-freshness', retentionChip);
+  setFreshness('dau-freshness', dailyChip);
+  setFreshness('heat-freshness', dailyChip);
   const playerType = D.player_type_breakdown?.[`${game}|${periodKey}`] || null;
+  setFreshness('player-type-freshness', playerType?.has_login ? freshnessChip('weekly', `Monthly Login · through ${periodKey.slice(0, 7)}`) : '');
   const activeUser = playerType && Number.isFinite(Number(playerType.total_active)) ? Number(playerType.total_active) : null;
   const cards = [
     {key:'new_register',icon:'userPlus',bg:'c1',val:Number(ov.new_register || 0).toLocaleString(),lbl:'New Register',sub:'ทุก Channel รวมกัน'},
     {key:'paid_register',icon:'megaphone',bg:'c6',val:Number(ov.paid_register || 0).toLocaleString(),lbl:'Paid Ads Register',sub:`${ov.new_register ? Math.round(1000*ov.paid_register/ov.new_register)/10 : 0}% ของทั้งหมด`},
     {key:'first_login',icon:'star',bg:'c3',val:Number(ov.first_login ?? ov.new_register ?? 0).toLocaleString(),lbl:'First Login',sub:'Register cohort ที่เข้าเกมครั้งแรกแล้ว'},
-    {key:'recall_user',icon:'recall',bg:'c4',val:Number(ov.recall_user || 0).toLocaleString(),lbl:'Recall User',sub:'กลับมาหลังหายไป (Returners)'},
-    {key:'active_user',icon:'activeUser',bg:'c7',val:activeUser===null?'-':activeUser.toLocaleString(),lbl:'Active User',sub:period.mode==='สัปดาห์'?'ผู้เล่นที่มี Login ในสัปดาห์นี้':'ผู้เล่นที่มี Login ในเดือนนี้'},
+    {key:'recall_user',icon:'recall',bg:'c4',val:Number(ov.recall_user || 0).toLocaleString(),lbl:'Recall User',sub:'กลับมาหลังหายไป (Returners)',fresh:retentionChip},
+    {key:'active_user',icon:'activeUser',bg:'c7',val:activeUser===null?'-':activeUser.toLocaleString(),lbl:'Active User',sub:period.mode==='สัปดาห์'?'ผู้เล่นที่มี Login ในสัปดาห์นี้':'ผู้เล่นที่มี Login ในเดือนนี้',fresh:playerType?.has_login?freshnessChip('weekly', `Monthly Login · through ${periodKey.slice(0, 7)}`):''},
     {key:'avg_days_active',icon:'streak',bg:'c5',val:Number(ov.avg_days_active || 0),unit:' วัน',lbl:'Avg. Days Active',sub:'จาก Register Cohort'},
-    {key:'d3',circle:'D3',bg:'c7',val:ov.d3,unit:'%',lbl:'Day 3 Retention',sub:'% ที่ยังกลับมาใช้งาน'},
-    {key:'d7',circle:'D7',bg:'c8',val:ov.d7,unit:'%',lbl:'Day 7 Retention',sub:'% ที่ยังกลับมาใช้งาน'},
-    {key:'d14',circle:'D14',bg:'c9',val:ov.d14,unit:'%',lbl:'Day 14 Retention',sub:'% ที่ยังกลับมาใช้งาน'}
+    {key:'d3',circle:'D3',bg:'c7',val:ov.d3,unit:'%',lbl:'Day 3 Retention',sub:'% ที่ยังกลับมาใช้งาน',fresh:retentionChip},
+    {key:'d7',circle:'D7',bg:'c8',val:ov.d7,unit:'%',lbl:'Day 7 Retention',sub:'% ที่ยังกลับมาใช้งาน',fresh:retentionChip},
+    {key:'d14',circle:'D14',bg:'c9',val:ov.d14,unit:'%',lbl:'Day 14 Retention',sub:'% ที่ยังกลับมาใช้งาน',fresh:retentionChip}
   ];
-  document.getElementById('overview-grid').innerHTML = cards.map(card=>`<div class="kcard" data-overview-key="${card.key}">${card.circle?`<div class="badge-circle" style="background:var(--${card.bg}-bg);color:var(--${card.bg});">${card.circle}</div>`:`<div class="badge" style="background:var(--${card.bg}-bg);color:var(--${card.bg});">${ICONS[card.icon]}</div>`}<div class="kval num">${card.val}${card.unit?`<small>${card.unit}</small>`:''}</div><div class="klbl">${card.lbl}</div><div class="ksub">${card.sub}</div></div>`).join('');
+  document.getElementById('overview-grid').innerHTML = cards.map(card=>`<div class="kcard" data-overview-key="${card.key}">${card.circle?`<div class="badge-circle" style="background:var(--${card.bg}-bg);color:var(--${card.bg});">${card.circle}</div>`:`<div class="badge" style="background:var(--${card.bg}-bg);color:var(--${card.bg});">${ICONS[card.icon]}</div>`}<div class="kval num">${card.val}${card.unit?`<small>${card.unit}</small>`:''}</div><div class="klbl">${card.lbl}</div><div class="ksub">${card.sub}</div>${card.fresh?`<div class="kfresh">${card.fresh}</div>`:''}</div>`).join('');
 
   /* ---- CHANNEL QUALITY SUMMARY (ผูกทั้งเกม+เดือน) ---- */
   document.getElementById('channel-tbody').innerHTML = chData.map(r=>{
@@ -1269,6 +1336,12 @@ function renderAll(){
 
   document.getElementById('v-dau').textContent = L.avg_dau.toLocaleString();
   document.getElementById('v-wau').textContent = L.avg_dau ? L.wau_est.toLocaleString() : '-';
+  document.querySelector('#v-dau')?.closest('.statcard')?.querySelector('.stat-fresh')?.remove();
+  document.querySelector('#v-wau')?.closest('.statcard')?.querySelector('.stat-fresh')?.remove();
+  if(dailyChip){
+    document.querySelector('#v-dau')?.closest('.statcard')?.insertAdjacentHTML('beforeend', `<div class="stat-fresh">${dailyChip}</div>`);
+    document.querySelector('#v-wau')?.closest('.statcard')?.insertAdjacentHTML('beforeend', `<div class="stat-fresh">${dailyChip}</div>`);
+  }
   renderPlayerType(game,periodKey);
   renderTotalRetention(game,periodKey);
   renderMau(game,periodKey);
