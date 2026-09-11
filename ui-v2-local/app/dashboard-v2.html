@@ -99,6 +99,16 @@ td{padding:8px 5px;border-bottom:1px solid #f4f2ef;text-align:right;vertical-ali
 .stat-label{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--sub);}
 .statval{font-size:24px;font-weight:800;line-height:1.1;}
 .stat-desc{font-size:9.5px;color:var(--sub);max-width:230px;line-height:1.45;}
+.daily-data-toolbar{margin-top:12px;border:1px solid #fed7aa;background:#fffaf0;border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:minmax(180px,260px) 1fr auto;gap:10px;align-items:center;}
+.daily-data-toolbar label{display:flex;flex-direction:column;gap:4px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#9a4310;}
+.daily-data-toolbar select{font-family:'Sarabun';font-size:12px;font-weight:800;color:var(--ink);height:36px;border:1px solid #fdba74;border-radius:10px;background:#fff;padding:0 10px;min-width:0;}
+.daily-data-toolbar select:focus{outline:none;border-color:#f97316;box-shadow:0 0 0 3px #ffedd5;}
+.daily-data-note{font-size:10.5px;color:#7c2d12;line-height:1.45;}
+.daily-data-value{display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:112px;}
+.daily-data-value span{font-size:9.5px;color:#9a4310;font-weight:800;text-transform:uppercase;letter-spacing:.04em;}
+.daily-data-value strong{font-family:'Inter',sans-serif;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);line-height:1.05;}
+.daily-heat-note{font-size:10px;color:var(--sub);line-height:1.45;margin-top:6px;}
+@media(max-width:760px){.daily-data-toolbar{grid-template-columns:1fr;}.daily-data-value{align-items:flex-start;}}
 
 /* ── Game x Channel Detail: ใช้ table จริง แก้ปัญหา column ลอย ── */
 .sm-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;}
@@ -373,6 +383,13 @@ td{vertical-align:middle;}
     <div class="title">DAILY ACTIVE USERS (DAU) TREND</div>
     <div class="desc">ช่วยวิเคราะห์ผลกระทบของกิจกรรม/วันหยุด (Spikes) · จุดสูงสุดถูก Mark ไว้อัตโนมัติ</div>
     <div class="freshness-line" id="dau-freshness"></div>
+    <div class="daily-data-toolbar">
+      <label for="f-daily-date">Daily Data
+        <select id="f-daily-date" onchange="setDailyDataDate(this.value)"></select>
+      </label>
+      <div class="daily-data-note" id="daily-data-note">Daily Filter กระทบเฉพาะข้อมูล DAU ที่มีรายวัน ส่วน Retention และ Monthly metrics ใช้รอบเดิม</div>
+      <div class="daily-data-value"><span>Selected DAU</span><strong class="num" id="daily-data-value">-</strong></div>
+    </div>
     <div id="dau" style="height:300px;margin-top:8px;"></div>
   </div>
 
@@ -380,6 +397,7 @@ td{vertical-align:middle;}
     <div class="title">LOGIN ACTIVITY HEATMAP</div>
     <div class="desc">สีไล่ระดับ (Gradient) · สีเข้ม = ช่วงที่ผู้เล่นหนาแน่น (Peak)</div>
     <div class="freshness-line" id="heat-freshness"></div>
+    <div class="daily-heat-note" id="daily-heat-note"></div>
     <div id="heat" style="height:300px;margin-top:8px;"></div>
   </div>
 
@@ -707,6 +725,7 @@ const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','ม�
 const REPORT_START_MONTH = '2026-02';
 let DASHBOARD_MONTHS = [];
 let MONTH_TH = {};
+let selectedDailyDate = '';
 const GAME_LABEL = {ALL:'รวม 4 เกม',CBM_TH:'CBM TH',CBM_SEA:'CBM SEA',CBPC_TH:'CBPC TH',CBPC_SEA:'CBPC SEA'};
 
 function normalizeMonthKey(value){
@@ -778,6 +797,38 @@ function isoDate(value){
 function latestDauDate(legacy){
   const dates = Array.isArray(legacy?.dau_x) ? legacy.dau_x.map(isoDate).filter(Boolean).sort() : [];
   return dates.length ? dates[dates.length - 1] : '';
+}
+
+function dailyDauRows(legacy){
+  const x = Array.isArray(legacy?.dau_x) ? legacy.dau_x : [];
+  const y = Array.isArray(legacy?.dau_y) ? legacy.dau_y : [];
+  return x.map((rawDate, index) => {
+    const date = isoDate(rawDate);
+    const value = Number(y[index]);
+    return date && Number.isFinite(value) ? {date, value} : null;
+  }).filter(Boolean);
+}
+
+function setDailyDataDate(value){
+  selectedDailyDate = value || '';
+  renderAll();
+}
+
+function syncDailyDataToolbar(rows){
+  const select = document.getElementById('f-daily-date');
+  if(!select) return {date:'', value:null};
+  const dates = rows.map(row => row.date);
+  if(selectedDailyDate && !dates.includes(selectedDailyDate)) selectedDailyDate = '';
+  select.innerHTML = `<option value="">ทุกวันที่มีข้อมูล</option>` + dates.map(date => `<option value="${date}">${date}</option>`).join('');
+  select.value = selectedDailyDate || '';
+  const selectedRow = selectedDailyDate ? rows.find(row => row.date === selectedDailyDate) : null;
+  const valueNode = document.getElementById('daily-data-value');
+  if(valueNode) valueNode.textContent = selectedRow ? selectedRow.value.toLocaleString() : '-';
+  const heatNote = document.getElementById('daily-heat-note');
+  if(heatNote) heatNote.textContent = selectedDailyDate
+    ? 'Heatmap ยังคงแสดงภาพรวมรายเดือน เพราะข้อมูล heatmap ชุดนี้ไม่มี date key ที่ยืนยัน mapping รายวันได้'
+    : '';
+  return {date:selectedDailyDate || '', value:selectedRow ? selectedRow.value : null};
 }
 
 function freshnessChip(kind, text){
@@ -1021,6 +1072,7 @@ function showDashboardUnavailable(message){
   ['curve-freshness','player-type-freshness','new-retention-freshness','total-retention-freshness','dau-freshness','heat-freshness'].forEach(id=>setFreshness(id, ''));
   document.querySelectorAll('.stat-fresh').forEach(node=>node.remove());
   ['v-dau','v-wau','v-mau'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='-'; });
+  syncDailyDataToolbar([]);
 }
 
 function renderMetricRows(items,total){
@@ -1244,6 +1296,8 @@ function renderAll(){
   /* ---- OVERVIEW (ผูกกับเกมแล้ว) ---- */
   const dauThrough = latestDauDate(L);
   const dailyChip = dauThrough ? freshnessChip('daily', `Daily · Data through ${dauThrough}`) : '';
+  const dailyRows = dailyDauRows(L);
+  const dailySelection = syncDailyDataToolbar(dailyRows);
   const retentionChip = periodFreshness(period, status);
   document.getElementById('ov-desc').textContent = `ตัวเลขสรุปตาม${period.mode} ${period.label} · ${GAME_LABEL[game]}`;
   setFreshness('curve-freshness', retentionChip);
@@ -1315,23 +1369,44 @@ function renderAll(){
       xaxis:{gridcolor:'#fff'},legend:{orientation:'h',y:-.2,x:.5,xanchor:'center',font:{size:9}}}),{displayModeBar:false,responsive:true});
     renderNewUserRetentionFlow(L.funnel);
 
-    const maxY=Math.max(...L.dau_y), maxIdx=L.dau_y.indexOf(maxY), maxX=L.dau_x[maxIdx];
-    Plotly.newPlot('dau',[{x:L.dau_x,y:L.dau_y,type:'scatter',mode:'lines+markers',fill:'tozeroy',
-      line:{color:'#f67825',width:2.8,shape:'spline'},marker:{size:4,color:'#fff',line:{color:'#f67825',width:1.6}},fillcolor:'rgba(246,120,37,.10)'}],
-      Object.assign({},BASE,{height:320,margin:{t:38,r:22,b:46,l:56},yaxis:{gridcolor:'#f1f5f9',zeroline:false},xaxis:{gridcolor:'#fff',nticks:8,zeroline:false},
-      annotations:[{x:maxX,y:maxY,text:`<b>${maxY.toLocaleString()} User</b><br>${maxX}`,showarrow:true,arrowhead:2,
-        arrowsize:1,arrowwidth:1.3,arrowcolor:'#f59e0b',ax:0,ay:-38,bgcolor:'#fff',bordercolor:'#f59e0b',
-        borderwidth:1,borderpad:5,font:{size:10,color:'#92400e',family:'Sarabun'}}]}),{displayModeBar:false,responsive:true});
+    const hasDauSeries = Array.isArray(L.dau_x) && Array.isArray(L.dau_y) && L.dau_x.length && L.dau_y.length;
+    if(hasDauSeries && dailySelection.date && dailySelection.value !== null){
+      Plotly.newPlot('dau',[{x:[dailySelection.date],y:[dailySelection.value],type:'scatter',mode:'markers+text',
+        text:[dailySelection.value.toLocaleString()],textposition:'top center',textfont:{size:11,color:'#92400e',family:'Sarabun'},
+        marker:{size:12,color:'#fff7ed',line:{color:'#f67825',width:3}},hovertemplate:`${dailySelection.date}<br>%{y:,} users<extra></extra>`}],
+        Object.assign({},BASE,{height:320,margin:{t:38,r:22,b:46,l:56},yaxis:{gridcolor:'#f1f5f9',zeroline:false,rangemode:'tozero'},
+        xaxis:{gridcolor:'#fff',zeroline:false,type:'category'},annotations:[{x:dailySelection.date,y:dailySelection.value,
+          text:`<b>${dailySelection.value.toLocaleString()} User</b><br>${dailySelection.date}`,showarrow:true,arrowhead:2,
+          arrowsize:1,arrowwidth:1.3,arrowcolor:'#f59e0b',ax:0,ay:-42,bgcolor:'#fff',bordercolor:'#f59e0b',
+          borderwidth:1,borderpad:5,font:{size:10,color:'#92400e',family:'Sarabun'}}]}),{displayModeBar:false,responsive:true});
+    } else if(hasDauSeries){
+      const numericDau = L.dau_y.map(Number).filter(Number.isFinite);
+      const maxY = numericDau.length ? Math.max(...numericDau) : 0;
+      const maxIdx = L.dau_y.map(Number).indexOf(maxY), maxX = L.dau_x[maxIdx];
+      Plotly.newPlot('dau',[{x:L.dau_x,y:L.dau_y,type:'scatter',mode:'lines+markers',fill:'tozeroy',
+        line:{color:'#f67825',width:2.8,shape:'spline'},marker:{size:4,color:'#fff',line:{color:'#f67825',width:1.6}},fillcolor:'rgba(246,120,37,.10)'}],
+        Object.assign({},BASE,{height:320,margin:{t:38,r:22,b:46,l:56},yaxis:{gridcolor:'#f1f5f9',zeroline:false},xaxis:{gridcolor:'#fff',nticks:8,zeroline:false},
+        annotations:maxX?[{x:maxX,y:maxY,text:`<b>${maxY.toLocaleString()} User</b><br>${maxX}`,showarrow:true,arrowhead:2,
+          arrowsize:1,arrowwidth:1.3,arrowcolor:'#f59e0b',ax:0,ay:-38,bgcolor:'#fff',bordercolor:'#f59e0b',
+          borderwidth:1,borderpad:5,font:{size:10,color:'#92400e',family:'Sarabun'}}]:[]}),{displayModeBar:false,responsive:true});
+    } else {
+      document.getElementById('dau').innerHTML = '<div class="data-loading">ไม่มีข้อมูล DAU รายวันสำหรับช่วงนี้</div>';
+    }
 
-    const hz=L.heatmap.flat().filter(v=>v>0);
-    const hmax=Math.max(...hz)*1.1, havg=hz.reduce((a,b)=>a+b,0)/hz.length;
-    const mid=Math.min(Math.max(havg/hmax,.05),.95);
-    Plotly.newPlot('heat',[{z:L.heatmap,x:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-      y:['Week 1','Week 2','Week 3','Week 4','Week 5'],type:'heatmap',zmin:0,zmax:hmax,
-      colorscale:[[0,'#10b981'],[mid*0.55,'#a3e635'],[mid,'#fbbf24'],[1,'#ef4444']],
-      text:L.heatmap.map(r=>r.map(v=>v?v.toLocaleString():'–')),texttemplate:'%{text}',
-      textfont:{size:10,family:'Sarabun',color:'#1e293b'},showscale:true,colorbar:{thickness:10,len:.80,x:1.02},xgap:2,ygap:2}],
-      Object.assign({},BASE,{height:280,yaxis:{autorange:'reversed'},margin:{t:20,r:48,b:42,l:62}}),{displayModeBar:false,responsive:true});
+    const heatmap = Array.isArray(L.heatmap) ? L.heatmap : [];
+    const hz=heatmap.flat().map(Number).filter(v=>Number.isFinite(v) && v>0);
+    if(heatmap.length && hz.length){
+      const hmax=Math.max(...hz)*1.1, havg=hz.reduce((a,b)=>a+b,0)/hz.length;
+      const mid=Math.min(Math.max(havg/hmax,.05),.95);
+      Plotly.newPlot('heat',[{z:heatmap,x:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+        y:['Week 1','Week 2','Week 3','Week 4','Week 5'],type:'heatmap',zmin:0,zmax:hmax,
+        colorscale:[[0,'#10b981'],[mid*0.55,'#a3e635'],[mid,'#fbbf24'],[1,'#ef4444']],
+        text:heatmap.map(r=>r.map(v=>v?v.toLocaleString():'–')),texttemplate:'%{text}',
+        textfont:{size:10,family:'Sarabun',color:'#1e293b'},showscale:true,colorbar:{thickness:10,len:.80,x:1.02},xgap:2,ygap:2}],
+        Object.assign({},BASE,{height:280,yaxis:{autorange:'reversed'},margin:{t:20,r:48,b:42,l:62}}),{displayModeBar:false,responsive:true});
+    } else {
+      document.getElementById('heat').innerHTML = '<div class="data-loading">ไม่มีข้อมูล heatmap สำหรับช่วงนี้</div>';
+    }
   });
 
   document.getElementById('v-dau').textContent = L.avg_dau.toLocaleString();
