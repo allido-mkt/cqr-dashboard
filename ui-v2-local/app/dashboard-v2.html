@@ -26,7 +26,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);border-
 .hbar{max-width:1360px;margin:0 auto;padding:16px 22px;display:grid;grid-template-columns:minmax(280px,1fr);gap:12px;}
 .hbar h1{font-size:16px;font-weight:800;margin:0;white-space:nowrap;}
 .hbar h1 span{color:var(--accent2);}
-.hfilters{display:grid;grid-template-columns:minmax(210px,1.15fr) minmax(180px,1fr) minmax(180px,.95fr) minmax(170px,.9fr) 160px 150px auto auto;gap:8px;align-items:center;background:linear-gradient(135deg,#fffaf0 0%,#fff 100%);border:1px solid #fed7aa;border-radius:18px;padding:10px;box-shadow:0 20px 52px -36px rgba(154,52,18,.8);}
+.hfilters{display:grid;grid-template-columns:minmax(210px,1.15fr) minmax(180px,1fr) minmax(180px,.95fr) minmax(170px,.9fr) 160px 150px 150px auto auto;gap:8px;align-items:center;background:linear-gradient(135deg,#fffaf0 0%,#fff 100%);border:1px solid #fed7aa;border-radius:18px;padding:10px;box-shadow:0 20px 52px -36px rgba(154,52,18,.8);}
 .hfilters select{font-family:'Sarabun';font-size:12px;padding:7px 11px;border-radius:12px;border:1px solid #e7e3dc;background:#fff;min-width:0;height:42px;font-weight:800;color:var(--ink);box-shadow:0 10px 24px -24px rgba(20,23,31,.8);}
 .hfilters select:focus{outline:none;border-color:#fdba74;background:#fff;box-shadow:0 0 0 3px #ffedd5;}
 .export-menu{position:relative;width:150px;justify-self:end;}
@@ -232,6 +232,8 @@ td{vertical-align:middle;}
 .chat-send-btn{border-radius:10px;background:#d97706;}
 .chat-note{background:#fff;color:#94a3b8;padding:0 14px 12px;}
 .period-hidden{visibility:hidden;pointer-events:none;}
+.daily-notice{grid-column:1/-1;display:none;border:1px solid #99f6e4;background:#f0fdfa;color:#115e59;border-radius:12px;padding:8px 11px;font-size:11px;font-weight:800;line-height:1.35;}
+.daily-mode .daily-notice{display:block;}
 @media(max-width:700px){.brand-title{min-width:0}.brand-main{font-size:16px}.brand-mark{width:32px;height:32px}.card>.title{font-size:16px}.metric-row{grid-template-columns:1fr .45fr;}.metric-bar{grid-column:1/-1}.mini-ret{grid-template-columns:1fr 1fr;}.ptype-grid{grid-template-columns:1fr;}.chartbox{height:240px;}}
 
 .auth-screen{position:fixed;inset:0;z-index:999;background:radial-gradient(circle at 15% 12%,rgba(254,215,170,.85),transparent 26%),linear-gradient(135deg,#fffaf0 0%,#f6f4f0 48%,#ecfdf5 100%);display:flex;align-items:center;justify-content:center;padding:24px;}
@@ -291,12 +293,14 @@ td{vertical-align:middle;}
       <select id="f-channel" onchange="renderAll()"><option value="all">ทุก Channel</option>
         <option>Facebook Ads</option><option>Google Ads</option>
         <option>In-App Register</option><option>Organic / Unknown</option></select>
-      <select id="f-month" onchange="syncWeekOptions();renderAll()"></select>
-      <select id="f-period-type" onchange="syncWeekOptions();renderAll()">
+      <select id="f-month" onchange="syncPeriodOptions();renderAll()"></select>
+      <select id="f-period-type" onchange="syncPeriodOptions();renderAll()">
         <option value="month" selected>Monthly View</option>
         <option value="week">Weekly View</option>
+        <option value="day">Daily View</option>
       </select>
       <select id="f-week" class="period-hidden" onchange="renderAll()"></select>
+      <select id="f-date" class="period-hidden" onchange="renderAll()"></select>
       <details class="export-menu">
         <summary>EXPORT</summary>
         <div class="export-options">
@@ -305,6 +309,7 @@ td{vertical-align:middle;}
           <button type="button" onclick="exportDashboardFile('json')">Export JSON</button>
         </div>
       </details>
+      <div class="daily-notice">Daily View กระทบเฉพาะ DAU / Heatmap; Retention และ Monthly metrics ยังคงอิงรอบเดิม</div>
 </div>
   </div>
 </header>
@@ -720,6 +725,11 @@ function currentMonthKey(){
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function currentIsoDate(){
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 function monthRangeKeys(start, end){
   const startKey = normalizeMonthKey(start);
   const endKey = normalizeMonthKey(end);
@@ -780,6 +790,22 @@ function latestDauDate(legacy){
   return dates.length ? dates[dates.length - 1] : '';
 }
 
+function actualDauDates(legacy){
+  if(!Array.isArray(legacy?.dau_x)) return [];
+  return legacy.dau_x.map((raw, index) => {
+    const label = String(raw || '').trim();
+    const date = isoDate(label) || label;
+    return {date, label, index, value:Number(legacy.dau_y?.[index])};
+  }).filter(item => item.date && Number.isFinite(item.value));
+}
+
+function selectedDailyPoint(legacy){
+  const dates = actualDauDates(legacy);
+  if(!dates.length) return null;
+  const selected = document.getElementById('f-date')?.value || '';
+  return dates.find(item => item.date === selected) || dates[dates.length - 1];
+}
+
 function freshnessChip(kind, text){
   if(!text) return '';
   return `<span class="freshness-chip ${kind}">${escapeHtml(text)}</span>`;
@@ -829,7 +855,8 @@ function getAiAskFilters(){
     game: document.getElementById('f-game')?.value || 'ALL',
     channel: channel === 'all' ? 'ALL' : channel,
     period: activePeriod().key || document.getElementById('f-month')?.value || DASHBOARD_MONTHS[0] || REPORT_START_MONTH,
-    view: periodType === 'week' ? 'weekly' : 'monthly'
+    view: periodType === 'day' ? 'daily' : (periodType === 'week' ? 'weekly' : 'monthly'),
+    date: document.getElementById('f-date')?.value || ''
   };
 }
 
@@ -1163,13 +1190,40 @@ function syncWeekOptions(){
   weekSelect.classList.toggle('period-hidden', periodType !== 'week');
 }
 
-function activePeriod(){
+function syncDateOptions(){
+  if(!D) return;
+  const game = document.getElementById('f-game')?.value || 'ALL';
+  const month = document.getElementById('f-month')?.value || DASHBOARD_MONTHS[0] || REPORT_START_MONTH;
+  const dateSelect = document.getElementById('f-date');
+  const periodType = document.getElementById('f-period-type')?.value || 'month';
+  if(!dateSelect) return;
+  const previous = dateSelect.value;
+  const L = D.legacy?.[`${game}|${month}`];
+  const today = currentIsoDate();
+  const dates = actualDauDates(L).filter(item => !isoDate(item.date) || item.date <= today);
+  dateSelect.innerHTML = dates.map(item => `<option value="${escapeHtml(item.date)}">${escapeHtml(item.date)}</option>`).join('');
+  if(dates.some(item => item.date === previous)) dateSelect.value = previous;
+  else if(dates.length) dateSelect.value = dates[dates.length - 1].date;
+  dateSelect.classList.toggle('period-hidden', periodType !== 'day');
+}
+
+function syncPeriodOptions(){
   syncWeekOptions();
+  syncDateOptions();
+  document.querySelector('.hfilters')?.classList.toggle('daily-mode', document.getElementById('f-period-type')?.value === 'day');
+}
+
+function activePeriod(){
+  syncPeriodOptions();
   const month = document.getElementById('f-month').value;
   const periodType = document.getElementById('f-period-type').value;
   if(periodType === 'week'){
     const week = document.getElementById('f-week');
     return {key:week.value, label:week.options[week.selectedIndex]?.text || week.value, mode:'สัปดาห์'};
+  }
+  if(periodType === 'day'){
+    const date = document.getElementById('f-date')?.value || '';
+    return {key:month, label:date || monthLabel(month, true), mode:'วัน', selectedDate:date};
   }
   return {key:month, label:monthLabel(month, true), mode:'เดือน'};
 }
@@ -1230,6 +1284,8 @@ function renderAll(){
   const game = document.getElementById('f-game').value;
   const month = document.getElementById('f-month').value;
   const chFilter = document.getElementById('f-channel').value;
+  const periodType = document.getElementById('f-period-type')?.value || 'month';
+  const dailyMode = periodType === 'day';
   const period = activePeriod();
   const periodKey = period.key;
   const chData = D.channel_data[`${game}|${periodKey}`] || [];
@@ -1243,9 +1299,12 @@ function renderAll(){
 
   /* ---- OVERVIEW (ผูกกับเกมแล้ว) ---- */
   const dauThrough = latestDauDate(L);
-  const dailyChip = dauThrough ? freshnessChip('daily', `Daily · Data through ${dauThrough}`) : '';
+  const dailyPoint = dailyMode ? selectedDailyPoint(L) : null;
+  const dailyChip = dailyMode && dailyPoint ? freshnessChip('daily', `Daily · Selected ${dailyPoint.date}`) : (dauThrough ? freshnessChip('daily', `Daily · Data through ${dauThrough}`) : '');
   const retentionChip = periodFreshness(period, status);
-  document.getElementById('ov-desc').textContent = `ตัวเลขสรุปตาม${period.mode} ${period.label} · ${GAME_LABEL[game]}`;
+  document.getElementById('ov-desc').textContent = dailyMode
+    ? `ตัวเลขสรุปรายเดือน ${monthLabel(month, true)} · ${GAME_LABEL[game]}`
+    : `ตัวเลขสรุปตาม${period.mode} ${period.label} · ${GAME_LABEL[game]}`;
   setFreshness('curve-freshness', retentionChip);
   setFreshness('new-retention-freshness', retentionChip);
   setFreshness('total-retention-freshness', retentionChip);
@@ -1259,7 +1318,7 @@ function renderAll(){
     {key:'paid_register',icon:'megaphone',bg:'c6',val:Number(ov.paid_register || 0).toLocaleString(),lbl:'Paid Ads Register',sub:`${ov.new_register ? Math.round(1000*ov.paid_register/ov.new_register)/10 : 0}% ของทั้งหมด`},
     {key:'first_login',icon:'star',bg:'c3',val:Number(ov.first_login ?? ov.new_register ?? 0).toLocaleString(),lbl:'First Login',sub:'Register cohort ที่เข้าเกมครั้งแรกแล้ว'},
     {key:'recall_user',icon:'recall',bg:'c4',val:Number(ov.recall_user || 0).toLocaleString(),lbl:'Recall User',sub:'กลับมาหลังหายไป (Returners)',fresh:retentionChip},
-    {key:'active_user',icon:'activeUser',bg:'c7',val:activeUser===null?'-':activeUser.toLocaleString(),lbl:'Active User',sub:period.mode==='สัปดาห์'?'ผู้เล่นที่มี Login ในสัปดาห์นี้':'ผู้เล่นที่มี Login ในเดือนนี้',fresh:playerType?.has_login?freshnessChip('weekly', `Monthly Login · through ${periodKey.slice(0, 7)}`):''},
+    {key:'active_user',icon:'activeUser',bg:'c7',val:activeUser===null?'-':activeUser.toLocaleString(),lbl:'Active User',sub:periodType==='week'?'ผู้เล่นที่มี Login ในสัปดาห์นี้':'ผู้เล่นที่มี Login ในเดือนนี้',fresh:playerType?.has_login?freshnessChip('weekly', `Monthly Login · through ${periodKey.slice(0, 7)}`):''},
     {key:'avg_days_active',icon:'streak',bg:'c5',val:Number(ov.avg_days_active || 0),unit:' วัน',lbl:'Avg. Days Active',sub:'จาก Register Cohort'},
     {key:'d3',circle:'D3',bg:'c7',val:ov.d3,unit:'%',lbl:'Day 3 Retention',sub:'% ที่ยังกลับมาใช้งาน',fresh:retentionChip},
     {key:'d7',circle:'D7',bg:'c8',val:ov.d7,unit:'%',lbl:'Day 7 Retention',sub:'% ที่ยังกลับมาใช้งาน',fresh:retentionChip},
@@ -1315,32 +1374,55 @@ function renderAll(){
       xaxis:{gridcolor:'#fff'},legend:{orientation:'h',y:-.2,x:.5,xanchor:'center',font:{size:9}}}),{displayModeBar:false,responsive:true});
     renderNewUserRetentionFlow(L.funnel);
 
-    const maxY=Math.max(...L.dau_y), maxIdx=L.dau_y.indexOf(maxY), maxX=L.dau_x[maxIdx];
-    Plotly.newPlot('dau',[{x:L.dau_x,y:L.dau_y,type:'scatter',mode:'lines+markers',fill:'tozeroy',
-      line:{color:'#f67825',width:2.8,shape:'spline'},marker:{size:4,color:'#fff',line:{color:'#f67825',width:1.6}},fillcolor:'rgba(246,120,37,.10)'}],
-      Object.assign({},BASE,{height:320,margin:{t:38,r:22,b:46,l:56},yaxis:{gridcolor:'#f1f5f9',zeroline:false},xaxis:{gridcolor:'#fff',nticks:8,zeroline:false},
-      annotations:[{x:maxX,y:maxY,text:`<b>${maxY.toLocaleString()} User</b><br>${maxX}`,showarrow:true,arrowhead:2,
-        arrowsize:1,arrowwidth:1.3,arrowcolor:'#f59e0b',ax:0,ay:-38,bgcolor:'#fff',bordercolor:'#f59e0b',
-        borderwidth:1,borderpad:5,font:{size:10,color:'#92400e',family:'Sarabun'}}]}),{displayModeBar:false,responsive:true});
+    if(dailyMode && dailyPoint){
+      Plotly.newPlot('dau',[{x:[dailyPoint.date],y:[dailyPoint.value],type:'bar',
+        marker:{color:'#f67825',line:{color:'#9a4310',width:1.4}},hovertemplate:'%{x}<br>%{y:,} users<extra></extra>'}],
+        Object.assign({},BASE,{height:320,margin:{t:38,r:22,b:46,l:56},yaxis:{gridcolor:'#f1f5f9',zeroline:false,rangemode:'tozero'},xaxis:{gridcolor:'#fff',zeroline:false},
+        annotations:[{x:dailyPoint.date,y:dailyPoint.value,text:`<b>${dailyPoint.value.toLocaleString()} User</b><br>${dailyPoint.date}`,showarrow:true,arrowhead:2,
+          arrowsize:1,arrowwidth:1.3,arrowcolor:'#f59e0b',ax:0,ay:-38,bgcolor:'#fff',bordercolor:'#f59e0b',
+          borderwidth:1,borderpad:5,font:{size:10,color:'#92400e',family:'Sarabun'}}]}),{displayModeBar:false,responsive:true});
+    }else{
+      const maxY=Math.max(...L.dau_y), maxIdx=L.dau_y.indexOf(maxY), maxX=L.dau_x[maxIdx];
+      Plotly.newPlot('dau',[{x:L.dau_x,y:L.dau_y,type:'scatter',mode:'lines+markers',fill:'tozeroy',
+        line:{color:'#f67825',width:2.8,shape:'spline'},marker:{size:4,color:'#fff',line:{color:'#f67825',width:1.6}},fillcolor:'rgba(246,120,37,.10)'}],
+        Object.assign({},BASE,{height:320,margin:{t:38,r:22,b:46,l:56},yaxis:{gridcolor:'#f1f5f9',zeroline:false},xaxis:{gridcolor:'#fff',nticks:8,zeroline:false},
+        annotations:[{x:maxX,y:maxY,text:`<b>${maxY.toLocaleString()} User</b><br>${maxX}`,showarrow:true,arrowhead:2,
+          arrowsize:1,arrowwidth:1.3,arrowcolor:'#f59e0b',ax:0,ay:-38,bgcolor:'#fff',bordercolor:'#f59e0b',
+          borderwidth:1,borderpad:5,font:{size:10,color:'#92400e',family:'Sarabun'}}]}),{displayModeBar:false,responsive:true});
+    }
 
-    const hz=L.heatmap.flat().filter(v=>v>0);
-    const hmax=Math.max(...hz)*1.1, havg=hz.reduce((a,b)=>a+b,0)/hz.length;
+    const heatmap = Array.isArray(L.heatmap) ? L.heatmap : [];
+    const heatZ = dailyMode && dailyPoint
+      ? heatmap.map((row,w)=>row.map((_,d)=>(w * 7 + d) === dailyPoint.index ? dailyPoint.value : null))
+      : heatmap;
+    const hz=heatZ.flat().filter(v=>v>0);
+    const hmax=(hz.length ? Math.max(...hz) : 1)*1.1, havg=hz.length ? hz.reduce((a,b)=>a+b,0)/hz.length : 0;
     const mid=Math.min(Math.max(havg/hmax,.05),.95);
-    Plotly.newPlot('heat',[{z:L.heatmap,x:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    Plotly.newPlot('heat',[{z:heatZ,x:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
       y:['Week 1','Week 2','Week 3','Week 4','Week 5'],type:'heatmap',zmin:0,zmax:hmax,
       colorscale:[[0,'#10b981'],[mid*0.55,'#a3e635'],[mid,'#fbbf24'],[1,'#ef4444']],
-      text:L.heatmap.map(r=>r.map(v=>v?v.toLocaleString():'–')),texttemplate:'%{text}',
+      text:heatZ.map(r=>r.map(v=>v?v.toLocaleString():'–')),texttemplate:'%{text}',
       textfont:{size:10,family:'Sarabun',color:'#1e293b'},showscale:true,colorbar:{thickness:10,len:.80,x:1.02},xgap:2,ygap:2}],
       Object.assign({},BASE,{height:280,yaxis:{autorange:'reversed'},margin:{t:20,r:48,b:42,l:62}}),{displayModeBar:false,responsive:true});
   });
 
-  document.getElementById('v-dau').textContent = L.avg_dau.toLocaleString();
-  document.getElementById('v-wau').textContent = L.avg_dau ? L.wau_est.toLocaleString() : '-';
-  document.querySelector('#v-dau')?.closest('.statcard')?.querySelector('.stat-fresh')?.remove();
-  document.querySelector('#v-wau')?.closest('.statcard')?.querySelector('.stat-fresh')?.remove();
+  const dauCard = document.querySelector('#v-dau')?.closest('.statcard');
+  const wauCard = document.querySelector('#v-wau')?.closest('.statcard');
+  if(dauCard){
+    dauCard.querySelector('.stat-label').textContent = dailyMode ? 'DAU Selected Day' : 'Average DAU';
+    dauCard.querySelector('.stat-desc').textContent = dailyMode ? 'ผู้เล่น Active ของวันที่เลือก' : 'ผู้เล่น Active เฉลี่ยต่อวัน';
+  }
+  if(wauCard){
+    wauCard.querySelector('.stat-label').textContent = 'Average WAU';
+    wauCard.querySelector('.stat-desc').textContent = dailyMode ? 'ไม่ใช้ใน Daily View' : 'ประมาณการจาก Average DAU (× 3.5)';
+  }
+  document.getElementById('v-dau').textContent = dailyMode && dailyPoint ? dailyPoint.value.toLocaleString() : L.avg_dau.toLocaleString();
+  document.getElementById('v-wau').textContent = dailyMode ? '-' : (L.avg_dau ? L.wau_est.toLocaleString() : '-');
+  dauCard?.querySelector('.stat-fresh')?.remove();
+  wauCard?.querySelector('.stat-fresh')?.remove();
   if(dailyChip){
-    document.querySelector('#v-dau')?.closest('.statcard')?.insertAdjacentHTML('beforeend', `<div class="stat-fresh">${dailyChip}</div>`);
-    document.querySelector('#v-wau')?.closest('.statcard')?.insertAdjacentHTML('beforeend', `<div class="stat-fresh">${dailyChip}</div>`);
+    dauCard?.insertAdjacentHTML('beforeend', `<div class="stat-fresh">${dailyChip}</div>`);
+    if(!dailyMode) wauCard?.insertAdjacentHTML('beforeend', `<div class="stat-fresh">${dailyChip}</div>`);
   }
   renderPlayerType(game,periodKey);
   renderTotalRetention(game,periodKey);
