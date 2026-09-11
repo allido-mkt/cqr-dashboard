@@ -1210,3 +1210,51 @@ body.dashboard-r11 .stat-fresh { display:none !important; }
   }
 }
 /* CQR_UNIFIED_PERIOD_FILTER_END */
+
+
+/* CQR_PERIOD_CONTROL_ANTI_SQUEEZE_FIX_START */
+/* Keep the stable Monthly proportions, then widen only when Daily/Weekly adds
+   one more selector. This prevents Game / Channel / Month cards collapsing. */
+body.dashboard-r11 .hfilters:has(#f-daily-date:not(.period-hidden)),
+body.dashboard-r11 .hfilters:has(.dashboard-week-control:not(.is-hidden)) {
+  width: min(100%, 1120px) !important;
+}
+
+body.dashboard-r11 #f-daily-date:not(.period-hidden) {
+  flex: 0 0 150px !important;
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+  height: 42px !important;
+}
+
+body.dashboard-r11 .dashboard-week-control:not(.is-hidden) {
+  display: grid !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  flex: 0 0 145px !important;
+  width: 145px !important;
+  min-width: 145px !important;
+}
+
+body.dashboard-r11 .dashboard-week-control:not(.is-hidden) #f-week {
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+@media (max-width: 1100px) {
+  body.dashboard-r11 .hfilters:has(#f-daily-date:not(.period-hidden)),
+  body.dashboard-r11 .hfilters:has(.dashboard-week-control:not(.is-hidden)) {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    width: 100% !important;
+  }
+  body.dashboard-r11 #f-daily-date:not(.period-hidden),
+  body.dashboard-r11 .dashboard-week-control:not(.is-hidden) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
+/* CQR_PERIOD_CONTROL_ANTI_SQUEEZE_FIX_END */

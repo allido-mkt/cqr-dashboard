@@ -1301,6 +1301,8 @@ function syncWeekOptions(){
   else if(weeks.length) weekSelect.value = weeks[weeks.length-1].key;
 
   weekSelect.classList.toggle('period-hidden', periodType !== 'week');
+  const weekControl = weekSelect.closest('.dashboard-week-control');
+  if(weekControl) weekControl.classList.toggle('is-hidden', periodType !== 'week');
   if(dateSelect) dateSelect.classList.toggle('period-hidden', periodType !== 'day');
   syncPeriodButtons();
 }
