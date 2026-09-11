@@ -1392,7 +1392,7 @@ function renderAll(){
   const dailySelection = syncDailyDataToolbar(dailyRows, dailyMetrics.rows, dailyMetrics);
   const retentionChip = periodFreshness(period, status);
   const selectedDailyChip = dailySelection.date ? freshnessChip('daily', `รายวัน · ${dateShortLabel(dailySelection.date)}`) : '';
-  const dailyFieldSupported = field => dailyMetrics?.supported_fields?.[field] === true;
+  const dailyFieldSupported = field => Array.isArray(dailyMetrics?.supported_fields) ? dailyMetrics.supported_fields.includes(field) : dailyMetrics?.supported_fields?.[field] === true;
   const selectedMetricChip = field => dailySelection.date && dailySelection.metrics && dailyFieldSupported(field) ? selectedDailyChip : '';
   document.getElementById('ov-desc').textContent = currentPeriodMode() === 'day' && dailySelection.date
     ? `วันที่ ${dateShortLabel(dailySelection.date)} · New Register, Paid Ads Register, First Login และ DAU เปลี่ยนตามวันที่`
