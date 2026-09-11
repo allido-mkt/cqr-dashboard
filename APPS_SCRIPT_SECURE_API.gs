@@ -35,7 +35,7 @@ const CONFIG = {
   SESSION_TTL_SECONDS: 14400
 };
 
-const CQR_API_RELEASE = 'CQR_DIRECT_MASTER_AI_FINAL_2026_08_04';
+const CQR_API_RELEASE = 'CQR_DAILY_RETENTION_LOGIN_PERF_2026_08_26';
 
 function doGet(e) {
   try {
@@ -60,6 +60,12 @@ function doGet(e) {
     if (action === 'dashboard.data') {
       const session = validateSession_(e.parameter.session_token);
       const data = readDashboardData_();
+      return json_({ ok: true, email: session.email, data }, callback);
+    }
+
+    if (action === 'dashboard.daily') {
+      const session = validateSession_(e.parameter.session_token);
+      const data = readDashboardDailyData_(e.parameter || {});
       return json_({ ok: true, email: session.email, data }, callback);
     }
 
@@ -189,6 +195,9 @@ const USER_ACCESS_ROLES = ['viewer', 'analyst', 'manager', 'admin', 'super_admin
 const USER_ACCESS_STATUSES = ['active', 'pending', 'disabled'];
 const CQR_USER_GAMES_ = ['CBM_TH', 'CBM_SEA', 'CBPC_TH', 'CBPC_SEA'];
 const CQR_USER_REGIONS_ = ['TH', 'SEA'];
+const CQR_USER_ACCESS_CACHE_TTL_SECONDS_ = 300;
+const CQR_USER_ACCESS_CACHE_VERSION_PROPERTY_ = 'CQR_USER_ACCESS_CACHE_VERSION';
+let CQR_USER_ACCESS_CACHE_VERSION_MEMO_ = null;
 
 function normalizeEmail_(email) {
   return String(email || '').trim().toLowerCase();
@@ -207,8 +216,17 @@ function normalizeUserRole_(roleId) {
   return value;
 }
 
+let CQR_CENTRAL_DB_MEMO_ = null;
+
 function centralDb_() {
-  return SpreadsheetApp.openById(CONFIG.CENTRAL_DB_ID);
+  if (!CQR_CENTRAL_DB_MEMO_) {
+    CQR_CENTRAL_DB_MEMO_ = SpreadsheetApp.openById(CONFIG.CENTRAL_DB_ID);
+  }
+  return CQR_CENTRAL_DB_MEMO_;
+}
+
+function centralRuntimeSheet_(sheetName, requiredHeaders) {
+  return centralDb_().getSheetByName(sheetName) || ensureCentralSheetHeaders_(sheetName, requiredHeaders);
 }
 
 function ensureCentralSheetHeaders_(sheetName, requiredHeaders) {
@@ -284,6 +302,18 @@ function appendObjectToCentralSheet_(sheetName, requiredHeaders, object) {
   return sheet.getLastRow();
 }
 
+function appendObjectToExistingSheet_(sheet, object) {
+  const headerMap = sheetHeaderMap_(sheet);
+  const lastColumn = sheet.getLastColumn();
+  const row = new Array(lastColumn).fill('');
+  Object.keys(object || {}).forEach(key => {
+    const column = headerMap[normalizeHeader_(key)];
+    if (column) row[column - 1] = object[key];
+  });
+  sheet.appendRow(row);
+  return sheet.getLastRow();
+}
+
 function writeObjectToCentralRow_(sheetName, requiredHeaders, rowNumber, object) {
   const sheet = ensureCentralSheetHeaders_(sheetName, requiredHeaders);
   const headerMap = sheetHeaderMap_(sheet);
@@ -291,6 +321,18 @@ function writeObjectToCentralRow_(sheetName, requiredHeaders, rowNumber, object)
     const column = headerMap[normalizeHeader_(key)];
     if (column) sheet.getRange(rowNumber, column).setValue(object[key]);
   });
+}
+
+function updateExistingCentralRow_(sheet, rowNumber, object) {
+  const lastColumn = sheet.getLastColumn();
+  if (!lastColumn) return;
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0].map(normalizeHeader_);
+  const row = sheet.getRange(rowNumber, 1, 1, lastColumn).getValues()[0];
+  Object.keys(object || {}).forEach(key => {
+    const columnIndex = headers.indexOf(normalizeHeader_(key));
+    if (columnIndex >= 0) row[columnIndex] = object[key];
+  });
+  sheet.getRange(rowNumber, 1, 1, lastColumn).setValues([row]);
 }
 
 function cleanUserAccessObject_(row) {
@@ -316,16 +358,55 @@ function readAdminUsers_() {
 }
 
 function findUserAccessRow_(email) {
-  userAccessInfrastructure_();
   const normalized = normalizeEmail_(email);
   if (!normalized) return null;
-  const row = readCentralSheetRows_(USER_ACCESS_SHEET)
+  const sheet = centralDb_().getSheetByName(USER_ACCESS_SHEET);
+  if (!sheet) return null;
+  const row = rowsFromSheet_(sheet)
     .find(item => normalizeEmail_(item.email) === normalized);
   return row ? Object.assign({ row_number: row.row_number }, cleanUserAccessObject_(row)) : null;
 }
 
 function isActiveUserAccess_(user) {
   return !!user && String(user.status || '').toLowerCase() === 'active';
+}
+
+function userAccessCacheVersion_() {
+  if (CQR_USER_ACCESS_CACHE_VERSION_MEMO_) return CQR_USER_ACCESS_CACHE_VERSION_MEMO_;
+  const props = PropertiesService.getScriptProperties();
+  let version = props.getProperty(CQR_USER_ACCESS_CACHE_VERSION_PROPERTY_);
+  if (!version) {
+    version = String(Date.now());
+    props.setProperty(CQR_USER_ACCESS_CACHE_VERSION_PROPERTY_, version);
+  }
+  CQR_USER_ACCESS_CACHE_VERSION_MEMO_ = version;
+  return version;
+}
+
+function userAccessCacheKey_(email) {
+  return ['user_access', userAccessCacheVersion_(), normalizeEmail_(email)].join(':');
+}
+
+function cachedUserAccess_(email) {
+  const normalized = normalizeEmail_(email);
+  if (!normalized) return null;
+  return safeJsonParse_(CacheService.getScriptCache().get(userAccessCacheKey_(normalized)) || '', null);
+}
+
+function primeUserAccessCache_(user) {
+  if (!user || !normalizeEmail_(user.email)) return;
+  CacheService.getScriptCache().put(
+    userAccessCacheKey_(user.email),
+    JSON.stringify(cleanUserAccessObject_(user)),
+    CQR_USER_ACCESS_CACHE_TTL_SECONDS_
+  );
+}
+
+function bumpUserAccessCacheVersion_() {
+  const version = String(Date.now()) + '-' + Utilities.getUuid();
+  PropertiesService.getScriptProperties().setProperty(CQR_USER_ACCESS_CACHE_VERSION_PROPERTY_, version);
+  CQR_USER_ACCESS_CACHE_VERSION_MEMO_ = version;
+  return version;
 }
 
 function requireAllowedProfile_(idToken) {
@@ -395,6 +476,7 @@ function handleUserAccessSheetEdit_(event) {
       range: event.range.getA1Notation(),
       values: values
     }, manualEditorEmail_(), 'success');
+    bumpUserAccessCacheVersion_();
   } catch (error) {
     try {
       appendUserAccessLog_('', 'MANUAL_EDIT_FAILED', null, null, manualEditorEmail_(), safeLogMessage_(error.message || error));
@@ -413,6 +495,7 @@ function handleUserAccessSheetChange_(event) {
       change_type: changeType,
       sheet: USER_ACCESS_SHEET
     }, manualEditorEmail_(), 'success');
+    bumpUserAccessCacheVersion_();
   } catch (error) {
     try {
       appendUserAccessLog_('', 'MANUAL_STRUCTURE_CHANGE_FAILED', null, null, manualEditorEmail_(), safeLogMessage_(error.message || error));
@@ -475,6 +558,7 @@ function setupAiAskN8nConfig_() {
 function createSession_(profile, userAccess) {
   const user = userAccess || findUserAccessRow_(profile.email);
   if (!isActiveUserAccess_(user)) throw new Error('Email is not allowed or is disabled.');
+  primeUserAccessCache_(user);
   const token = Utilities.getUuid() + '-' + Utilities.getUuid();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + CONFIG.SESSION_TTL_SECONDS * 1000);
@@ -482,6 +566,9 @@ function createSession_(profile, userAccess) {
     email: profile.email,
     name: profile.name || profile.email,
     role_id: user.role_id,
+    allowed_games: user.allowed_games,
+    allowed_regions: user.allowed_regions,
+    status: user.status,
     created_at: now.toISOString(),
     expires_at: expiresAt.toISOString()
   }), CONFIG.SESSION_TTL_SECONDS);
@@ -531,28 +618,40 @@ function appendUserLoginLog_(email, result, roleId, userAgent, message) {
   });
 }
 
-function touchUserLogin_(profile, userAgent) {
+function touchUserLogin_(profile, userAgent, existingUser, accessSheet, loginSheet) {
   const email = normalizeEmail_(profile.email);
   if (!email) throw new Error('Missing profile email.');
-  const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-  try {
-    const user = findUserAccessRow_(email);
-    if (!isActiveUserAccess_(user)) throw new Error('Email is not allowed or is disabled.');
-    const loginAt = new Date().toISOString();
-    const updated = Object.assign({}, user, {
-      display_name: user.display_name || profile.name || '',
-      last_login_at: loginAt,
-      updated_at: loginAt,
-      updated_by: email
-    });
-    delete updated.row_number;
+  const user = existingUser || findUserAccessRow_(email);
+  if (!isActiveUserAccess_(user)) throw new Error('Email is not allowed or is disabled.');
+  const loginAt = new Date().toISOString();
+  const updated = Object.assign({}, user, {
+    display_name: user.display_name || profile.name || '',
+    last_login_at: loginAt,
+    updated_at: loginAt,
+    updated_by: email
+  });
+  delete updated.row_number;
+
+  if (accessSheet) {
+    updateExistingCentralRow_(accessSheet, user.row_number, updated);
+  } else {
     writeObjectToCentralRow_(USER_ACCESS_SHEET, USER_ACCESS_HEADERS, user.row_number, updated);
-    appendUserLoginLog_(email, 'success', updated.role_id, userAgent, 'Login successful.');
-    return updated;
-  } finally {
-    lock.releaseLock();
   }
+
+  if (loginSheet) {
+    appendObjectToExistingSheet_(loginSheet, {
+      login_id: 'ULL-' + Utilities.getUuid(),
+      email,
+      login_at: loginAt,
+      result: 'success',
+      role_id: updated.role_id,
+      user_agent: String(userAgent || '').slice(0, 500),
+      message: safeLogMessage_('Login successful.')
+    });
+  } else {
+    appendUserLoginLog_(email, 'success', updated.role_id, userAgent, 'Login successful.');
+  }
+  return updated;
 }
 
 function handleLogin_(e, callback) {
@@ -560,13 +659,19 @@ function handleLogin_(e, callback) {
   let email = '';
   let roleId = '';
   let successLogged = false;
+  let loginSheet = null;
   try {
     const profile = verifyIdToken_(e.parameter.id_token);
     email = normalizeEmail_(profile.email);
-    const user = findUserAccessRow_(email);
+    const centralDb = centralDb_();
+    const accessSheet = centralDb.getSheetByName(USER_ACCESS_SHEET);
+    loginSheet = centralDb.getSheetByName(USER_LOGIN_LOG_SHEET);
+    const userRow = accessSheet ? rowsFromSheet_(accessSheet)
+      .find(item => normalizeEmail_(item.email) === email) : null;
+    const user = userRow ? Object.assign({ row_number: userRow.row_number }, cleanUserAccessObject_(userRow)) : null;
     roleId = user ? user.role_id : '';
     if (!isActiveUserAccess_(user)) throw new Error('Email is not allowed or is disabled.');
-    const updatedUser = touchUserLogin_(profile, userAgent);
+    const updatedUser = touchUserLogin_(profile, userAgent, user, accessSheet, loginSheet);
     successLogged = true;
     const session = createSession_(profile, updatedUser);
     return json_({
@@ -584,7 +689,21 @@ function handleLogin_(e, callback) {
     }, callback);
   } catch (error) {
     if (!successLogged) {
-      try { appendUserLoginLog_(email, 'denied', roleId, userAgent, error.message || String(error)); } catch (logError) {}
+      try {
+        if (loginSheet) {
+          appendObjectToExistingSheet_(loginSheet, {
+            login_id: 'ULL-' + Utilities.getUuid(),
+            email: normalizeEmail_(email),
+            login_at: new Date().toISOString(),
+            result: 'denied',
+            role_id: String(roleId || ''),
+            user_agent: userAgent.slice(0, 500),
+            message: safeLogMessage_(error.message || String(error))
+          });
+        } else {
+          appendUserLoginLog_(email, 'denied', roleId, userAgent, error.message || String(error));
+        }
+      } catch (logError) {}
     }
     throw error;
   }
@@ -690,6 +809,8 @@ function handleAdminUsersUpsert_(e, callback) {
       session.email,
       'success'
     );
+    bumpUserAccessCacheVersion_();
+    primeUserAccessCache_(nextUser);
 
     const users = readAdminUsers_().sort(function (a, b) {
       return String(a.email).localeCompare(String(b.email));
@@ -738,6 +859,7 @@ function handleAdminUsersDelete_(e, callback) {
     const sheet = ensureCentralSheetHeaders_(USER_ACCESS_SHEET, USER_ACCESS_HEADERS);
     sheet.deleteRow(before.row_number);
     appendUserAccessLog_(email, 'DELETE', cleanUserAccessObject_(before), null, session.email, 'success');
+    bumpUserAccessCacheVersion_();
     const users = readAdminUsers_().sort((a, b) => String(a.email).localeCompare(String(b.email)));
     return json_({ ok: true, source: 'central_db_user_access', deleted_email: email, users }, callback);
   } catch (error) {
@@ -1300,8 +1422,7 @@ function n8nWebhookUrlForCommand_(props, command) {
   return url;
 }
 
-function readCentralSheetRows_(sheetName) {
-  const sheet = SpreadsheetApp.openById(CONFIG.CENTRAL_DB_ID).getSheetByName(sheetName);
+function rowsFromSheet_(sheet) {
   if (!sheet) return [];
   const values = sheet.getDataRange().getValues();
   if (values.length < 2) return [];
@@ -1314,6 +1435,11 @@ function readCentralSheetRows_(sheetName) {
     });
     return object;
   });
+}
+
+function readCentralSheetRows_(sheetName) {
+  const sheet = centralDb_().getSheetByName(sheetName);
+  return rowsFromSheet_(sheet);
 }
 
 function getRawCheckRequestStatus_(requestId, includeJobs) {
@@ -1494,12 +1620,19 @@ function validateSession_(sessionToken) {
   const token = String(sessionToken || '').trim();
   if (!token) throw new Error('Missing session_token.');
 
-  const text = CacheService.getScriptCache().get('session:' + token);
+  const cache = CacheService.getScriptCache();
+  const sessionCacheKey = 'session:' + token;
+  const text = cache.get(sessionCacheKey);
   if (!text) throw new Error('Session not found or expired.');
 
   const cachedSession = JSON.parse(text);
-  const liveUser = findUserAccessRow_(cachedSession.email);
-  if (!isActiveUserAccess_(liveUser)) throw new Error('Email is not allowed or is disabled.');
+  const cachedUser = cachedUserAccess_(cachedSession.email);
+  const liveUser = cachedUser || findUserAccessRow_(cachedSession.email);
+  if (!cachedUser && liveUser) primeUserAccessCache_(liveUser);
+  if (!isActiveUserAccess_(liveUser)) {
+    cache.remove(sessionCacheKey);
+    throw new Error('Email is not allowed or is disabled.');
+  }
   return Object.assign({}, cachedSession, {
     role_id: liveUser.role_id,
     allowed_games: liveUser.allowed_games,
@@ -1510,7 +1643,8 @@ function validateSession_(sessionToken) {
 
 const CQR_DIRECT_GAMES = ['CBM_TH','CBM_SEA','CBPC_TH','CBPC_SEA'];
 const CQR_DIRECT_SCHEMA = 'cqr-dashboard-direct-master-v2';
-const CQR_DIRECT_TTL_SECONDS = 300;
+const CQR_DIRECT_TTL_SECONDS = 21600;
+let CQR_DIRECT_REGISTRY_MEMO_ = null;
 
 function directSheetRows_(fileId, sheetName) {
   const sheet = SpreadsheetApp.openById(fileId).getSheetByName(sheetName);
@@ -1526,6 +1660,7 @@ function directSheetRows_(fileId, sheetName) {
 }
 
 function directRegistry_() {
+  if (CQR_DIRECT_REGISTRY_MEMO_) return CQR_DIRECT_REGISTRY_MEMO_;
   const rows = readCentralSheetRows_('MasterFiles');
   const registry = {};
   rows.forEach(row => {
@@ -1535,6 +1670,7 @@ function directRegistry_() {
     if (CQR_DIRECT_GAMES.indexOf(game) >= 0 && fileId && (!status || status === 'active' || status === 'ready')) registry[game] = fileId;
   });
   CQR_DIRECT_GAMES.forEach(game => { if (!registry[game]) throw new Error('Missing active MasterFiles row for ' + game); });
+  CQR_DIRECT_REGISTRY_MEMO_ = registry;
   return registry;
 }
 
@@ -1641,6 +1777,138 @@ function directChannelAggregate_(rows) {
   });
   const totalBase=result.reduce((s,r)=>s+r.cohort_base_d14,0),totalD14=result.reduce((s,r)=>s+r.retained_d14,0),avg=totalBase?totalD14/totalBase:0;
   return result.map(row=>{const v=directVerdict_(row,avg);return {channel:row.channel,register:row.register_users,d1:directRatePct_(row.d1_rate),d3:directRatePct_(row.d3_rate),d7:directRatePct_(row.d7_rate),d14:directRatePct_(row.d14_rate),verdict_tier:v.tier,verdict_text:v.text,cohort_base_d14:row.cohort_base_d14,retained:{d1:row.retained_d1,d3:row.retained_d3,d7:row.retained_d7,d14:row.retained_d14}};}).sort((a,b)=>b.register-a.register);
+}
+
+function directDate_(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) return Utilities.formatDate(value, 'Asia/Bangkok', 'yyyy-MM-dd');
+  const text = String(value == null ? '' : value).trim();
+  if (!text) return '';
+  const iso = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (iso) return iso[1];
+  const dmy = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmy) return dmy[3] + '-' + ('0' + dmy[2]).slice(-2) + '-' + ('0' + dmy[1]).slice(-2);
+  const parsed = new Date(text);
+  return isNaN(parsed.getTime()) ? '' : Utilities.formatDate(parsed, 'Asia/Bangkok', 'yyyy-MM-dd');
+}
+
+function directDateInPeriod_(dateText, period) {
+  const month = directMonth_(period);
+  const weekWanted = directWeekNumber_(period);
+  const date = new Date(String(dateText || '') + 'T00:00:00Z');
+  if (isNaN(date)) return false;
+  if (month && String(dateText).slice(0, 7) !== month) return false;
+  if (!weekWanted) return true;
+  return Math.floor((date.getUTCDate() - 1) / 7) + 1 === weekWanted;
+}
+
+function directDailyMetricRows_(game, fileId, period) {
+  const byDate = {};
+  const channelRows = directSheetRows_(fileId, 'ChannelDaily');
+  const dauRows = directSheetRows_(fileId, 'DAUDaily');
+  const hasFirstLogin = channelRows.some(function(row) {
+    return Object.prototype.hasOwnProperty.call(row, 'first_login_users') || Object.prototype.hasOwnProperty.call(row, 'first_login');
+  });
+
+  channelRows.forEach(function(row) {
+    const date = directDate_(rowValue_(row, ['date', 'register_date', 'cohort_date']));
+    if (!date || !directDateInPeriod_(date, period)) return;
+    const item = byDate[date] || {date: date, new_register: 0, paid_register: 0, first_login: hasFirstLogin ? 0 : null, dau: null, has_channel_daily: false};
+    const register = directNum_(rowValue_(row, ['register_users', 'register']));
+    item.has_channel_daily = true;
+    item.new_register += register;
+    if (hasFirstLogin) item.first_login += directNum_(rowValue_(row, ['first_login_users', 'first_login']));
+    const channel = String(rowValue_(row, ['channel', 'db_channel']) || '');
+    if (channel === 'Facebook Ads' || channel === 'Google Ads') item.paid_register += register;
+    byDate[date] = item;
+  });
+
+  dauRows.forEach(function(row) {
+    const date = directDate_(rowValue_(row, ['date', 'login_date', 'metric_date']));
+    if (!date || !directDateInPeriod_(date, period)) return;
+    const item = byDate[date] || {date: date, new_register: null, paid_register: null, first_login: null, dau: null, has_channel_daily: false};
+    item.dau = (item.dau === null ? 0 : item.dau) + directNum_(rowValue_(row, ['dau', 'active_users', 'login_users']));
+    byDate[date] = item;
+  });
+
+  return {
+    rows: Object.keys(byDate).sort().map(function(date) {
+      const row = byDate[date];
+      if (!row.has_channel_daily) {
+        row.new_register = null;
+        row.paid_register = null;
+        row.first_login = null;
+      }
+      return row;
+    }),
+    channel_row_count: channelRows.length,
+    dau_row_count: dauRows.length,
+    has_first_login: hasFirstLogin,
+    game: game
+  };
+}
+
+function readDashboardDailyData_(params) {
+  const registry = directRegistry_();
+  const requestedGame = normalizeGameCode_(params.game || 'ALL');
+  const period = String(params.period || params.month || '').trim();
+  const month = directMonth_(period);
+  if (!month) throw new Error('dashboard.daily requires a valid period or month.');
+  if (requestedGame !== 'ALL' && CQR_DIRECT_GAMES.indexOf(requestedGame) === -1) throw new Error('Unsupported dashboard.daily game: ' + requestedGame);
+
+  const games = requestedGame === 'ALL' ? CQR_DIRECT_GAMES.slice() : [requestedGame];
+  const combined = {};
+  let channelRows = 0;
+  let dauRows = 0;
+  let firstLoginSupported = false;
+
+  games.forEach(function(game) {
+    const result = directDailyMetricRows_(game, registry[game], period);
+    channelRows += result.channel_row_count;
+    dauRows += result.dau_row_count;
+    firstLoginSupported = firstLoginSupported || result.has_first_login;
+    result.rows.forEach(function(row) {
+      const item = combined[row.date] || {date: row.date, new_register: null, paid_register: null, first_login: null, dau: null, has_channel_daily: false};
+      if (row.has_channel_daily) {
+        item.has_channel_daily = true;
+        item.new_register = directNum_(item.new_register) + directNum_(row.new_register);
+        item.paid_register = directNum_(item.paid_register) + directNum_(row.paid_register);
+        if (firstLoginSupported) item.first_login = directNum_(item.first_login) + directNum_(row.first_login);
+      }
+      if (row.dau !== null && row.dau !== undefined) item.dau = (item.dau === null ? 0 : item.dau) + directNum_(row.dau);
+      combined[row.date] = item;
+    });
+  });
+
+  const rows = Object.keys(combined).sort().map(function(date) {
+    const row = combined[date];
+    delete row.has_channel_daily;
+    if (!firstLoginSupported) row.first_login = null;
+    return row;
+  });
+
+  return {
+    contract_version: 'dashboard_daily_v1',
+    source: 'direct_master_channel_daily',
+    read_mode: 'direct_master_daily_endpoint',
+    game: requestedGame,
+    period: period,
+    month: month,
+    rows: rows,
+    row_count: rows.length,
+    supported_fields: {
+      new_register: channelRows > 0,
+      paid_register: channelRows > 0,
+      first_login: firstLoginSupported,
+      dau: dauRows > 0
+    },
+    semantics: {
+      new_register: 'ChannelDaily register_users grouped by register/cohort date.',
+      paid_register: 'ChannelDaily register_users for Facebook Ads and Google Ads.',
+      first_login: firstLoginSupported ? 'ChannelDaily first_login_users for the selected register/cohort date.' : '',
+      dau: 'DAUDaily dau grouped by activity date.'
+    },
+    generated_at: new Date().toISOString()
+  };
 }
 
 function buildDashboardDataFromMasters_(registry, fingerprint) {
