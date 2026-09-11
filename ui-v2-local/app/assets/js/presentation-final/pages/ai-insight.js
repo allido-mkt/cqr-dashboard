@@ -1,7 +1,6 @@
-import { APP_CONFIG } from "../config.js";
 import { getState, addAiMessage, clearAiMessages, setAiStatus } from "../state.js";
 import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/ai-api.js";
-import { icon, escapeHtml, downloadText, showToast, statusPill, optionMarkup } from "../ui.js";
+import { icon, escapeHtml, downloadText, showToast } from "../ui.js";
 
 const PRESETS = [
   ["เปรียบเทียบ Retention ของทุกเกมใน Context นี้ และบอกเกมที่ควรจับตา", "เปรียบเทียบ Retention ของทุกเกมใน Context นี้ และบอกเกมที่ควรจับตา"],
@@ -9,7 +8,6 @@ const PRESETS = [
   ["มี Retention Drop จุดไหนที่ผิดปกติ และควรตรวจอะไรต่อ?", "มี Retention Drop จุดไหนที่ผิดปกติ และควรตรวจอะไรต่อ?"],
   ["สรุป Performance เดือนล่าสุด พร้อม Key Finding, Risk และสิ่งที่ควรทำต่อ", "สรุป Performance เดือนล่าสุด พร้อม Key Finding, Risk และสิ่งที่ควรทำต่อ"],
 ];
-const MONTHS = APP_CONFIG.months.map((item) => ({ value: item.value, label: new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${item.value}-01T00:00:00Z`)) }));
 let busy = false;
 
 const AI_CHAT_UX_STYLE = `<style>
@@ -761,7 +759,7 @@ let aiCatalog = {
   defaultContextGroup: "",
   activeGames: [],
   groups: {},
-  months: APP_CONFIG.months.map((item) => item.value),
+  months: [],
   latestAvailablePeriod: "",
   latestCommonMaturedPeriod: "",
   selectedGames: [],
@@ -908,197 +906,6 @@ function writeAiContext(value) {
   return next;
 }
 
-function monthEnglish(value) {
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    }).format(new Date(`${value}-01T00:00:00Z`));
-  } catch {
-    return value;
-  }
-}
-
-function aiGroupOptions(currentGroup) {
-  if (!aiCatalogLoaded) {
-    return [{ value: "", label: "Loading Context Groups..." }];
-  }
-
-  const groups = Object.keys(aiCatalog.groups || {})
-    .filter((group) => Array.isArray(aiCatalog.groups[group]) && aiCatalog.groups[group].length)
-    .sort()
-    .map((group) => ({ value: group, label: group }));
-
-  groups.push({ value: "CUSTOM", label: "Custom" });
-  return groups;
-}
-
-function aiGameOptions(ctx) {
-  if (!aiCatalogLoaded) return [{ value: "ALL", label: "Loading Games..." }];
-
-  const groupGames = aiGroupCodes(ctx.context_group);
-  return [
-    { value: "ALL", label: `All Games in ${ctx.context_group}` },
-    ...groupGames.map((game) => ({ value: game, label: aiGameLabel(game) })),
-  ];
-}
-
-function aiCustomGameChipsMarkup(ctx) {
-  const selected = new Set(uniqueAiGames(ctx.requested_games));
-
-  return aiCatalog.activeGames.map((entry) => {
-    const game = normalizeAiCode(entry.game_code);
-    const isSelected = selected.has(game);
-    const meta = [entry.market, entry.platform].filter(Boolean).join(" · ");
-    const label = meta ? `${aiGameLabel(game)} · ${meta}` : aiGameLabel(game);
-
-    return `<button class="ai-context-chip${isSelected ? " is-selected" : ""}" type="button" data-ai-custom-game="${escapeHtml(game)}" aria-pressed="${isSelected ? "true" : "false"}">`
-      + `<span class="ai-context-chip-check">${isSelected ? "✓" : "✓"}</span>`
-      + `<span>${escapeHtml(label)}</span>`
-      + `</button>`;
-  }).join("");
-}
-
-function aiPeriodOptions(ctx) {
-  const months = (Array.isArray(aiCatalog.months) ? aiCatalog.months : [])
-    .filter((value) => /^20\d{2}-\d{2}$/.test(String(value)))
-    .slice()
-    .sort()
-    .reverse();
-
-  const source = months.length
-    ? months.map((value) => ({ value, label: monthEnglish(value) }))
-    : MONTHS;
-
-  return [{ value: "ALL", label: "All Periods" }, ...source];
-}
-
-function aiCoverageText(ctx) {
-  if (!aiCatalogLoaded) return "กำลังโหลด Game Registry และ Data Coverage...";
-  const requested = uniqueAiGames(ctx.requested_games);
-  const scope = ctx.context_group === "CUSTOM"
-    ? `Custom · ${requested.length} game${requested.length === 1 ? "" : "s"}`
-    : `${ctx.context_group} · ${ctx.game === "ALL" ? `${requested.length} games` : aiGameLabel(ctx.game)}`;
-
-  const latest = aiCatalog.latestAvailablePeriod || "-";
-  const matured = aiCatalog.latestCommonMaturedPeriod || "-";
-  return `Scope: ${scope} · Latest: ${latest} · Common Matured: ${matured}`;
-}
-
-function aiContextControlsMarkup(ctx) {
-  const groupOptions = aiGroupOptions(ctx.context_group);
-  const custom = ctx.context_group === "CUSTOM";
-
-  return `
-    <div class="ai-context-toolbar">
-      <label class="form-field">
-        <span class="form-label">Context Group</span>
-        <select class="form-control" id="ai-context-group"${aiCatalogLoaded ? "" : " disabled"}>${optionMarkup(groupOptions, ctx.context_group)}</select>
-      </label>
-
-      <label class="form-field" id="ai-context-game-field"${custom ? ' style="display:none"' : ""}>
-        <span class="form-label">Game Scope</span>
-        <select class="form-control" id="ai-context-game"${aiCatalogLoaded ? "" : " disabled"}>${optionMarkup(aiGameOptions(ctx), ctx.game)}</select>
-      </label>
-
-      <label class="form-field">
-        <span class="form-label">Period</span>
-        <select class="form-control" id="ai-context-period">${optionMarkup(aiPeriodOptions(ctx), ctx.period)}</select>
-      </label>
-
-      <button class="button primary ai-context-apply" id="apply-ai-context" type="button">${icon("check", "nav-icon")} Apply</button>
-    </div>
-
-    <div class="ai-context-custom-panel" id="ai-context-custom-games-field"${custom ? "" : ' style="display:none"'}>
-      <div class="ai-context-custom-label">เลือกเกมที่ต้องการเปรียบเทียบ</div>
-      <div class="ai-context-chip-list" id="ai-context-custom-games">
-        ${aiCustomGameChipsMarkup(ctx)}
-      </div>
-    </div>
-
-    <div class="ai-context-coverage-row${aiCatalogLoaded ? "" : " is-loading"}" id="ai-context-coverage-row">
-      <span class="ai-context-coverage-dot" aria-hidden="true"></span>
-      <span id="ai-context-coverage">${escapeHtml(aiCoverageText(ctx))}</span>
-    </div>`;
-}
-
-function contextFromControls() {
-  const current = context();
-  const contextGroup = normalizeAiCode(
-    document.getElementById("ai-context-group")?.value || current.context_group
-  );
-  const period = document.getElementById("ai-context-period")?.value || current.period || "ALL";
-
-  if (contextGroup === "CUSTOM") {
-    const requestedGames = Array.from(
-      document.querySelectorAll("[data-ai-custom-game].is-selected")
-    ).map((button) => button.dataset.aiCustomGame);
-
-    return normalizeAiContextAgainstCatalog({
-      context_group: "CUSTOM",
-      game: "ALL",
-      requested_games: requestedGames,
-      period,
-    });
-  }
-
-  const game = normalizeAiCode(document.getElementById("ai-context-game")?.value || "ALL") || "ALL";
-  return normalizeAiContextAgainstCatalog({
-    context_group: contextGroup,
-    game,
-    requested_games: game === "ALL" ? aiGroupCodes(contextGroup) : [game],
-    period,
-  });
-}
-
-function syncAiContextControls(value) {
-  const ctx = normalizeAiContextAgainstCatalog(value);
-
-  const groupSelect = document.getElementById("ai-context-group");
-  if (groupSelect) {
-    groupSelect.disabled = !aiCatalogLoaded;
-    groupSelect.innerHTML = optionMarkup(aiGroupOptions(ctx.context_group), ctx.context_group);
-    groupSelect.value = ctx.context_group;
-  }
-
-  const gameField = document.getElementById("ai-context-game-field");
-  const gameSelect = document.getElementById("ai-context-game");
-  const customField = document.getElementById("ai-context-custom-games-field");
-  const customGames = document.getElementById("ai-context-custom-games");
-  const custom = ctx.context_group === "CUSTOM";
-
-  if (gameField) gameField.style.display = custom ? "none" : "";
-  if (customField) customField.style.display = custom ? "" : "none";
-
-  if (gameSelect) {
-    gameSelect.disabled = !aiCatalogLoaded || custom;
-    gameSelect.innerHTML = optionMarkup(aiGameOptions(ctx), ctx.game);
-    gameSelect.value = ctx.game;
-  }
-
-  if (customGames) {
-    customGames.innerHTML = aiCustomGameChipsMarkup(ctx);
-  }
-
-  const periodSelect = document.getElementById("ai-context-period");
-  if (periodSelect) {
-    periodSelect.innerHTML = optionMarkup(aiPeriodOptions(ctx), ctx.period);
-    periodSelect.value = ctx.period;
-  }
-
-  const coverage = document.getElementById("ai-context-coverage");
-  if (coverage) coverage.textContent = aiCoverageText(ctx);
-
-  const coverageRow = document.getElementById("ai-context-coverage-row");
-  if (coverageRow) {
-    coverageRow.classList.toggle("is-loading", !aiCatalogLoaded);
-    coverageRow.classList.remove("is-error");
-  }
-
-  updateAiCoverageSummary(ctx);
-}
-
 function parseAiRegistry(data) {
   const version = data?.data_version || {};
   const registry = version?.game_registry || {};
@@ -1147,10 +954,7 @@ function applyAiCoverageFromData(data) {
 
 async function loadAiCatalogFromDirectMaster() {
   if (aiCatalogLoading) return;
-  if (aiCatalogLoaded) {
-    syncAiContextControls(context());
-    return;
-  }
+  if (aiCatalogLoaded) return;
 
   aiCatalogLoading = true;
   try {
@@ -1161,58 +965,11 @@ async function loadAiCatalogFromDirectMaster() {
     parseAiRegistry(data);
     aiCatalogLoaded = true;
     applyAiCoverageFromData(data);
-
-    const normalized = writeAiContext(readAiContext());
-    syncAiContextControls(normalized);
   } catch (error) {
     console.warn("AI GameRegistry load failed:", error);
-    const coverage = document.getElementById("ai-context-coverage");
-    if (coverage) coverage.textContent = `โหลด Game Registry ไม่สำเร็จ: ${error.message || error}`;
-    const coverageRow = document.getElementById("ai-context-coverage-row");
-    if (coverageRow) {
-      coverageRow.classList.remove("is-loading");
-      coverageRow.classList.add("is-error");
-    }
   } finally {
     aiCatalogLoading = false;
   }
-}
-
-async function loadAiCoverageForContext(value) {
-  const ctx = normalizeAiContextAgainstCatalog(value);
-  if (!aiCatalogLoaded) return ctx;
-  if (!ctx.requested_games.length) {
-    syncAiContextControls(ctx);
-    return ctx;
-  }
-
-  const coverage = document.getElementById("ai-context-coverage");
-  if (coverage) coverage.textContent = "กำลังตรวจ Data Coverage จาก Direct Master...";
-
-  const request = {
-    context_group: ctx.context_group,
-    games_csv: ctx.requested_games.join(","),
-  };
-
-  const result = await callAuthorized("dashboard.data", request, 60000);
-  const payload = normalizePayload(result);
-  const data = payload?.data || payload?.CQR_DATA || payload;
-
-  if (String(data?.data_version?.read_mode || "") !== "direct_master_aggregation") {
-    throw new Error("Backend is not in Direct Master mode");
-  }
-
-  const returnedGames = Array.isArray(data?.data_version?.selected_games)
-    ? uniqueAiGames(data.data_version.selected_games)
-    : [];
-
-  if (returnedGames.length !== ctx.requested_games.length) {
-    throw new Error("Dashboard selected_games does not match requested AI scope");
-  }
-
-  applyAiCoverageFromData(data);
-  syncAiContextControls(ctx);
-  return ctx;
 }
 
 function aiConversationId() {
@@ -1556,59 +1313,6 @@ function recentQuestionsMarkup(messages) {
   ).join("")}</div>`;
 }
 
-function coverageGameCodes(ctx) {
-  return uniqueAiGames(ctx.requested_games);
-}
-
-function coverageGamesMarkup(ctx) {
-  const games = coverageGameCodes(ctx);
-
-  if (!games.length) {
-    return `<div class="ai-side-empty">ยังไม่ได้เลือก Game Scope</div>`;
-  }
-
-  return games.map((game) =>
-    `<span class="ai-coverage-game">${escapeHtml(aiGameLabel(game))}</span>`
-  ).join("");
-}
-
-function coveragePanelMarkup(ctx) {
-  const games = coverageGameCodes(ctx);
-  const sourceLabel = aiCatalogLoaded ? "Direct Master" : "Loading";
-  const groupLabel = ctx.context_group || "-";
-
-  return `<article class="surface-card ai-side-card">
-    <div class="card-header">
-      <div>
-        <h2 class="card-title">Data Coverage</h2>
-        <p class="card-description">ขอบเขตข้อมูลที่ AI จะใช้ตอบคำถามนี้</p>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="ai-coverage-grid">
-        <div class="ai-coverage-stat">
-          <div class="ai-coverage-stat-label">Context</div>
-          <div class="ai-coverage-stat-value" id="ai-coverage-context">${escapeHtml(groupLabel)}</div>
-        </div>
-        <div class="ai-coverage-stat">
-          <div class="ai-coverage-stat-label">Games</div>
-          <div class="ai-coverage-stat-value" id="ai-coverage-count">${games.length}</div>
-        </div>
-        <div class="ai-coverage-stat">
-          <div class="ai-coverage-stat-label">Latest</div>
-          <div class="ai-coverage-stat-value" id="ai-coverage-latest">${escapeHtml(aiCatalog.latestAvailablePeriod || "-")}</div>
-        </div>
-        <div class="ai-coverage-stat">
-          <div class="ai-coverage-stat-label">Common Matured</div>
-          <div class="ai-coverage-stat-value" id="ai-coverage-matured">${escapeHtml(aiCatalog.latestCommonMaturedPeriod || "-")}</div>
-        </div>
-      </div>
-      <div class="ai-coverage-games" id="ai-coverage-games">${coverageGamesMarkup(ctx)}</div>
-      <div class="card-description" style="margin-top:.5rem">Source: <span id="ai-coverage-source">${escapeHtml(sourceLabel)}</span></div>
-    </div>
-  </article>`;
-}
-
 function aiRuntimeErrorMarkup(ai) {
   if (!ai?.error && ai?.status !== "failed") return "";
 
@@ -1616,33 +1320,6 @@ function aiRuntimeErrorMarkup(ai) {
     <strong>AI connection error</strong><br>
     ${escapeHtml(ai.error || "AI request failed")}
   </div>`;
-}
-
-function updateAiCoverageSummary(value) {
-  const ctx = normalizeAiContextAgainstCatalog(value);
-  const games = coverageGameCodes(ctx);
-
-  const contextNode = document.getElementById("ai-coverage-context");
-  const countNode = document.getElementById("ai-coverage-count");
-  const latestNode = document.getElementById("ai-coverage-latest");
-  const maturedNode = document.getElementById("ai-coverage-matured");
-  const gamesNode = document.getElementById("ai-coverage-games");
-  const sourceNode = document.getElementById("ai-coverage-source");
-
-  if (contextNode) contextNode.textContent = ctx.context_group || "-";
-  if (countNode) countNode.textContent = String(games.length);
-  if (latestNode) latestNode.textContent = aiCatalog.latestAvailablePeriod || "-";
-  if (maturedNode) maturedNode.textContent = aiCatalog.latestCommonMaturedPeriod || "-";
-  if (gamesNode) gamesNode.innerHTML = coverageGamesMarkup(ctx);
-  if (sourceNode) sourceNode.textContent = aiCatalogLoaded ? "Direct Master" : "Loading";
-}
-
-function chatContextSummary(ctx) {
-  const games = uniqueAiGames(ctx.requested_games);
-  const group = ctx.context_group || "Context";
-  const scope = ctx.game === "ALL" ? `${games.length} Games` : aiGameLabel(ctx.game);
-  const period = ctx.period === "ALL" ? "All Periods" : monthEnglish(ctx.period);
-  return `${group} · ${scope} · ${period}`;
 }
 
 function aiPromptExamples() {
@@ -1980,14 +1657,6 @@ export function bindAiInsightPage() {
   const inputV8 = document.getElementById("ai-input");
   if (inputV8) inputV8.placeholder = "ถามได้ทั้งข้อมูล CQR การวิเคราะห์ หรือคำถามทั่วไป...";
 
-  document.querySelectorAll("[data-ai-example]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const question = String(button.getAttribute("data-ai-example") || "").trim();
-      if (!question || busy) return;
-      sendQuestion(question);
-    });
-  });
-
   document.querySelector("[data-ai-new-shortcut]")?.addEventListener("click", () => {
     document.getElementById("clear-chat")?.click();
   });
@@ -1998,27 +1667,6 @@ export function bindAiInsightPage() {
 
   document.querySelector("[data-ai-view-recent]")?.addEventListener("click", () => {
     document.querySelector(".ai-selected-rail .ai-recent-question")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  });
-
-  /* CQR_AI_SELECTED_BIND_V7 */
-  document.querySelectorAll("[data-ai-example]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const question = String(button.getAttribute("data-ai-example") || "").trim();
-      if (!question || busy) return;
-      sendQuestion(question);
-    });
-  });
-
-  document.querySelector("[data-ai-prompt-library]")?.addEventListener("click", () => {
-    document.getElementById("ai-popular-questions")?.scrollIntoView({ behavior:"smooth", block:"nearest" });
-  });
-
-  document.querySelector("[data-ai-new-shortcut]")?.addEventListener("click", () => {
-    document.getElementById("clear-chat")?.click();
-  });
-
-  document.querySelector("[data-ai-view-recent]")?.addEventListener("click", () => {
-    document.querySelector(".ai-selected-rail .ai-recent-question")?.scrollIntoView({ behavior:"smooth", block:"nearest" });
   });
 
   /* CQR_AI_HIDE_TOP_HEADER_V4_FIX */
@@ -2132,77 +1780,6 @@ export function bindAiInsightPage() {
 
   loadAiCatalogFromDirectMaster();
 
-  document.getElementById("ai-context-group")?.addEventListener("change", (event) => {
-    const group = normalizeAiCode(event.target?.value);
-    const period = document.getElementById("ai-context-period")?.value || context().period || "ALL";
-
-    const next = group === "CUSTOM"
-      ? {
-          context_group: "CUSTOM",
-          game: "ALL",
-          requested_games: [],
-          period,
-        }
-      : {
-          context_group: group,
-          game: "ALL",
-          requested_games: aiGroupCodes(group),
-          period,
-        };
-
-    syncAiContextControls(next);
-  });
-
-
-  document.getElementById("ai-context-custom-games-field")?.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-ai-custom-game]");
-    if (!button) return;
-
-    const selected = !button.classList.contains("is-selected");
-    button.classList.toggle("is-selected", selected);
-    button.setAttribute("aria-pressed", selected ? "true" : "false");
-
-    const preview = contextFromControls();
-    const coverage = document.getElementById("ai-context-coverage");
-    if (coverage) coverage.textContent = aiCoverageText(preview);
-    updateAiCoverageSummary(preview);
-  });
-
-  document.getElementById("apply-ai-context")?.addEventListener("click", async () => {
-    try {
-      const next = contextFromControls();
-
-      if (!next.context_group) {
-        showToast("กรุณาเลือก Context Group");
-        return;
-      }
-      if (!next.requested_games.length) {
-        showToast("กรุณาเลือกอย่างน้อย 1 เกม");
-        return;
-      }
-
-      const saved = writeAiContext(next);
-      setAiStatus({
-        status: "idle",
-        source: "",
-        model: "",
-        grounded: null,
-        updatedAt: "",
-        error: "",
-        resolvedPeriod: "",
-        resolvedGame: "",
-        maturityStatus: "",
-      });
-
-      await loadAiCoverageForContext(saved);
-      showToast(`Applied AI context ${saved.context_group} / ${saved.game} / ${saved.period}`);
-      window.dispatchEvent(new Event("cqr-page-refresh"));
-    } catch (error) {
-      const message = error.message || String(error);
-      showToast(`Apply Context ไม่สำเร็จ: ${message}`);
-    }
-  });
-
   document.querySelectorAll("[data-recent-question]").forEach((button) => {
     button.addEventListener("click", () => sendQuestion(button.dataset.recentQuestion));
   });
@@ -2233,19 +1810,22 @@ export function bindAiInsightPage() {
   });
 
   document.getElementById("export-chat")?.addEventListener("click", () => {
-    const ctx = context();
+    const autoScope = readAiAutoScopeView();
+    const scope = autoScope?.scope && typeof autoScope.scope === "object" ? autoScope.scope : null;
+    const games = Array.isArray(scope?.games) ? scope.games.join(", ") : "-";
+    const periods = Array.isArray(scope?.periods) ? scope.periods.join(", ") : "-";
     const text = [
       "CQR AI Chat Bot Export",
-      `Context Group: ${ctx.context_group || "-"}`,
-      `Game: ${ctx.game}`,
-      `Requested Games: ${ctx.requested_games.join(", ") || "-"}`,
-      `Period: ${ctx.period}`,
-      "Source: Direct Master",
+      `Auto Scope: ${scope ? aiAutoScopeSummary(scope, autoScope.intent) : "-"}`,
+      `Resolved Games: ${games || "-"}`,
+      `Resolved Periods: ${periods || "-"}`,
+      "Source: Auto Scope / Direct Master",
       "Retention: Same D14-eligible cohort cumulative",
       "",
       ...getState().aiMessages.map((message) => `${message.role.toUpperCase()}: ${message.text}`),
     ].join("\n");
 
-    downloadText(`cqr-ai-${ctx.context_group || "scope"}-${ctx.game}-${ctx.period}.txt`, text);
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadText(`cqr-ai-auto-scope-${stamp}.txt`, text);
   });
 }

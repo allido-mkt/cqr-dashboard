@@ -242,6 +242,68 @@ function calendarBounds() {
     ready: true,
   };
 }
+function monthValue(value) {
+  return String(value || "").slice(0, 7);
+}
+function availableReportDates() {
+  const values = [];
+  const push = (value) => {
+    const date = String(value || "").slice(0, 10);
+    if (/^20\d{2}-\d{2}-\d{2}$/.test(date)) values.push(date);
+  };
+
+  [
+    view.overviewEnvelope,
+    view.trendEnvelope,
+    view.cohortsEnvelope,
+    view.channelsEnvelope,
+    view.anomaliesEnvelope,
+  ].forEach((envelope) => {
+    push(envelope?.data?.data_complete_through);
+    (envelope?.data?.games || []).forEach((game) => {
+      push(game?.data_complete_through);
+      push(game?.snapshot?.report_date);
+    });
+    (envelope?.data?.rows || []).forEach((row) => {
+      push(row?.cohort_date);
+      push(row?.metric_date);
+    });
+  });
+
+  return [...new Set(values)].sort();
+}
+function availableMonths() {
+  return [...new Set(availableReportDates().map(monthValue).filter(Boolean))].sort();
+}
+function monthBounds() {
+  const bounds = calendarBounds();
+  const months = availableMonths();
+  return {
+    min: months[0] || (bounds.min ? monthValue(bounds.min) : ""),
+    max: months.at(-1) || (bounds.max ? monthValue(bounds.max) : ""),
+    ready: bounds.ready,
+  };
+}
+function reportDateForMonth(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})$/);
+  if (!match) return "";
+
+  const bounds = calendarBounds();
+  if (!bounds.max) return "";
+  const actualDate = availableReportDates()
+    .filter((date) => monthValue(date) === value && (!bounds.min || date >= bounds.min) && (!bounds.max || date <= bounds.max))
+    .at(-1);
+  if (actualDate) return actualDate;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const monthStart = `${match[1]}-${match[2]}-01`;
+  const monthEnd = isoDate(new Date(Date.UTC(year, month, 0)));
+  const lower = bounds.min && bounds.min > monthStart ? bounds.min : monthStart;
+  const upper = bounds.max && bounds.max < monthEnd ? bounds.max : monthEnd;
+
+  return lower <= upper ? upper : "";
+}
 function visibleDateRange() {
   const end = selectedReportDate();
   const start = shiftDate(end, -(view.window - 1));
@@ -324,6 +386,8 @@ function overviewData() {
 
   const scopedLatestGames = (base.games || [])
     .filter((game) => view.game === "ALL" || game.game_code === view.game);
+
+  if (selected && latest && selected !== latest && !view.trendEnvelope) return null;
 
   return {
     ...base,
@@ -920,15 +984,25 @@ function tab(id, label, iconName) {
 }
 function headerToolsMarkup() {
   const bounds = calendarBounds();
+  const months = monthBounds();
   const value = selectedReportDate();
+  const month = monthValue(value);
   return `
     <div class="dr-header-tools-inner">
       <label class="dr-control dr-header-game">
         <span class="dr-control-label">เกม</span>
         <select id="dr-game">${options(GAMES, view.game)}</select>
       </label>
-      <label class="dr-control dr-date-control">
+      <label class="dr-control dr-month-control">
         ${icon("calendar", "dr-ico dr-ico-sm")}
+        <span class="dr-control-label">เดือน</span>
+        <input id="dr-report-month" type="month"
+          value="${esc(month)}"
+          ${months.min ? `min="${esc(months.min)}"` : ""}
+          ${months.max ? `max="${esc(months.max)}"` : ""}
+          ${months.ready ? "" : "disabled"}>
+      </label>
+      <label class="dr-control dr-date-control">
         <span class="dr-control-label">ข้อมูล ณ วันที่</span>
         <input id="dr-report-date" type="date"
           value="${esc(value)}"
@@ -963,10 +1037,9 @@ function bindHeaderTools() {
     updateContentOnly();
   }));
 
-  document.getElementById("dr-report-date")?.addEventListener("change", async (event) => {
-    const next = event.target.value;
+  const selectReportDate = async (next) => {
     const bounds = calendarBounds();
-    if (!next || (bounds.min && next < bounds.min) || (bounds.max && next > bounds.max)) return;
+    if (!next || (bounds.min && next < bounds.min) || (bounds.max && next > bounds.max)) return false;
 
     view.reportDate = next;
     view.summaryEnvelope = null;
@@ -974,10 +1047,32 @@ function bindHeaderTools() {
     update();
 
     if (!view.trendEnvelope) await ensureTrendEnvelope({ requestId });
-    if (requestId !== view.requestId) return;
+    if (requestId !== view.requestId) return false;
 
     updateContentOnly();
     void loadSummary({ requestId });
+    return true;
+  };
+
+  document.getElementById("dr-report-month")?.addEventListener("change", async (event) => {
+    const nextMonth = event.target.value;
+    const months = monthBounds();
+    if (!nextMonth || (months.min && nextMonth < months.min) || (months.max && nextMonth > months.max)) {
+      event.target.value = monthValue(selectedReportDate());
+      return;
+    }
+
+    const next = reportDateForMonth(nextMonth);
+    if (!next) {
+      event.target.value = monthValue(selectedReportDate());
+      return;
+    }
+    await selectReportDate(next);
+  });
+
+  document.getElementById("dr-report-date")?.addEventListener("change", async (event) => {
+    const ok = await selectReportDate(event.target.value);
+    if (!ok) event.target.value = selectedReportDate();
   });
 
   document.getElementById("dr-refresh")?.addEventListener("click", async () => {
@@ -990,7 +1085,7 @@ function bindHeaderTools() {
 
 function renderShell() {
   ensureStyle();
-  return `<section class="dr-page" id="dr-page" data-ui-version="2.11.0" aria-label="Daily Retention">
+  return `<section class="dr-page" id="dr-page" data-ui-version="2.12.0" aria-label="Daily Retention">
     <div class="dr-tabs">${tab("overview", "ภาพรวม", "chart")}${tab("cohorts", "กลุ่มผู้สมัคร", "calendar")}${tab("channels", "ช่องทางผู้เล่น", "channel")}${tab("anomalies", "จุดผิดปกติ", "alert")}</div>
     <div id="dr-content" class="dr-content-stack">${content()}</div>
   </section>`;
@@ -1074,7 +1169,10 @@ async function loadOverviewEnhancements({ refresh = false, requestId = view.requ
   await Promise.allSettled([
     loadSummary({ refresh, requestId, reportDate, game }),
     ensureTrendEnvelope({ refresh, requestId }).then(() => {
-      if (requestId === view.requestId) updateContentOnly();
+      if (requestId === view.requestId) {
+        renderHeaderTools();
+        updateContentOnly();
+      }
     }),
   ]);
 }
