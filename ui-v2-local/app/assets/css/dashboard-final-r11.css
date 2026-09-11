@@ -576,10 +576,10 @@ body.dashboard-r11 .dau-card {
 body.dashboard-r11 .hfilters {
   display: grid !important;
   grid-template-columns:
-    minmax(190px,1.16fr)
-    minmax(170px,1fr)
-    minmax(270px,1.28fr)
-    minmax(190px,1.02fr)
+    minmax(180px,1.12fr)
+    minmax(160px,1fr)
+    minmax(260px,1.18fr)
+    minmax(180px,1.08fr)
     150px !important;
   gap: 9px !important;
   align-items: center !important;
@@ -628,28 +628,43 @@ body.dashboard-r11 .hfilters > .dashboard-period-context {
 
 body.dashboard-r11 .hfilters > .dashboard-period-context {
   position: relative !important;
-  grid-template-columns: minmax(0,1fr) !important;
+  grid-template-columns: 22px minmax(0,1fr) !important;
 }
 
-body.dashboard-r11 .dashboard-filter-control > .app-icon {
+body.dashboard-r11 .dashboard-filter-control > .app-icon,
+body.dashboard-r11 .dashboard-period-context > .app-icon {
   width: 18px !important;
   height: 18px !important;
   color: #4e5b6d !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
 }
 
-body.dashboard-r11 .dashboard-filter-control .filter-copy {
+body.dashboard-r11 .dashboard-filter-control .filter-copy,
+body.dashboard-r11 .dashboard-period-context .filter-copy {
   min-width: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 1px !important;
 }
 
-body.dashboard-r11 .dashboard-filter-control .filter-label {
+body.dashboard-r11 .dashboard-filter-control .filter-label,
+body.dashboard-r11 .dashboard-period-context .filter-label {
   color: #7a8595 !important;
   font-size: 8.7px !important;
   font-weight: 720 !important;
   line-height: 1 !important;
   letter-spacing: .03em !important;
+}
+
+body.dashboard-r11 .period-control-stack {
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: 25px !important;
+  display: block !important;
 }
 
 body.dashboard-r11 .dashboard-filter-control select,
@@ -672,6 +687,9 @@ body.dashboard-r11 .daily-date-trigger {
 body.dashboard-r11 .daily-date-trigger {
   cursor: pointer !important;
   text-align: left !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 
 body.dashboard-r11 .daily-date-trigger:disabled {
@@ -1134,7 +1152,7 @@ body.dashboard-r11 .total-retention-panel .retention-kpi.is-last {
 }
 
 /* 08 — Responsive */
-@media (max-width: 1260px) {
+@media (max-width: 1380px) {
   body.dashboard-r11 .hfilters {
     grid-template-columns: repeat(3,minmax(0,1fr)) !important;
     width: 100% !important;
@@ -1149,7 +1167,7 @@ body.dashboard-r11 .total-retention-panel .retention-kpi.is-last {
 
 @media (max-width: 760px) {
   body.dashboard-r11 .hfilters {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
   }
   body.dashboard-r11 .daily-calendar-popover {
     left: 0 !important;

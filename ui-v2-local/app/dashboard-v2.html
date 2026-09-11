@@ -303,9 +303,16 @@ td{vertical-align:middle;}
         <button type="button" class="segment-button active" data-period-mode="month" onclick="setPeriodMode('month')">Monthly</button>
       </div>
       <div class="dashboard-period-context" data-period-context>
-        <select id="f-month" class="period-context-select" aria-label="Month" onchange="syncWeekOptions();renderAll()"></select>
-        <select id="f-daily-date" class="native-daily-date period-hidden" aria-label="Date" aria-hidden="true" tabindex="-1" onchange="setDailyDataDate(this.value)"></select>
-        <button id="f-daily-date-button" class="daily-date-trigger period-hidden" type="button" aria-haspopup="dialog" aria-expanded="false" onclick="toggleDailyCalendarPopover()">เลือกวันที่</button>
+        <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        <span class="filter-copy period-filter-copy">
+          <span id="period-context-label" class="filter-label">เดือน</span>
+          <span class="period-control-stack">
+            <select id="f-month" class="period-context-select" aria-label="Month" onchange="syncWeekOptions();renderAll()"></select>
+            <select id="f-daily-date" class="native-daily-date period-hidden" aria-label="Date" aria-hidden="true" tabindex="-1" onchange="setDailyDataDate(this.value)"></select>
+            <button id="f-daily-date-button" class="daily-date-trigger period-hidden" type="button" aria-haspopup="dialog" aria-expanded="false" onclick="toggleDailyCalendarPopover()">เลือกวันที่</button>
+            <select id="f-week" class="period-hidden period-context-select" aria-label="Week" onchange="renderAll()"></select>
+          </span>
+        </span>
         <div id="daily-calendar-popover" class="daily-calendar-popover" role="dialog" aria-label="Daily date picker" hidden>
           <div class="daily-calendar-head">
             <button type="button" aria-label="Previous month" onclick="shiftDailyCalendarMonth(-1)">‹</button>
@@ -317,7 +324,6 @@ td{vertical-align:middle;}
           </div>
           <div id="daily-calendar-grid" class="daily-calendar-grid"></div>
         </div>
-        <select id="f-week" class="period-hidden period-context-select" aria-label="Week" onchange="renderAll()"></select>
       </div>
       <details class="export-menu">
         <summary>EXPORT</summary>
@@ -912,6 +918,15 @@ function syncPeriodButtons(){
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
+  updatePeriodContextLabel(mode);
+}
+
+function updatePeriodContextLabel(mode = currentPeriodMode()){
+  const label = document.getElementById('period-context-label');
+  const context = document.querySelector('[data-period-context]');
+  const labels = {day:'วันที่', week:'สัปดาห์', month:'เดือน'};
+  if(label) label.textContent = labels[mode] || labels.month;
+  if(context) context.dataset.periodMode = mode;
 }
 
 function setDailyDataDate(value){
@@ -1439,12 +1454,19 @@ function renderMau(game,month){
 }
 
 function syncWeekOptions(){
-  if(!D) return;
-  const month = document.getElementById('f-month').value;
   const weekSelect = document.getElementById('f-week');
   const monthSelect = document.getElementById('f-month');
   const dateButton = document.getElementById('f-daily-date-button');
   const periodType = currentPeriodMode();
+  if(monthSelect) monthSelect.classList.toggle('period-hidden', periodType !== 'month');
+  if(weekSelect) weekSelect.classList.toggle('period-hidden', periodType !== 'week');
+  if(dateButton) dateButton.classList.toggle('period-hidden', periodType !== 'day');
+  const weekControl = weekSelect?.closest('.dashboard-week-control');
+  if(weekControl) weekControl.classList.toggle('is-hidden', periodType !== 'week');
+  if(periodType !== 'day') closeDailyCalendarPopover();
+  syncPeriodButtons();
+  if(!D || !weekSelect || !monthSelect) return;
+  const month = monthSelect.value;
   const previous = weekSelect.value;
   const weeks = periodType === 'week' ? allWeekOptions() : (D.weeks_by_month?.[month] || []);
 
@@ -1456,12 +1478,6 @@ function syncWeekOptions(){
     monthSelect.value = weekMonth;
   }
 
-  weekSelect.classList.toggle('period-hidden', periodType !== 'week');
-  if(monthSelect) monthSelect.classList.toggle('period-hidden', periodType !== 'month');
-  if(dateButton) dateButton.classList.toggle('period-hidden', periodType !== 'day');
-  const weekControl = weekSelect.closest('.dashboard-week-control');
-  if(weekControl) weekControl.classList.toggle('is-hidden', periodType !== 'week');
-  if(periodType !== 'day') closeDailyCalendarPopover();
   syncPeriodButtons();
 }
 
