@@ -72,8 +72,11 @@ function setupDashboardHeader() {
 
   filterWrapper(document.getElementById("f-game"), "Game", "game");
   filterWrapper(document.getElementById("f-channel"), "Channel", "channel");
-  filterWrapper(document.getElementById("f-month"), "Month", "month");
-  const weekWrapper = filterWrapper(document.getElementById("f-week"), "Week", "month");
+  const periodContext = document.querySelector("[data-period-context]");
+  const weekWrapper = periodContext
+    ? null
+    : filterWrapper(document.getElementById("f-week"), "Week", "month");
+  if (!periodContext) filterWrapper(document.getElementById("f-month"), "Month", "month");
   weekWrapper?.classList.add("dashboard-week-control");
 
   const nativeView = document.getElementById("f-period-type");
@@ -105,6 +108,8 @@ function syncPeriodControls() {
   const week = document.getElementById("f-week");
   const wrapper = week?.closest(".dashboard-week-control");
   wrapper?.classList.toggle("is-hidden", view !== "week" || week?.classList.contains("period-hidden"));
+  const periodContext = document.querySelector("[data-period-context]");
+  if (periodContext) periodContext.dataset.periodMode = view;
 }
 
 function init() {

@@ -576,14 +576,16 @@ body.dashboard-r11 .dau-card {
 body.dashboard-r11 .hfilters {
   display: grid !important;
   grid-template-columns:
-    minmax(190px,1.18fr)
-    minmax(165px,1fr)
-    minmax(165px,.95fr)
-    minmax(150px,.88fr)
-    minmax(145px,.85fr)
+    minmax(190px,1.16fr)
+    minmax(170px,1fr)
+    minmax(270px,1.28fr)
+    minmax(190px,1.02fr)
     150px !important;
   gap: 9px !important;
   align-items: center !important;
+  width: min(100%, 1040px) !important;
+  min-width: 0 !important;
+  margin-left: auto !important;
   padding: 11px !important;
   border: 1px solid rgba(255,255,255,.42) !important;
   border-radius: 22px !important;
@@ -594,25 +596,21 @@ body.dashboard-r11 .hfilters {
     inset 1px 1px 2px rgba(255,255,255,.52) !important;
 }
 
-body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
-body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
-  grid-template-columns:
-    minmax(200px,1.18fr)
-    minmax(175px,1fr)
-    minmax(175px,.95fr)
-    minmax(160px,.90fr)
-    150px !important;
-}
+@media (max-width: 1500px) {
+  body.shared-dashboard-shell.dashboard-r11 .hbar {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
 
-body.dashboard-r11 #f-week.period-hidden,
-body.dashboard-r11 .dashboard-week-control.is-hidden {
-  display: none !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
+  body.shared-dashboard-shell.dashboard-r11 .hfilters {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
 }
 
 /* Runtime R4 wrappers created by dashboard-shared-shell-r4.js. */
-body.dashboard-r11 .hfilters > .filter-control.dashboard-filter-control {
+body.dashboard-r11 .hfilters > .filter-control.dashboard-filter-control,
+body.dashboard-r11 .hfilters > .dashboard-period-context {
   min-width: 0 !important;
   min-height: 45px !important;
   padding: 0 11px !important;
@@ -626,6 +624,11 @@ body.dashboard-r11 .hfilters > .filter-control.dashboard-filter-control {
   box-shadow:
     inset 3px 3px 7px rgba(150,165,187,.14),
     inset -3px -3px 7px rgba(255,255,255,.68) !important;
+}
+
+body.dashboard-r11 .hfilters > .dashboard-period-context {
+  position: relative !important;
+  grid-template-columns: minmax(0,1fr) !important;
 }
 
 body.dashboard-r11 .dashboard-filter-control > .app-icon {
@@ -650,7 +653,8 @@ body.dashboard-r11 .dashboard-filter-control .filter-label {
 }
 
 body.dashboard-r11 .dashboard-filter-control select,
-body.dashboard-r11 .hfilters > select {
+body.dashboard-r11 .dashboard-period-context select,
+body.dashboard-r11 .daily-date-trigger {
   min-width: 0 !important;
   width: 100% !important;
   height: 25px !important;
@@ -663,6 +667,21 @@ body.dashboard-r11 .hfilters > select {
   font-size: 11.5px !important;
   font-weight: 760 !important;
   box-shadow: none !important;
+}
+
+body.dashboard-r11 .daily-date-trigger {
+  cursor: pointer !important;
+  text-align: left !important;
+}
+
+body.dashboard-r11 .daily-date-trigger:disabled {
+  color: #8b95a4 !important;
+  cursor: not-allowed !important;
+}
+
+body.dashboard-r11 .period-hidden,
+body.dashboard-r11 .native-daily-date {
+  display: none !important;
 }
 
 body.dashboard-r11 .dashboard-filter-control:focus-within {
@@ -678,7 +697,7 @@ body.dashboard-r11 .dashboard-period-segment {
   min-height: 45px !important;
   padding: 4px !important;
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
+  grid-template-columns: repeat(3,minmax(0,1fr)) !important;
   gap: 3px !important;
   border: 1px solid rgba(255,255,255,.40) !important;
   border-radius: 14px !important;
@@ -691,7 +710,7 @@ body.dashboard-r11 .dashboard-period-segment {
 body.dashboard-r11 .dashboard-period-segment .segment-button {
   min-width: 0 !important;
   height: 35px !important;
-  padding: 0 12px !important;
+  padding: 0 8px !important;
   border: 0 !important;
   border-radius: 10px !important;
   background: transparent !important;
@@ -713,6 +732,112 @@ body.dashboard-r11 .dashboard-period-segment .segment-button.active {
 
 body.dashboard-r11 .dashboard-native-view {
   display: none !important;
+}
+
+body.dashboard-r11 .daily-calendar-popover {
+  position: absolute !important;
+  top: calc(100% + 10px) !important;
+  right: 0 !important;
+  z-index: 90 !important;
+  width: 286px !important;
+  padding: 12px !important;
+  border: 1px solid rgba(117,132,155,.16) !important;
+  border-radius: 16px !important;
+  background: #f4f6f8 !important;
+  box-shadow: 0 20px 44px -24px rgba(31,41,55,.48), var(--cqr-raised-soft) !important;
+}
+
+body.dashboard-r11 .daily-calendar-popover[hidden] {
+  display: none !important;
+}
+
+body.dashboard-r11 .daily-calendar-head {
+  display: grid !important;
+  grid-template-columns: 32px minmax(0,1fr) 32px !important;
+  gap: 8px !important;
+  align-items: center !important;
+  margin-bottom: 10px !important;
+}
+
+body.dashboard-r11 .daily-calendar-head strong {
+  min-width: 0 !important;
+  color: #283241 !important;
+  font-size: 12px !important;
+  font-weight: 820 !important;
+  text-align: center !important;
+}
+
+body.dashboard-r11 .daily-calendar-head button,
+body.dashboard-r11 .daily-calendar-grid button {
+  border: 0 !important;
+  font-family: 'Sarabun', sans-serif !important;
+  cursor: pointer !important;
+}
+
+body.dashboard-r11 .daily-calendar-head button {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 10px !important;
+  background: var(--cqr-surface-inset) !important;
+  color: #475569 !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  box-shadow: var(--cqr-inset) !important;
+}
+
+body.dashboard-r11 .daily-calendar-head button:disabled {
+  opacity: .42 !important;
+  cursor: not-allowed !important;
+}
+
+body.dashboard-r11 .daily-calendar-weekdays,
+body.dashboard-r11 .daily-calendar-grid {
+  display: grid !important;
+  grid-template-columns: repeat(7,minmax(0,1fr)) !important;
+  gap: 5px !important;
+}
+
+body.dashboard-r11 .daily-calendar-weekdays {
+  margin-bottom: 5px !important;
+  color: #7a8595 !important;
+  font-size: 8px !important;
+  font-weight: 760 !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+}
+
+body.dashboard-r11 .daily-calendar-pad,
+body.dashboard-r11 .daily-calendar-grid button {
+  height: 31px !important;
+}
+
+body.dashboard-r11 .daily-calendar-grid button {
+  border-radius: 10px !important;
+  background: rgba(255,255,255,.68) !important;
+  color: #283241 !important;
+  font-size: 11px !important;
+  font-weight: 760 !important;
+  box-shadow: var(--cqr-raised-soft) !important;
+}
+
+body.dashboard-r11 .daily-calendar-grid button.active {
+  background: linear-gradient(145deg,#292d35,#171a20) !important;
+  color: #fff !important;
+}
+
+body.dashboard-r11 .daily-calendar-grid button:disabled {
+  background: transparent !important;
+  color: #a8b0bd !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+body.dashboard-r11 .daily-calendar-empty {
+  grid-column: 1 / -1 !important;
+  padding: 22px 10px !important;
+  color: #7a8595 !important;
+  font-size: 11px !important;
+  text-align: center !important;
 }
 
 body.dashboard-r11 .hfilters > .export-menu {
@@ -746,6 +871,13 @@ body.dashboard-r11 .export-options {
   border-color: rgba(117,132,155,.14) !important;
   background: #f4f6f8 !important;
   box-shadow: 0 18px 42px -24px rgba(31,41,55,.42) !important;
+}
+
+body.dashboard-r11 .freshness-line,
+body.dashboard-r11 .freshness-chip,
+body.dashboard-r11 .kfresh,
+body.dashboard-r11 .stat-fresh {
+  display: none !important;
 }
 
 /* 04 — Overview KPI Cards
@@ -1003,10 +1135,10 @@ body.dashboard-r11 .total-retention-panel .retention-kpi.is-last {
 
 /* 08 — Responsive */
 @media (max-width: 1260px) {
-  body.dashboard-r11 .hfilters,
-  body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
-  body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
+  body.dashboard-r11 .hfilters {
     grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+    width: 100% !important;
+    margin-left: 0 !important;
   }
   body.dashboard-r11 .hfilters > .export-menu,
   body.dashboard-r11 .hfilters > .export-menu > summary {
@@ -1016,10 +1148,13 @@ body.dashboard-r11 .total-retention-panel .retention-kpi.is-last {
 }
 
 @media (max-width: 760px) {
-  body.dashboard-r11 .hfilters,
-  body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
-  body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
+  body.dashboard-r11 .hfilters {
     grid-template-columns: 1fr !important;
+  }
+  body.dashboard-r11 .daily-calendar-popover {
+    left: 0 !important;
+    right: auto !important;
+    width: min(286px, 100%) !important;
   }
   body.dashboard-r11 #overview-grid .kcard {
     grid-template-columns: 42px minmax(0,1fr) !important;
@@ -1040,104 +1175,6 @@ body.dashboard-r11 .total-retention-panel .retention-kpi.is-last {
   }
 }
 
-/* CQR_EXPORT_ROW_POSITION_HOTFIX_START */
-/* Keep the Export control in the same row as Game / Channel / Month / View.
-   The runtime Week wrapper may remain in the DOM while its select is hidden,
-   so hide the wrapper itself as a defensive fallback. */
-body.dashboard-r11 .dashboard-week-control.is-hidden,
-body.dashboard-r11 .dashboard-week-control:has(#f-week.period-hidden),
-body.dashboard-r11 .dashboard-filter-control[data-dashboard-filter="f-week"]:has(#f-week.period-hidden) {
-  display: none !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-
-/* Use one non-wrapping toolbar row on desktop instead of a rigid grid whose
-   invisible Week wrapper could push Export into a second row. */
-body.dashboard-r11 .hfilters,
-body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
-body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
-  width: min(100%, 970px) !important;
-  min-width: 0 !important;
-  margin-left: auto !important;
-  display: flex !important;
-  flex-flow: row nowrap !important;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  gap: 9px !important;
-}
-
-body.dashboard-r11 .hfilters > .filter-control.dashboard-filter-control {
-  min-width: 0 !important;
-  flex: 1 1 150px !important;
-}
-
-body.dashboard-r11 .hfilters > .filter-control.dashboard-filter-control[data-dashboard-filter="f-game"] {
-  flex-grow: 1.18 !important;
-}
-
-body.dashboard-r11 .hfilters > .dashboard-period-segment {
-  flex: 0 0 160px !important;
-}
-
-body.dashboard-r11 .hfilters > .dashboard-week-control:not(.is-hidden) {
-  flex: 0 1 145px !important;
-}
-
-body.dashboard-r11 .hfilters > .export-menu {
-  order: 99 !important;
-  flex: 0 0 150px !important;
-  width: 150px !important;
-  min-width: 150px !important;
-  margin: 0 !important;
-  align-self: center !important;
-  justify-self: auto !important;
-}
-
-body.dashboard-r11 .hfilters > .export-menu > summary {
-  width: 150px !important;
-  min-width: 150px !important;
-}
-
-/* Give the toolbar its own line before controls become too compressed. */
-@media (max-width: 1320px) {
-  body.shared-dashboard-shell .hbar {
-    align-items: flex-start !important;
-    flex-direction: column !important;
-  }
-
-  body.dashboard-r11 .hfilters,
-  body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
-  body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
-    width: 100% !important;
-    margin-left: 0 !important;
-  }
-}
-
-@media (max-width: 860px) {
-  body.dashboard-r11 .hfilters,
-  body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
-  body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
-    flex-flow: initial !important;
-  }
-
-  body.dashboard-r11 .hfilters > .export-menu,
-  body.dashboard-r11 .hfilters > .export-menu > summary {
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-}
-
-@media (max-width: 560px) {
-  body.dashboard-r11 .hfilters,
-  body.dashboard-r11 .hfilters:has(.dashboard-week-control.is-hidden),
-  body.dashboard-r11 .hfilters:has(#f-week.period-hidden) {
-    grid-template-columns: 1fr !important;
-  }
-}
-/* CQR_EXPORT_ROW_POSITION_HOTFIX_END */
 /* CQR_DASHBOARD_UXUI_CONSOLIDATED_FINAL_END */
 /* CQR_DASHBOARD_CARD_THEME_FINAL_END */
 
@@ -1174,87 +1211,3 @@ body.dashboard-r11 #total-retention-box .metric-note {
   display: none !important;
 }
 /* CQR_RETENTION_PAIR_BALANCE_HOTFIX_END */
-
-/* CQR_UNIFIED_PERIOD_FILTER_START */
-body.dashboard-r11 .period-type-source { display:none !important; }
-body.dashboard-r11 .hfilters {
-  grid-template-columns:minmax(170px,1.05fr) minmax(150px,.95fr) minmax(160px,.95fr) minmax(250px,1.15fr) minmax(150px,.9fr) 150px !important;
-  gap:8px !important;
-}
-body.dashboard-r11 .hfilters:has(#f-week.period-hidden):has(#f-daily-date.period-hidden) {
-  grid-template-columns:minmax(180px,1.1fr) minmax(160px,1fr) minmax(170px,1fr) minmax(250px,1.2fr) 150px !important;
-}
-body.dashboard-r11 .dashboard-period-segment {
-  display:grid !important;
-  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
-  min-width:250px;
-}
-body.dashboard-r11 .dashboard-period-segment .segment-button { min-width:0; }
-body.dashboard-r11 #f-daily-date, body.dashboard-r11 #f-week { width:100%; }
-body.dashboard-r11 #f-daily-date.period-hidden, body.dashboard-r11 #f-week.period-hidden { display:none !important; }
-body.dashboard-r11 .freshness-line,
-body.dashboard-r11 .freshness-chip,
-body.dashboard-r11 .kfresh,
-body.dashboard-r11 .stat-fresh { display:none !important; }
-@media (max-width:1100px) {
-  body.dashboard-r11 .hfilters,
-  body.dashboard-r11 .hfilters:has(#f-week.period-hidden):has(#f-daily-date.period-hidden) {
-    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
-  }
-  body.dashboard-r11 .dashboard-period-segment { min-width:0; }
-}
-@media (max-width:900px) {
-  body.dashboard-r11 .hfilters,
-  body.dashboard-r11 .hfilters:has(#f-week.period-hidden):has(#f-daily-date.period-hidden) {
-    grid-template-columns:1fr !important;
-  }
-}
-/* CQR_UNIFIED_PERIOD_FILTER_END */
-
-
-/* CQR_PERIOD_CONTROL_ANTI_SQUEEZE_FIX_START */
-/* Keep the stable Monthly proportions, then widen only when Daily/Weekly adds
-   one more selector. This prevents Game / Channel / Month cards collapsing. */
-body.dashboard-r11 .hfilters:has(#f-daily-date:not(.period-hidden)),
-body.dashboard-r11 .hfilters:has(.dashboard-week-control:not(.is-hidden)) {
-  width: min(100%, 1120px) !important;
-}
-
-body.dashboard-r11 #f-daily-date:not(.period-hidden) {
-  flex: 0 0 150px !important;
-  width: 150px !important;
-  min-width: 150px !important;
-  max-width: 150px !important;
-  height: 42px !important;
-}
-
-body.dashboard-r11 .dashboard-week-control:not(.is-hidden) {
-  display: grid !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-  flex: 0 0 145px !important;
-  width: 145px !important;
-  min-width: 145px !important;
-}
-
-body.dashboard-r11 .dashboard-week-control:not(.is-hidden) #f-week {
-  display: block !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-}
-
-@media (max-width: 1100px) {
-  body.dashboard-r11 .hfilters:has(#f-daily-date:not(.period-hidden)),
-  body.dashboard-r11 .hfilters:has(.dashboard-week-control:not(.is-hidden)) {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
-    width: 100% !important;
-  }
-  body.dashboard-r11 #f-daily-date:not(.period-hidden),
-  body.dashboard-r11 .dashboard-week-control:not(.is-hidden) {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: none !important;
-  }
-}
-/* CQR_PERIOD_CONTROL_ANTI_SQUEEZE_FIX_END */

@@ -262,7 +262,7 @@ td{vertical-align:middle;}
 <link rel="stylesheet" href="./assets/css/responsive.css">
 <link rel="stylesheet" href="./assets/css/shell-r3.css">
   <link rel="stylesheet" href="./assets/css/shell-r4.css">
-<link rel="stylesheet" href="./assets/css/dashboard-final-r11.css?v=20260911-anti-squeeze">
+<link rel="stylesheet" href="./assets/css/dashboard-final-r11.css?v=20260911-filter-redesign">
   <!-- CQR SHARED SIDEBAR START -->
   <link rel="stylesheet" href="./assets/css/shared-shell/shared-sidebar-host.css">
   <!-- CQR SHARED SIDEBAR END -->
@@ -292,7 +292,6 @@ td{vertical-align:middle;}
       <select id="f-channel" onchange="renderAll()"><option value="all">ทุก Channel</option>
         <option>Facebook Ads</option><option>Google Ads</option>
         <option>In-App Register</option><option>Organic / Unknown</option></select>
-      <select id="f-month" onchange="syncWeekOptions();renderAll()"></select>
       <select id="f-period-type" class="period-type-source" aria-hidden="true" tabindex="-1">
         <option value="day">Daily</option>
         <option value="week">Weekly</option>
@@ -303,8 +302,23 @@ td{vertical-align:middle;}
         <button type="button" class="segment-button" data-period-mode="week" onclick="setPeriodMode('week')">Weekly</button>
         <button type="button" class="segment-button active" data-period-mode="month" onclick="setPeriodMode('month')">Monthly</button>
       </div>
-      <select id="f-daily-date" class="period-hidden" aria-label="Date" onchange="setDailyDataDate(this.value)"></select>
-      <select id="f-week" class="period-hidden" aria-label="Week" onchange="renderAll()"></select>
+      <div class="dashboard-period-context" data-period-context>
+        <select id="f-month" class="period-context-select" aria-label="Month" onchange="syncWeekOptions();renderAll()"></select>
+        <select id="f-daily-date" class="native-daily-date period-hidden" aria-label="Date" aria-hidden="true" tabindex="-1" onchange="setDailyDataDate(this.value)"></select>
+        <button id="f-daily-date-button" class="daily-date-trigger period-hidden" type="button" aria-haspopup="dialog" aria-expanded="false" onclick="toggleDailyCalendarPopover()">เลือกวันที่</button>
+        <div id="daily-calendar-popover" class="daily-calendar-popover" role="dialog" aria-label="Daily date picker" hidden>
+          <div class="daily-calendar-head">
+            <button type="button" aria-label="Previous month" onclick="shiftDailyCalendarMonth(-1)">‹</button>
+            <strong id="daily-calendar-title">-</strong>
+            <button type="button" aria-label="Next month" onclick="shiftDailyCalendarMonth(1)">›</button>
+          </div>
+          <div class="daily-calendar-weekdays" aria-hidden="true">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </div>
+          <div id="daily-calendar-grid" class="daily-calendar-grid"></div>
+        </div>
+        <select id="f-week" class="period-hidden period-context-select" aria-label="Week" onchange="renderAll()"></select>
+      </div>
       <details class="export-menu">
         <summary>EXPORT</summary>
         <div class="export-options">
@@ -710,6 +724,8 @@ const REPORT_START_MONTH = '2026-02';
 let DASHBOARD_MONTHS = [];
 let MONTH_TH = {};
 let selectedDailyDate = '';
+let dailyAvailableDates = [];
+let dailyCalendarMonth = '';
 let dailyMetricRequestSeq = 0;
 const DAILY_METRIC_CACHE = new Map();
 const THAI_MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -778,6 +794,15 @@ function dateShortLabel(dateKey){
   if(!date) return String(dateKey || '');
   const monthName = THAI_MONTHS_SHORT[Number(date.slice(5, 7)) - 1] || date.slice(5, 7);
   return `${Number(date.slice(8, 10))} ${monthName} ${date.slice(0, 4)}`;
+}
+
+function dateMonthKey(dateKey){
+  const date = isoDate(dateKey);
+  return date ? date.slice(0, 7) : '';
+}
+
+function selectedDashboardGame(){
+  return document.getElementById('f-game')?.value || 'ALL';
 }
 
 function monthFreshLabel(key){
@@ -890,8 +915,123 @@ function syncPeriodButtons(){
 }
 
 function setDailyDataDate(value){
-  selectedDailyDate = value || '';
+  const date = isoDate(value);
+  selectedDailyDate = date;
+  const dateMonth = dateMonthKey(date);
+  const monthSelect = document.getElementById('f-month');
+  if(dateMonth && monthSelect && [...monthSelect.options].some(option => option.value === dateMonth)){
+    monthSelect.value = dateMonth;
+  }
+  dailyCalendarMonth = dateMonth || dailyCalendarMonth;
+  closeDailyCalendarPopover();
   renderAll();
+}
+
+function dailyDateLabel(dateKey){
+  return dateKey ? dateShortLabel(dateKey) : 'ไม่มีข้อมูลรายวัน';
+}
+
+function dailyCalendarMonths(){
+  return [...new Set(dailyAvailableDates.map(dateMonthKey).filter(Boolean))].sort();
+}
+
+function allDailyDatesForGame(game){
+  if(!D) return [];
+  const dates = [];
+  DASHBOARD_MONTHS.forEach(month => {
+    dailyDauRows(D.legacy?.[`${game}|${month}`]).forEach(row => dates.push(row.date));
+  });
+  return [...new Set(dates)].filter(Boolean).sort();
+}
+
+function resolveDailyCalendarMonth(){
+  const months = dailyCalendarMonths();
+  if(!months.length) return '';
+  const selectedMonth = dateMonthKey(selectedDailyDate);
+  if(selectedMonth && months.includes(selectedMonth)) return selectedMonth;
+  if(dailyCalendarMonth && months.includes(dailyCalendarMonth)) return dailyCalendarMonth;
+  return months[months.length - 1];
+}
+
+function renderDailyCalendar(){
+  const grid = document.getElementById('daily-calendar-grid');
+  const title = document.getElementById('daily-calendar-title');
+  const popover = document.getElementById('daily-calendar-popover');
+  if(!grid || !title) return;
+  dailyCalendarMonth = resolveDailyCalendarMonth();
+  const months = dailyCalendarMonths();
+  if(!dailyCalendarMonth){
+    title.textContent = '-';
+    grid.innerHTML = '<div class="daily-calendar-empty">ไม่มีข้อมูลรายวัน</div>';
+    return;
+  }
+  const year = Number(dailyCalendarMonth.slice(0, 4));
+  const month = Number(dailyCalendarMonth.slice(5, 7));
+  const firstDay = new Date(year, month - 1, 1);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const leading = (firstDay.getDay() + 6) % 7;
+  const available = new Set(dailyAvailableDates);
+  title.textContent = monthLabel(dailyCalendarMonth, true);
+  const cells = Array.from({length:leading}, () => '<span class="daily-calendar-pad"></span>');
+  for(let day = 1; day <= daysInMonth; day += 1){
+    const date = `${dailyCalendarMonth}-${String(day).padStart(2, '0')}`;
+    const enabled = available.has(date);
+    const active = selectedDailyDate === date;
+    cells.push(`<button type="button" class="${active ? 'active' : ''}" ${enabled ? `onclick="setDailyDataDate('${date}')"` : 'disabled'}>${day}</button>`);
+  }
+  grid.innerHTML = cells.join('');
+  const nav = popover?.querySelectorAll('.daily-calendar-head button') || [];
+  const index = months.indexOf(dailyCalendarMonth);
+  if(nav[0]) nav[0].disabled = index <= 0;
+  if(nav[1]) nav[1].disabled = index < 0 || index >= months.length - 1;
+}
+
+function shiftDailyCalendarMonth(direction){
+  const months = dailyCalendarMonths();
+  const index = months.indexOf(resolveDailyCalendarMonth());
+  const next = months[index + direction];
+  if(next){
+    dailyCalendarMonth = next;
+    renderDailyCalendar();
+  }
+}
+
+function toggleDailyCalendarPopover(){
+  const popover = document.getElementById('daily-calendar-popover');
+  const button = document.getElementById('f-daily-date-button');
+  if(!popover || !button || button.disabled) return;
+  const open = popover.hidden;
+  popover.hidden = !open;
+  button.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if(open) renderDailyCalendar();
+}
+
+function closeDailyCalendarPopover(){
+  const popover = document.getElementById('daily-calendar-popover');
+  const button = document.getElementById('f-daily-date-button');
+  if(popover) popover.hidden = true;
+  if(button) button.setAttribute('aria-expanded', 'false');
+}
+
+function updateDailyDateControl(dates){
+  const game = selectedDashboardGame();
+  dailyAvailableDates = [...new Set([...(dates || []), ...allDailyDatesForGame(game)])].filter(Boolean).sort();
+  const button = document.getElementById('f-daily-date-button');
+  if(button){
+    button.disabled = !dailyAvailableDates.length;
+    button.textContent = selectedDailyDate ? dailyDateLabel(selectedDailyDate) : dailyDateLabel('');
+  }
+  renderDailyCalendar();
+}
+
+function initDailyCalendarPopover(){
+  document.addEventListener('click', event => {
+    const context = document.querySelector('[data-period-context]');
+    if(context && !context.contains(event.target)) closeDailyCalendarPopover();
+  });
+  document.addEventListener('keydown', event => {
+    if(event.key === 'Escape') closeDailyCalendarPopover();
+  });
 }
 
 function syncDailyDataToolbar(dauRows, metricRows, metricStatus){
@@ -913,6 +1053,7 @@ function syncDailyDataToolbar(dauRows, metricRows, metricStatus){
     ? dates.map(date => `<option value="${date}">${dateShortLabel(date)}</option>`).join('')
     : '<option value="">ไม่มีข้อมูลรายวัน</option>';
   select.value = selectedDailyDate || '';
+  updateDailyDateControl(dates);
 
   if(!isDailyView) return {date:'', dau:null, metrics:null};
 
@@ -945,6 +1086,16 @@ function refreshDashboardMonths(){
   const previous = select.value || DASHBOARD_MONTHS[0] || REPORT_START_MONTH;
   select.innerHTML = DASHBOARD_MONTHS.map(key => `<option value="${key}">${monthLabel(key, true)}</option>`).join('');
   select.value = DASHBOARD_MONTHS.includes(previous) ? previous : (DASHBOARD_MONTHS[0] || REPORT_START_MONTH);
+}
+
+function allWeekOptions(){
+  if(!D) return [];
+  return DASHBOARD_MONTHS.slice().reverse().flatMap(month =>
+    (D.weeks_by_month?.[month] || []).map(week => ({
+      key:week.key,
+      label:`${monthShortLabel(month)} · ${week.label}`
+    }))
+  );
 }
 
 function toggleChat(){
@@ -1291,19 +1442,26 @@ function syncWeekOptions(){
   if(!D) return;
   const month = document.getElementById('f-month').value;
   const weekSelect = document.getElementById('f-week');
-  const dateSelect = document.getElementById('f-daily-date');
+  const monthSelect = document.getElementById('f-month');
+  const dateButton = document.getElementById('f-daily-date-button');
   const periodType = currentPeriodMode();
   const previous = weekSelect.value;
-  const weeks = D.weeks_by_month?.[month] || [];
+  const weeks = periodType === 'week' ? allWeekOptions() : (D.weeks_by_month?.[month] || []);
 
   weekSelect.innerHTML = weeks.map(w=>`<option value="${w.key}">${w.label}</option>`).join('');
   if(weeks.some(w=>w.key===previous)) weekSelect.value = previous;
   else if(weeks.length) weekSelect.value = weeks[weeks.length-1].key;
+  const weekMonth = normalizeMonthKey(weekSelect.value);
+  if(periodType === 'week' && weekMonth && monthSelect && [...monthSelect.options].some(option => option.value === weekMonth)){
+    monthSelect.value = weekMonth;
+  }
 
   weekSelect.classList.toggle('period-hidden', periodType !== 'week');
+  if(monthSelect) monthSelect.classList.toggle('period-hidden', periodType !== 'month');
+  if(dateButton) dateButton.classList.toggle('period-hidden', periodType !== 'day');
   const weekControl = weekSelect.closest('.dashboard-week-control');
   if(weekControl) weekControl.classList.toggle('is-hidden', periodType !== 'week');
-  if(dateSelect) dateSelect.classList.toggle('period-hidden', periodType !== 'day');
+  if(periodType !== 'day') closeDailyCalendarPopover();
   syncPeriodButtons();
 }
 
@@ -1314,6 +1472,10 @@ function activePeriod(){
   if(periodType === 'week'){
     const week = document.getElementById('f-week');
     return {key:week.value, label:week.options[week.selectedIndex]?.text || week.value, mode:'สัปดาห์'};
+  }
+  if(periodType === 'day'){
+    const selectedMonth = dateMonthKey(selectedDailyDate);
+    return {key:selectedMonth || month, label:selectedDailyDate ? dateShortLabel(selectedDailyDate) : monthLabel(month, true), mode:'วัน'};
   }
   return {key:month, label:monthLabel(month, true), mode:'เดือน'};
 }
@@ -1574,6 +1736,7 @@ function renderAll(){
   window.CQR_DASHBOARD_R11?.publishAuditSnapshot?.();
 }
 
+initDailyCalendarPopover();
 initAiAskBox();
 refreshDashboardMonths();
 renderAll();
