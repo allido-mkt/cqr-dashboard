@@ -5,6 +5,7 @@ import { icon, statusPill, escapeHtml, showToast, optionMarkup } from "../ui.js"
 
 const ACTIVE_KEY = "cqr_raw_check_active_request_id";
 const HISTORY_KEY = "cqr_raw_check_browser_history";
+const HANDOFF_KEY = "cqr_data_control_handoff";
 let pollTimer = null;
 let polling = false;
 const specificGames = APP_CONFIG.games.filter((item) => item.value !== "ALL");
@@ -25,6 +26,30 @@ function readActive() {
   return { requestId: raw, game: "", month: "" };
 }
 function writeActive(value) { localStorage.setItem(ACTIVE_KEY, JSON.stringify(value)); }
+
+function consumeHandoff() {
+  const raw = sessionStorage.getItem(HANDOFF_KEY);
+  if (!raw) return false;
+  try {
+    const handoff = JSON.parse(raw);
+    if ((handoff?.mode || "") !== "check_raw") return false;
+    const game = handoff.target_game_code || handoff.game || "";
+    const month = handoff.target_month || handoff.month || "";
+    if (!game || !month || game === "ALL" || month === "ALL") return false;
+    sessionStorage.removeItem(HANDOFF_KEY);
+    setFilters({ game, month });
+    setRawCheck({
+      requestId: "", game, month, status: "idle", resultStatus: "idle", totalJobs: 0,
+      queuedJobs: 0, runningJobs: 0, completedJobs: 0, failedJobs: 0, currentGame: "",
+      currentMonth: "", tabsFound: "-", tabsExpected: 5, missingTabs: "", rawHash: "",
+      finishedAt: "", progress: 0, errorMessage: "", jobs: [],
+    });
+    window.dispatchEvent(new Event("cqr-page-refresh"));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function renderJobs(raw) {
   const jobs = raw.jobs || [];
@@ -123,6 +148,7 @@ async function submit() {
 }
 
 export function bindCheckRawPage() {
+  if (consumeHandoff()) return;
   document.getElementById("raw-submit")?.addEventListener("click", submit);
   document.getElementById("raw-refresh")?.addEventListener("click", () => poll(getState().rawCheck.requestId, { immediate: true }));
   document.getElementById("raw-copy")?.addEventListener("click", async () => {

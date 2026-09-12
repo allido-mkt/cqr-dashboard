@@ -273,6 +273,33 @@ function parseJsonString(value) {
   try { return JSON.parse(text); } catch { return value; }
 }
 
+function conciseDetail(value, depth = 0) {
+  const parsed = parseJsonString(value);
+  if (parsed === null || parsed === undefined || parsed === "") return "";
+  if (typeof parsed === "string") return parsed.slice(0, 500);
+  if (typeof parsed !== "object") return String(parsed);
+  if (depth > 2) return JSON.stringify(parsed).slice(0, 500);
+
+  const direct = parsed.message || parsed.error_message || parsed.error || parsed.reason || parsed.raw;
+  if (direct) return conciseDetail(direct, depth + 1);
+
+  for (const key of ["detail", "details", "body", "data", "result", "json", "payload", "n8n_result"]) {
+    if (Object.hasOwn(parsed, key)) {
+      const nested = conciseDetail(parsed[key], depth + 1);
+      if (nested) return nested;
+    }
+  }
+
+  return JSON.stringify(parsed).slice(0, 500);
+}
+
+function backendErrorMessage(value, label) {
+  const status = value?.status ? ` status ${value.status}` : "";
+  const base = value?.message || value?.error_message || value?.error || `${label} returned a failed response`;
+  const detail = conciseDetail(value?.detail || value?.details || value?.n8n_result || value?.result || "");
+  return detail && detail !== base ? `${base}${status}: ${detail}` : `${base}${status}`;
+}
+
 export function normalizePayload(result) {
   let value = result;
   const unwrapKeys = ["n8n_result", "result", "data", "body", "json", "payload"];
@@ -292,11 +319,11 @@ export function assertSuccessfulPayload(result, label = "Backend") {
   const candidates = [result, payload].filter((value) => value && typeof value === "object" && !Array.isArray(value));
   for (const value of candidates) {
     if (value.ok === false || value.success === false) {
-      throw new Error(value.message || value.error || `${label} returned a failed response`);
+      throw new Error(backendErrorMessage(value, label));
     }
     const status = String(value.status || "").toLowerCase();
     if (["failed", "error", "rejected", "unauthorized", "forbidden", "not_found"].includes(status)) {
-      throw new Error(value.message || value.error_message || value.error || `${label} status: ${status}`);
+      throw new Error(backendErrorMessage(value, `${label} status: ${status}`));
     }
   }
   return payload;
@@ -307,6 +334,6 @@ export async function callAuthorized(action, params = {}, timeoutMs) {
   if (!session?.sessionToken) throw new Error("Session หมดอายุ กรุณา Sign in ใหม่");
   if (isPreviewSession(session)) return previewBackend(action, params);
   const result = await callAppsScript(action, { ...params, session_token: session.sessionToken }, timeoutMs || Number(params?._timeout_ms || 25000));
-  if (result?.ok === false) throw new Error(result.message || result.error || "Backend request failed");
+  if (result?.ok === false) throw new Error(backendErrorMessage(result, "Backend request failed"));
   return result;
 }

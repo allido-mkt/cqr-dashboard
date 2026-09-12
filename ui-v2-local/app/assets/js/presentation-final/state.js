@@ -6,6 +6,7 @@ const DEFAULT_GAME = APP_CONFIG.games.find((item) => item.value !== "ALL")?.valu
 const DEFAULT_MONTH = APP_CONFIG.months[0]?.value || "2026-06";
 const AI_MESSAGES_KEY = "cqr_ai_messages";
 const CONTROL_STATE_KEY = "cqr_data_control_state_v2";
+const ADMIN_SCOPE_KEY = "cqr_admin_scope_v1";
 
 function readJsonStorage(storage, key, fallback) {
   try {
@@ -24,20 +25,28 @@ const INITIAL_CONTEXT = {};
 const INITIAL_PREFERENCES = readJsonStorage(localStorage, "cqr_user_preferences", {});
 const SAVED_AI_MESSAGES = readJsonStorage(sessionStorage, AI_MESSAGES_KEY, []);
 const SAVED_CONTROL_STATE = readJsonStorage(sessionStorage, CONTROL_STATE_KEY, {});
+const SAVED_ADMIN_SCOPE = readJsonStorage(sessionStorage, ADMIN_SCOPE_KEY, {});
+const INITIAL_ROUTE = location.hash.replace(/^#\//, "") || APP_CONFIG.defaultRoute;
 const DEFAULT_AI_MESSAGE = {
   role: "assistant",
   text: "วันนี้มีอะไรให้ช่วยดูหรือวิเคราะห์ไหมครับ",
 };
 
 const initialState = {
-  route: location.hash.replace(/^#\//, "") || APP_CONFIG.defaultRoute,
+  route: INITIAL_ROUTE,
   filters: {
     ...APP_CONFIG.defaultFilters,
-    game: INITIAL_CONTEXT.game || INITIAL_PREFERENCES.defaultGame || APP_CONFIG.defaultFilters.game,
-    month: INITIAL_CONTEXT.period?.match(/^20\d{2}-\d{2}$/) ? INITIAL_CONTEXT.period : APP_CONFIG.defaultFilters.month,
+    game: SPECIFIC_SCOPE_ROUTES.has(INITIAL_ROUTE)
+      ? (SAVED_ADMIN_SCOPE.game || DEFAULT_GAME)
+      : (INITIAL_CONTEXT.game || INITIAL_PREFERENCES.defaultGame || APP_CONFIG.defaultFilters.game),
+    month: SPECIFIC_SCOPE_ROUTES.has(INITIAL_ROUTE)
+      ? (SAVED_ADMIN_SCOPE.month || DEFAULT_MONTH)
+      : (INITIAL_CONTEXT.period?.match(/^20\d{2}-\d{2}$/) ? INITIAL_CONTEXT.period : APP_CONFIG.defaultFilters.month),
     channel: INITIAL_CONTEXT.channel || APP_CONFIG.defaultFilters.channel,
     periodType: INITIAL_CONTEXT.view === "weekly" ? "week" : (INITIAL_PREFERENCES.defaultView || APP_CONFIG.defaultFilters.periodType),
-    week: INITIAL_CONTEXT.view === "weekly" ? INITIAL_CONTEXT.period : APP_CONFIG.defaultFilters.week,
+    week: SPECIFIC_SCOPE_ROUTES.has(INITIAL_ROUTE)
+      ? `${SAVED_ADMIN_SCOPE.month || DEFAULT_MONTH}-W4`
+      : (INITIAL_CONTEXT.view === "weekly" ? INITIAL_CONTEXT.period : APP_CONFIG.defaultFilters.week),
   },
   user: {
     email: "",
@@ -98,6 +107,11 @@ function persistControlState(control) {
   try { sessionStorage.setItem(CONTROL_STATE_KEY, JSON.stringify(value)); } catch {}
 }
 
+function persistAdminScope(filters) {
+  if (!filters?.game || filters.game === "ALL" || !filters?.month || filters.month === "ALL") return;
+  try { sessionStorage.setItem(ADMIN_SCOPE_KEY, JSON.stringify({ game: filters.game, month: filters.month })); } catch {}
+}
+
 export function getState() { return state; }
 export function subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }
 export function setState(patch) { state = { ...state, ...patch }; listeners.forEach((listener) => listener(state)); }
@@ -108,11 +122,14 @@ export function updateState(updater) {
 export function setRoute(route) {
   if (!route) return;
   history.replaceState(null, "", `#/${route}`);
-  setState({ route, filters: normalizedFilters(route, state.filters) });
+  const filters = normalizedFilters(route, state.filters);
+  if (SPECIFIC_SCOPE_ROUTES.has(route)) persistAdminScope(filters);
+  setState({ route, filters });
 }
 export function setFilter(name, value) {
   const filters = { ...state.filters, [name]: value };
   if (name === "month" && value !== "ALL") filters.week = `${value}-W4`;
+  if (SPECIFIC_SCOPE_ROUTES.has(state.route) && (name === "game" || name === "month")) persistAdminScope(filters);
   setState({ filters });
 }
 export function setFilters(patch) {
@@ -120,6 +137,7 @@ export function setFilters(patch) {
   if (Object.hasOwn(patch, "month") && patch.month !== "ALL" && !String(filters.week || "").startsWith(patch.month)) {
     filters.week = `${patch.month}-W4`;
   }
+  if (SPECIFIC_SCOPE_ROUTES.has(state.route)) persistAdminScope(filters);
   setState({ filters });
 }
 export function setUser(user) { setState({ user: { ...state.user, ...user } }); }

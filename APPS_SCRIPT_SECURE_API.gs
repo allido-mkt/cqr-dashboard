@@ -1387,9 +1387,10 @@ function handleAdminN8nCommand_(e, callback, command) {
   const text = response.getContentText() || '';
   const data = safeJsonParse_(text, { raw: text });
   if (status < 200 || status >= 300) {
+    const detailMessage = n8nErrorDetailMessage_(data);
     return json_({
       ok: false,
-      message: 'n8n command failed.',
+      message: detailMessage ? 'n8n command failed: ' + detailMessage : 'n8n command failed.',
       status,
       detail: data
     }, callback);
@@ -1420,6 +1421,30 @@ function n8nWebhookUrlForCommand_(props, command) {
   const url = props.getProperty(propertyName);
   if (!url) throw new Error('Missing Script Property: ' + propertyName);
   return url;
+}
+
+function n8nErrorDetailMessage_(value) {
+  if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'string') {
+    const parsed = safeJsonParse_(value, null);
+    if (parsed && typeof parsed === 'object') return n8nErrorDetailMessage_(parsed);
+    return value.substring(0, 500);
+  }
+  if (typeof value !== 'object') return String(value);
+  const direct = value.message || value.error_message || value.error || value.reason || value.raw;
+  if (direct) return n8nErrorDetailMessage_(direct);
+  const keys = ['detail', 'details', 'body', 'data', 'result', 'json', 'payload', 'n8n_result'];
+  for (let i = 0; i < keys.length; i += 1) {
+    if (Object.prototype.hasOwnProperty.call(value, keys[i])) {
+      const nested = n8nErrorDetailMessage_(value[keys[i]]);
+      if (nested) return nested;
+    }
+  }
+  try {
+    return JSON.stringify(value).substring(0, 500);
+  } catch (err) {
+    return '';
+  }
 }
 
 function rowsFromSheet_(sheet) {

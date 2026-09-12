@@ -96,6 +96,9 @@ function recommendationAction(recommendation, index) {
   if (recommendation?.cleanup) {
     return `<button class="button small" data-recommendation-index="${index}" data-recommendation-mode="repair" type="button">Send to Data Control</button>`;
   }
+  if (recommendation?.check_raw || recommendation?.raw_check) {
+    return `<button class="button small" data-recommendation-index="${index}" data-recommendation-mode="check_raw" type="button">Check Raw</button>`;
+  }
   return "";
 }
 
@@ -153,6 +156,7 @@ function bindHealthActions(kind) {
     const action = button.dataset.healthAction;
     setFilters({ game: row.game_code, month: row.period_key });
     if (action === "check_raw") {
+      sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({ mode: "check_raw", target_game_code: row.game_code, target_month: row.period_key }));
       setRoute("check-raw");
       return;
     }
@@ -168,13 +172,21 @@ export function bindDataHealthOverviewPage() {
   document.querySelectorAll("[data-recommendation-index]").forEach((button) => button.addEventListener("click", () => {
     const recommendation = normalize(getState().health.result).recommendations[Number(button.dataset.recommendationIndex)];
     const mode = button.dataset.recommendationMode;
-    const payload = mode === "first_build" ? recommendation?.build : recommendation?.cleanup;
+    const payload = mode === "first_build"
+      ? recommendation?.build
+      : mode === "check_raw"
+        ? (recommendation?.check_raw || recommendation?.raw_check)
+        : recommendation?.cleanup;
     if (!payload) return;
     sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({ ...payload, mode }));
     setFilters({
       game: payload.target_game_code || getState().filters.game,
       month: payload.target_month || getState().filters.month,
     });
+    if (mode === "check_raw") {
+      setRoute("check-raw");
+      return;
+    }
     setRoute(mode === "first_build" ? "data-control-build" : "data-control-preview");
   }));
 }
