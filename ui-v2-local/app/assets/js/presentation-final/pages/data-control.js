@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setControl, setFilters, setRoute } from "../state.js";
+import { getState, setControl, setFilters, setRoute } from "../state.js?v=3505";
 import { callAuthorized, normalizePayload, assertSuccessfulPayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill, showToast, openConfirmModal } from "../ui.js";
 
@@ -32,6 +32,98 @@ function addLog(action, result, scope) {
     message: payload?.message || result?.message || "",
   };
   localStorage.setItem(LOG_KEY, JSON.stringify([row, ...logs()].slice(0, 100)));
+}
+
+
+let centralHistory = {
+  status: "idle",
+  rows: [],
+  error: "",
+};
+
+function centralHistoryRows(result) {
+  const payload = normalizePayload(result);
+  const rows = Array.isArray(result?.activities)
+    ? result.activities
+    : Array.isArray(payload?.activities)
+      ? payload.activities
+      : [];
+
+  return rows.map((row) => ({
+    at: row.created_at || row.at || "",
+    requestedBy: row.requested_by || "",
+    action: row.action || "",
+    game: row.game || "",
+    month: row.month || "",
+    runId: row.run_id || row.runId || "",
+    rawHash: row.hash || row.raw_hash || row.rawHash || "",
+    status: row.status || "",
+    requestId: row.request_id || row.requestId || "",
+    message: row.message || "",
+  }));
+}
+
+async function loadCentralHistory(force = false) {
+  if (!force && ["loading", "ready"].includes(centralHistory.status)) return;
+
+  centralHistory = {
+    ...centralHistory,
+    status: "loading",
+    error: "",
+  };
+  window.dispatchEvent(new Event("cqr-page-refresh"));
+
+  try {
+    const result = await callAuthorized("admin.activity.list", { limit: 100 }, 60000);
+    assertSuccessfulPayload(result, "Activity log");
+
+    centralHistory = {
+      status: "ready",
+      rows: centralHistoryRows(result),
+      error: "",
+    };
+  } catch (error) {
+    centralHistory = {
+      status: "error",
+      rows: [],
+      error: error.message || String(error),
+    };
+  }
+
+  window.dispatchEvent(new Event("cqr-page-refresh"));
+}
+
+function historyTable(rows, central = false) {
+  if (!rows.length) {
+    return central
+      ? '<div class="empty-state">ยังไม่มี Central Activity Log</div>'
+      : '<div class="empty-state">ไม่มี Local Debug History ใน Browser นี้</div>';
+  }
+
+  return `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Time</th>
+      ${central ? "<th>Requested by</th>" : ""}
+      <th>Action</th>
+      <th>Scope</th>
+      <th>Run ID</th>
+      <th>Hash</th>
+      <th>Status</th>
+      <th>Request ID</th>
+      <th>Message</th>
+    </tr></thead>
+    <tbody>${rows.map((row) => `<tr>
+      <td>${escapeHtml(row.at || "-")}</td>
+      ${central ? `<td>${escapeHtml(row.requestedBy || "-")}</td>` : ""}
+      <td>${escapeHtml(row.action || "-")}</td>
+      <td>${escapeHtml(row.game || "-")} / ${escapeHtml(row.month || "-")}</td>
+      <td class="code-chip">${escapeHtml(row.runId || "-")}</td>
+      <td class="code-chip">${escapeHtml(row.rawHash || "-")}</td>
+      <td>${statusPill(row.status || "unknown", escapeHtml(row.status || "unknown"))}</td>
+      <td class="code-chip">${escapeHtml(row.requestId || "-")}</td>
+      <td>${escapeHtml(row.message || "-")}</td>
+    </tr>`).join("")}</tbody>
+  </table></div>`;
 }
 
 function exactScope() {
@@ -87,6 +179,25 @@ function selectedRun() {
   return control.lookupRuns.find((run) => run.run_id === control.selectedRuns[0]) || null;
 }
 
+function hashRepairScope() {
+  const control = getState().control;
+  const seed = control.repairSeedScope;
+  if (!seed?.game || !seed?.month || !seed?.hash) return null;
+  return {
+    game: seed.game,
+    month: seed.month,
+    runId: seed.runId || "",
+    hash: seed.hash,
+    source: "scope_hash",
+  };
+}
+
+function shortHash(value) {
+  const text = String(value || "");
+  if (text.length <= 18) return text || "-";
+  return `${text.slice(0, 10)}...${text.slice(-6)}`;
+}
+
 function extractRuns(result) {
   const payload = normalizePayload(result);
   if (Array.isArray(result?.matches)) return result.matches;
@@ -109,6 +220,7 @@ function lockedScopeForRun(run) {
     month: runMonth,
     runId: run.run_id,
     hash: run.data_hash_after || run.data_hash_before || "",
+    source: "run_history",
   };
 }
 
@@ -177,6 +289,7 @@ function applyFirstBuildScope(scope) {
     previewScope: null,
     previewResult: null,
     selectedRuns: [],
+    repairSeedScope: null,
     lastClearAt: "",
     clearResult: null,
     lastBuildAt: "",
@@ -209,10 +322,18 @@ function consumeHandoff() {
       if (getState().route !== "data-control-build") setRoute("data-control-build");
       return true;
     }
+    const repairHash = handoff.cleanup_hash || handoff.search_hash || handoff.master_hash || handoff.previous_hash || handoff.hash || "";
     setControl({
       buildMode: "repair",
       buildScope: null,
-      lookupQuery: handoff.run_id || handoff.search_hash || "",
+      lookupQuery: handoff.run_id || repairHash || "",
+      repairSeedScope: {
+        game,
+        month,
+        runId: handoff.run_id || "",
+        hash: repairHash,
+        actionStatus: handoff.action_status || handoff.actionStatus || "",
+      },
       error: "",
     });
     if (getState().route !== "data-control-preview") setRoute("data-control-preview");
@@ -223,22 +344,55 @@ function consumeHandoff() {
 }
 
 export function renderDataControlHistoryPage() {
-  const rows = logs();
+  const localRows = logs();
+
+  let centralBody = "";
+
+  if (centralHistory.status === "loading") {
+    centralBody = '<div class="empty-state">กำลังโหลด Central Activity Log...</div>';
+  } else if (centralHistory.status === "error") {
+    centralBody = `<div class="notice danger">${escapeHtml(centralHistory.error || "โหลด Central Activity Log ไม่สำเร็จ")}</div>`;
+  } else if (centralHistory.status === "ready") {
+    centralBody = historyTable(centralHistory.rows, true);
+  } else {
+    centralBody = '<div class="empty-state">กำลังเตรียม Central Activity Log...</div>';
+  }
+
   return `<div class="page-grid">${guide("history")}
     <article class="surface-card">
-      <div class="card-header"><div><h2 class="card-title">Work History</h2><p class="card-description">ประวัติการกดเครื่องมือใน Browser นี้เท่านั้น; หลักฐานกลางต้องตรวจ PipelineLogs / AdminActionLogs / n8n executions</p></div><button id="history-clear-local" class="button ghost" type="button">Clear local history</button></div>
-      <div class="card-body">${rows.length ? `<div class="table-wrap"><table>
-        <thead><tr><th>Time</th><th>Action</th><th>Scope</th><th>Run ID</th><th>Raw Hash</th><th>Status</th><th>Request ID</th><th>Message</th></tr></thead>
-        <tbody>${rows.map((row) => `<tr><td>${escapeHtml(row.at)}</td><td>${escapeHtml(row.action)}</td><td>${escapeHtml(row.game)} / ${escapeHtml(row.month)}</td><td class="code-chip">${escapeHtml(row.runId || "-")}</td><td class="code-chip">${escapeHtml(row.rawHash || "-")}</td><td>${statusPill(row.status, escapeHtml(row.status))}</td><td class="code-chip">${escapeHtml(row.requestId || "-")}</td><td>${escapeHtml(row.message || "-")}</td></tr>`).join("")}</tbody>
-      </table></div>` : '<div class="empty-state">ยังไม่มีประวัติใน Browser นี้</div>'}</div>
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Activity Log</h2>
+          <p class="card-description">Central Audit Log จาก AdminActionLogs · แสดงรายการ Preview / Clear / Build ล่าสุดสูงสุด 100 รายการ</p>
+        </div>
+        <button id="history-refresh" class="button ghost" type="button" ${centralHistory.status === "loading" ? "disabled" : ""}>
+          ${centralHistory.status === "loading" ? "Loading..." : "Refresh"}
+        </button>
+      </div>
+      <div class="card-body">${centralBody}</div>
+    </article>
+
+    <article class="surface-card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Local Debug History</h2>
+          <p class="card-description">ข้อมูลใน Browser นี้เท่านั้น ใช้สำหรับ Debug และไม่ใช่หลักฐานกลาง</p>
+        </div>
+        <button id="history-clear-local" class="button ghost" type="button" ${localRows.length ? "" : "disabled"}>Clear local</button>
+      </div>
+      <div class="card-body">${historyTable(localRows, false)}</div>
     </article>
   </div>`;
 }
 
 export function bindDataControlHistoryPage() {
+  document.getElementById("history-refresh")?.addEventListener("click", () => {
+    loadCentralHistory(true);
+  });
+
   document.getElementById("history-clear-local")?.addEventListener("click", () => openConfirmModal({
-    title: "Clear local history",
-    message: "ลบประวัติ Data Control ที่เก็บใน Browser นี้?",
+    title: "Clear local debug history",
+    message: "ลบเฉพาะ Local Debug History ใน Browser นี้? Central Activity Log จะไม่ถูกลบ",
     confirmLabel: "Clear",
     danger: true,
     onConfirm: () => {
@@ -246,37 +400,68 @@ export function bindDataControlHistoryPage() {
       window.dispatchEvent(new Event("cqr-page-refresh"));
     },
   }));
+
+  if (centralHistory.status === "idle") {
+    loadCentralHistory();
+  }
 }
 
 export function renderDataControlPreviewPage() {
   const control = getState().control;
+  const hashScope = hashRepairScope();
   const noMatches = control.lookupPerformed && !control.lookupRuns.length && !actionBusy;
-  return `<div class="page-grid">${guide("preview")}
-    <section class="grid-wide-aside">
-      <article class="surface-card warm-card">
-        <div class="card-header"><div><h2 class="card-title">Find & Preview Run</h2><p class="card-description">ค้นหา Run ID / Hash แล้ว Preview ก่อน Clear เฉพาะ Repair Flow</p></div>${statusPill(actionBusy ? "running" : control.previewToken ? "ready" : "warm", actionBusy ? "Working" : control.previewToken ? "Preview ready" : "Ready")}</div>
-        <div class="card-body">
-          ${controlFilters()}
-          <label class="form-field" style="margin-top:12px"><span class="form-label">Run ID / Hash</span><input id="control-query" class="form-control" value="${escapeHtml(control.lookupQuery || "")}" placeholder="RUN-... หรือ hash"></label>
-          <div class="toolbar" style="margin-top:14px">
-            <button id="lookup-run" class="button primary" type="button" ${actionBusy ? "disabled" : ""}>${icon("search", "nav-icon")} Find Runs</button>
-            <button id="preview-run" class="button warm" type="button" ${actionBusy || !control.selectedRuns.length ? "disabled" : ""}>Preview Selected Run</button>
+  const firstBuildNotice = noMatches && !hashScope ? `<div class="notice warning">
+    <b>ไม่พบข้อมูล Master เดิมในขอบเขตนี้</b><br>
+    ตรวจสอบก่อนว่าเป็นการสร้างครั้งแรกจริงหรือไม่
+    <div class="dc-button-row"><button id="continue-first-build" class="button warm" type="button">Check First Build Eligibility</button></div>
+  </div>` : "";
+  const manualSearch = `<div class="dc-manual-panel">
+    <div class="dc-section-title">
+      <h3>${hashScope ? "Advanced / หา Run แบบ Manual" : "หา Run แบบ Manual"}</h3>
+      <p>${hashScope ? "ใช้เมื่อจำเป็นต้องเลือก Run เฉพาะแทน Master Hash ที่ระบบส่งมา" : "เลือก Game/Month แล้วค้นหา Run เดิมเพื่อ Preview ก่อน Clear"}</p>
+    </div>
+    ${controlFilters()}
+    <label class="form-field"><span class="form-label">Run ID / Hash</span><input id="control-query" class="form-control" value="${escapeHtml(control.lookupQuery || "")}" placeholder="RUN-... หรือ hash"></label>
+    <div class="dc-button-row">
+      <button id="lookup-run" class="button" type="button" ${actionBusy ? "disabled" : ""}>${icon("search", "nav-icon")} Find Runs</button>
+      <button id="preview-run" class="button warm" type="button" ${actionBusy || !control.selectedRuns.length ? "disabled" : ""}>Preview Selected Run</button>
+    </div>
+  </div>`;
+  return `<div class="page-grid data-control-preview-page">${guide("preview")}
+    <section class="dc-preview-layout">
+      <div class="dc-preview-main">
+        ${hashScope ? `<article class="surface-card warm-card dc-repair-card">
+          <div class="card-header"><div><h2 class="card-title">ตรวจขอบเขตซ่อมข้อมูลก่อนเริ่ม</h2><p class="card-description">ระบบพบข้อมูล Master เดิมจาก Data Health แล้ว สามารถ Preview Repair ได้ทันที</p></div>${statusPill(actionBusy ? "running" : control.previewToken ? "ready" : "warm", actionBusy ? "Working" : control.previewToken ? "Preview ready" : "Ready")}</div>
+          <div class="card-body">
+            <div class="notice warning"><b>พบข้อมูล Master เดิม</b><br>กด Preview Repair เพื่อตรวจรายการที่จะซ่อมก่อน ขั้นตอนนี้ยังไม่ลบและยังไม่ Build</div>
+            <div class="dc-scope-summary">
+              <div class="metric-box"><div class="metric-label">Game</div><div class="metric-value">${escapeHtml(hashScope.game)}</div></div>
+              <div class="metric-box"><div class="metric-label">Month</div><div class="metric-value">${escapeHtml(hashScope.month)}</div></div>
+              <div class="metric-box"><div class="metric-label">Master เดิม</div><div class="metric-value code-chip" title="${escapeHtml(hashScope.hash)}">${escapeHtml(shortHash(hashScope.hash))}</div></div>
+            </div>
+            <div class="dc-button-row"><button id="preview-hash-scope" class="button primary" type="button" ${actionBusy ? "disabled" : ""}>Preview Repair</button></div>
+            ${control.error ? `<div class="notice danger">${escapeHtml(control.error)}</div>` : ""}
+            ${noMatches ? `<div class="notice warning"><b>ไม่พบ Run History</b><br>ยัง Preview Repair ด้วย Master Hash ที่ตรวจพบได้ ไม่ต้องใช้ First Build</div>` : ""}
+            <details class="dc-advanced"><summary>Advanced / หา Run แบบ Manual</summary>${manualSearch}</details>
           </div>
-          ${control.error ? `<div class="notice danger">${escapeHtml(control.error)}</div>` : ""}
-          ${noMatches ? `<div class="notice warning">
-            <b>ไม่พบ Master Run ใน Scope นี้</b><br>
-            กรณี Pipeline Check แสดง <code>build_required</code> แปลว่าเป็น First Build และไม่ต้อง Cleanup
-            <div class="toolbar" style="margin-top:12px"><button id="continue-first-build" class="button warm" type="button">Check & Continue to First Build</button></div>
-          </div>` : ""}
+        </article>` : `<article class="surface-card warm-card dc-repair-card">
+          <div class="card-header"><div><h2 class="card-title">ตรวจขอบเขตซ่อมข้อมูลก่อนเริ่ม</h2><p class="card-description">ยังไม่มี Master Hash จาก Data Health ให้ค้นหา Run เดิมแบบ Manual</p></div>${statusPill(actionBusy ? "running" : control.previewToken ? "ready" : "warm", actionBusy ? "Working" : control.previewToken ? "Preview ready" : "Ready")}</div>
+          <div class="card-body">
+            ${manualSearch}
+            ${control.error ? `<div class="notice danger">${escapeHtml(control.error)}</div>` : ""}
+            ${firstBuildNotice}
+          </div>
+        </article>`}
+      </div>
+      <aside class="surface-card dc-status-panel">
+        <div class="card-header"><div><h2 class="card-title">สถานะขอบเขต</h2><p class="card-description">ล็อกหลัง Preview เท่านั้น</p></div></div>
+        <div class="card-body">
+          <div class="dc-status-list">
+            <div><span>Game / Month</span><b>${escapeHtml(control.previewScope?.game || hashScope?.game || "-")} / ${escapeHtml(control.previewScope?.month || hashScope?.month || "-")}</b></div>
+            <div><span>Master เดิม</span><b class="code-chip" title="${escapeHtml(control.previewScope?.hash || hashScope?.hash || "")}">${escapeHtml(shortHash(control.previewScope?.hash || hashScope?.hash || ""))}</b></div>
+            <div><span>Preview Receipt</span><b class="code-chip">${escapeHtml(control.previewToken || "-")}</b></div>
+          </div>
         </div>
-      </article>
-      <aside class="surface-card">
-        <div class="card-header"><div><h2 class="card-title">Locked Scope</h2><p class="card-description">Repair จะใช้ Scope นี้ใน Preview / Clear / Build</p></div></div>
-        <div class="card-body"><div class="metric-grid">
-          <div class="metric-box"><div class="metric-label">Game / Month</div><div class="metric-value">${escapeHtml(control.previewScope?.game || "-")} / ${escapeHtml(control.previewScope?.month || "-")}</div></div>
-          <div class="metric-box"><div class="metric-label">Run ID</div><div class="metric-value code-chip">${escapeHtml(control.previewScope?.runId || "-")}</div></div>
-          <div class="metric-box"><div class="metric-label">Preview Receipt</div><div class="metric-value code-chip">${escapeHtml(control.previewToken || "-")}</div></div>
-        </div></div>
       </aside>
     </section>
     ${control.lookupRuns.length ? `<article class="surface-card">
@@ -290,10 +475,26 @@ export function renderDataControlPreviewPage() {
   </div>`;
 }
 
+function cleanupParams(scope) {
+  const runIds = scope.runId ? [scope.runId] : [];
+  const runItems = scope.runId ? [{ run_id: scope.runId, game_code: scope.game, period_key: scope.month }] : [];
+  return {
+    game: scope.game,
+    month: scope.month,
+    run_id: scope.runId || "",
+    run_ids: JSON.stringify(runIds),
+    run_items: JSON.stringify(runItems),
+    cleanup_hash: scope.hash || "",
+    hash: scope.hash || "",
+  };
+}
+
 async function lookup() {
+  const currentSeed = getState().control.repairSeedScope;
   const game = document.getElementById("control-game")?.value;
   const month = document.getElementById("control-month")?.value;
   const query = document.getElementById("control-query")?.value.trim() || "";
+  const repairSeedScope = currentSeed?.game === game && currentSeed?.month === month ? currentSeed : null;
   setFilters({ game, month });
   setControl({
     buildMode: "repair",
@@ -307,6 +508,7 @@ async function lookup() {
     error: "",
     lookupRuns: [],
     selectedRuns: [],
+    repairSeedScope,
     lookupResult: null,
     previewToken: "",
     previewScope: null,
@@ -349,18 +551,46 @@ async function preview() {
   window.dispatchEvent(new Event("cqr-page-refresh"));
   try {
     const scope = lockedScopeForRun(run);
-    const params = {
-      game: scope.game,
-      month: scope.month,
-      run_id: scope.runId,
-      run_ids: JSON.stringify([scope.runId]),
-      run_items: JSON.stringify([{ run_id: scope.runId, game_code: scope.game, period_key: scope.month }]),
-      cleanup_hash: scope.hash,
-      hash: scope.hash,
-    };
-    const result = await callAuthorized("admin.n8n.cleanup.preview", params, 60000);
+    const result = await callAuthorized("admin.n8n.cleanup.preview", cleanupParams(scope), 60000);
     const payload = assertSuccessfulPayload(result, "Cleanup preview");
     const receipt = String(payload.preview_token || payload.receipt || result.request_id || payload.request_id || `PREVIEW-${Date.now()}-${scope.runId}`);
+    setControl({
+      buildMode: "repair",
+      buildScope: null,
+      previewToken: receipt,
+      previewAt: new Date().toISOString(),
+      previewResult: payload,
+      previewScope: scope,
+      clearResult: null,
+      lastClearAt: "",
+      buildResult: null,
+      lastBuildAt: "",
+      buildProgress: 0,
+      error: "",
+    });
+    addLog("Preview", result, scope);
+    showToast("Preview completed");
+  } catch (error) {
+    setControl({ previewToken: "", previewScope: null, previewResult: null, error: error.message || String(error) });
+  } finally {
+    actionBusy = false;
+    window.dispatchEvent(new Event("cqr-page-refresh"));
+  }
+}
+
+async function previewHashScope() {
+  const scope = hashRepairScope();
+  if (!scope) {
+    showToast("ไม่มี Master Hash สำหรับ Repair");
+    return;
+  }
+  actionBusy = true;
+  setControl({ error: "" });
+  window.dispatchEvent(new Event("cqr-page-refresh"));
+  try {
+    const result = await callAuthorized("admin.n8n.cleanup.preview", cleanupParams(scope), 60000);
+    const payload = assertSuccessfulPayload(result, "Cleanup preview");
+    const receipt = String(payload.preview_token || payload.receipt || result.request_id || payload.request_id || `PREVIEW-${Date.now()}-${scope.hash}`);
     setControl({
       buildMode: "repair",
       buildScope: null,
@@ -423,6 +653,7 @@ export function bindDataControlPreviewPage() {
   if (consumeHandoff()) return;
   document.getElementById("lookup-run")?.addEventListener("click", lookup);
   document.getElementById("preview-run")?.addEventListener("click", preview);
+  document.getElementById("preview-hash-scope")?.addEventListener("click", previewHashScope);
   document.getElementById("continue-first-build")?.addEventListener("click", prepareFirstBuild);
   document.querySelectorAll('input[name="run-select"]').forEach((radio) => radio.addEventListener("change", () => setControl({
     selectedRuns: [radio.value],
@@ -451,20 +682,42 @@ export function renderDataControlClearPage() {
   }
   const scope = control.previewScope;
   const phrase = scope ? `CLEAR ${scope.game} ${scope.month}` : "";
+  const clearComplete = Boolean(control.lastClearAt);
   return `<div class="page-grid">${guide("clear")}
     <article class="surface-card danger-card">
       <div class="card-header"><div><h2 class="card-title">Clear Selected Run</h2><p class="card-description">การลบจริงต้องมี Preview Receipt และ Scope ที่ล็อกไว้</p></div>${statusPill(control.lastClearAt ? "ready" : scope ? "warning" : "danger", control.lastClearAt ? "Completed" : scope ? "Confirmation required" : "Preview required")}</div>
       <div class="card-body">${scope ? `<div class="metric-grid">
         <div class="metric-box"><div class="metric-label">Scope</div><div class="metric-value">${escapeHtml(scope.game)} / ${escapeHtml(scope.month)}</div></div>
-        <div class="metric-box"><div class="metric-label">Run ID</div><div class="metric-value code-chip">${escapeHtml(scope.runId)}</div></div>
+        <div class="metric-box"><div class="metric-label">Repair Target</div><div class="metric-value code-chip">${escapeHtml(scope.runId || scope.hash || "-")}</div></div>
         <div class="metric-box"><div class="metric-label">Preview Receipt</div><div class="metric-value code-chip">${escapeHtml(control.previewToken)}</div></div>
       </div>
-      <div class="notice danger" style="margin-top:14px">พิมพ์ <b>${escapeHtml(phrase)}</b> และยืนยัน Checkbox ก่อนดำเนินการ</div>
-      <label class="form-field" style="margin-top:12px"><span class="form-label">Confirmation phrase</span><input id="clear-phrase" class="form-control" autocomplete="off"></label>
-      <label class="checkbox-row"><input id="clear-ack" type="checkbox"><span>ฉันตรวจ Scope และ Preview Result แล้ว</span></label>
-      <button id="clear-run" class="button danger" type="button" ${actionBusy || control.lastClearAt ? "disabled" : ""}>${icon("trash", "nav-icon")} Clear Run</button>` : '<div class="empty-state">กลับไป Preview และเลือก Run ก่อน</div>'}
-      ${control.error ? `<div class="notice danger">${escapeHtml(control.error)}</div>` : ""}
-      ${control.clearResult ? `<pre class="json-preview">${escapeHtml(JSON.stringify(control.clearResult, null, 2))}</pre>` : ""}
+      <div style="display:grid;gap:26px;margin-top:22px">
+        <div style="display:grid;gap:18px;padding:20px;border:1px solid rgba(157,46,67,.24);border-radius:14px;background:rgba(255,247,249,.72)">
+          <div class="notice danger">พิมพ์ <b>${escapeHtml(phrase)}</b> และยืนยัน Checkbox ก่อนดำเนินการ</div>
+          <div style="display:grid;gap:8px;padding:16px;border:1px solid rgba(157,46,67,.16);border-radius:12px;background:#fff">
+            <label class="form-field"><span class="form-label">Confirmation phrase</span><input id="clear-phrase" class="form-control" autocomplete="off" ${control.lastClearAt ? "disabled" : ""}></label>
+          </div>
+          <div style="display:grid;gap:8px;padding:16px;border:1px solid rgba(157,46,67,.16);border-radius:12px;background:#fff">
+            <label class="checkbox-row" style="display:grid;grid-template-columns:20px minmax(0,1fr);align-items:start;column-gap:14px;line-height:1.65;margin:0">
+              <input id="clear-ack" type="checkbox" style="width:18px;height:18px;margin:4px 0 0" ${control.lastClearAt ? "disabled" : ""}>
+              <span>ฉันตรวจ Scope และ Preview Result แล้ว</span>
+            </label>
+          </div>
+        </div>
+        <div style="display:grid;gap:12px;padding:18px;border:1px solid rgba(157,46,67,.18);border-radius:14px;background:#fff">
+          <div class="metric-label">Clear action</div>
+          <button id="clear-run" class="button danger" type="button" ${actionBusy || control.lastClearAt ? "disabled" : ""}>${icon("trash", "nav-icon")} Clear Run</button>
+        </div>
+      </div>` : '<div class="empty-state">กลับไป Preview และเลือก Run ก่อน</div>'}
+      ${(control.error || control.clearResult) ? `<div style="display:grid;gap:16px;margin-top:26px;padding:18px;border:1px solid var(--line);border-radius:14px;background:#fff">
+        <div class="metric-label">Clear result</div>
+        ${control.error ? `<div class="notice danger">${escapeHtml(control.error)}</div>` : ""}
+        ${control.clearResult ? `<pre class="json-preview">${escapeHtml(JSON.stringify(control.clearResult, null, 2))}</pre>` : ""}
+      </div>` : ""}
+      ${clearComplete ? `<div style="display:grid;gap:14px;margin-top:26px;padding:20px;border:1px solid rgba(23,97,63,.28);border-radius:14px;background:rgba(238,248,243,.95)">
+        <div><div class="metric-label">Clear completed</div><div style="font-size:14px;font-weight:800;color:#17613f;margin-top:5px">พร้อมไปขั้นตอน Build สำหรับ Scope เดิม</div></div>
+        <button class="button primary" data-route="data-control-build" type="button" style="justify-content:center;min-height:48px;padding:0 22px;width:100%;max-width:320px">${icon("build", "nav-icon")} ไปขั้นตอน Build</button>
+      </div>` : ""}
       </div>
     </article>
   </div>`;
@@ -480,13 +733,7 @@ async function clearNow() {
   window.dispatchEvent(new Event("cqr-page-refresh"));
   try {
     const result = await callAuthorized("admin.n8n.cleanup.run", {
-      game: scope.game,
-      month: scope.month,
-      run_id: scope.runId,
-      run_ids: JSON.stringify([scope.runId]),
-      run_items: JSON.stringify([{ run_id: scope.runId, game_code: scope.game, period_key: scope.month }]),
-      cleanup_hash: scope.hash || "",
-      hash: scope.hash || "",
+      ...cleanupParams(scope),
       preview_receipt: control.previewToken,
     }, 60000);
     const payload = assertSuccessfulPayload(result, "Cleanup run");
@@ -514,8 +761,8 @@ export function bindDataControlClearPage() {
     }
     openConfirmModal({
       title: "Final Clear Confirmation",
-      message: `ล้างข้อมูล Run ${scope.runId} ของ ${scope.game} / ${scope.month}?`,
-      confirmLabel: "Clear Run",
+      message: `ล้างข้อมูล ${scope.runId ? `Run ${scope.runId}` : `Hash ${scope.hash}`} ของ ${scope.game} / ${scope.month}?`,
+      confirmLabel: "Clear Scope",
       danger: true,
       onConfirm: clearNow,
     });
@@ -596,7 +843,9 @@ async function build() {
       game: scope.game,
       month: scope.month,
       build_mode: "repair",
-      run_id: scope.runId,
+      run_id: scope.runId || "",
+      cleanup_hash: scope.hash || "",
+      hash: scope.hash || "",
       preview_receipt: control.previewToken,
     };
 
