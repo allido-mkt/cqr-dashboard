@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setControl, setFilters, setRoute } from "../state.js?v=3507";
+import { getState, setControl, setFilters, setRoute } from "../state.js?v=3509";
 import { callAuthorized, normalizePayload, assertSuccessfulPayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill, showToast, openConfirmModal } from "../ui.js";
 
@@ -203,6 +203,8 @@ function shortHash(value) {
 function repairHashFromHealthRow(row) {
   return String(
     row?.master_hash
+    || row?.direct_master_hash
+    || row?.snapshot_hash
     || row?.previous_hash
     || row?.cleanup_hash
     || row?.data_hash_before
@@ -328,6 +330,7 @@ function applyFirstBuildScope(scope) {
     lastBuildAt: "",
     buildResult: null,
     buildProgress: 0,
+    buildVerifyStatus: "",
     error: "",
   });
   persistFirstBuild(scope);
@@ -359,6 +362,8 @@ function consumeHandoff() {
       handoff.cleanup_hash
       || handoff.search_hash
       || handoff.master_hash
+      || handoff.direct_master_hash
+      || handoff.snapshot_hash
       || handoff.previous_hash
       || handoff.data_hash_before
       || handoff.master_data_hash
@@ -391,6 +396,7 @@ function consumeHandoff() {
       lastBuildAt: "",
       buildResult: null,
       buildProgress: 0,
+      buildVerifyStatus: "",
       error: "",
     });
     if (getState().route !== "data-control-preview") setRoute("data-control-preview");
@@ -642,6 +648,7 @@ async function preview() {
       buildResult: null,
       lastBuildAt: "",
       buildProgress: 0,
+      buildVerifyStatus: "",
       error: "",
     });
     addLog("Preview", result, scope);
@@ -708,6 +715,7 @@ async function recoverRepairScope(force = false) {
       lastBuildAt: "",
       buildResult: null,
       buildProgress: 0,
+      buildVerifyStatus: "",
       error: "",
     });
   } catch (error) {
@@ -743,6 +751,7 @@ async function previewHashScope() {
       buildResult: null,
       lastBuildAt: "",
       buildProgress: 0,
+      buildVerifyStatus: "",
       error: "",
     });
     addLog("Preview", result, scope);
@@ -929,13 +938,21 @@ export function renderDataControlBuildPage() {
   const firstChecks = firstBuildPrerequisites(scope);
   const firstReady = firstBuild && Object.values(firstChecks).every(Boolean);
   const repairReady = !firstBuild && Boolean(scope && control.previewToken && control.lastClearAt);
-  const ready = firstReady || repairReady;
+  const buildPending = ["processing", "checking", "pending_verification"].includes(String(control.buildVerifyStatus || ""));
+  const ready = (firstReady || repairReady) && !buildPending;
   const phrase = firstBuild && scope ? `BUILD ${scope.game} ${scope.month}` : "";
   const modeLabel = firstBuild ? "First Build" : "Repair Build";
+  const buildStatus = control.lastBuildAt
+    ? statusPill("ready", "Verified")
+    : ["processing", "checking"].includes(String(control.buildVerifyStatus || ""))
+      ? statusPill("running", "Processing")
+      : control.buildVerifyStatus === "pending_verification"
+        ? statusPill("warning", "Needs verification")
+        : statusPill(ready ? "warning" : "danger", ready ? "Ready" : "Blocked");
 
   return `<div class="page-grid">${guide("build", firstBuild ? "first_build" : "")}
     <article class="surface-card warm-card">
-      <div class="card-header"><div><h2 class="card-title">Build Master Data · ${modeLabel}</h2><p class="card-description">${firstBuild ? "สร้าง Master ครั้งแรกจาก Raw ที่ผ่านการตรวจ โดยไม่ต้อง Preview/Clear" : "Build ใช้ Scope เดียวกับ Preview/Clear และต้องผ่าน Prerequisite"}</p></div>${statusPill(control.lastBuildAt ? "ready" : ready ? "warning" : "danger", control.lastBuildAt ? "Completed" : ready ? "Ready" : "Blocked")}</div>
+      <div class="card-header"><div><h2 class="card-title">Build Master Data · ${modeLabel}</h2><p class="card-description">${firstBuild ? "สร้าง Master ครั้งแรกจาก Raw ที่ผ่านการตรวจ โดยไม่ต้อง Preview/Clear" : "Build ใช้ Scope เดียวกับ Preview/Clear และต้องผ่าน Prerequisite"}</p></div>${buildStatus}</div>
       <div class="card-body">
         ${firstBuild ? `<div class="metric-grid">
           <div class="metric-box"><div class="metric-label">Scope</div><div class="metric-value">${escapeHtml(scope?.game || "-")} / ${escapeHtml(scope?.month || "-")}</div></div>
@@ -955,9 +972,12 @@ export function renderDataControlBuildPage() {
           <div class="prerequisite"><span>Clear completed for locked scope</span>${statusPill(control.lastClearAt ? "ready" : "danger", control.lastClearAt ? "Pass" : "Missing")}</div>
           <div class="prerequisite"><span>Specific Game and Month</span>${statusPill(scope && scope.game !== "ALL" && scope.month !== "ALL" ? "ready" : "danger", scope ? `${scope.game} / ${scope.month}` : "Missing")}</div>
         </div>`}
+        ${["processing", "checking"].includes(String(control.buildVerifyStatus || "")) ? `<div class="notice warning" style="margin-top:14px"><b>Build ถูกส่งแล้วและกำลังทำงาน</b><br>ระบบจะยังไม่ขึ้น Completed จนกว่า Pipeline Health จะยืนยัน Scope นี้</div>` : ""}
+        ${control.buildVerifyStatus === "pending_verification" ? `<div class="notice warning" style="margin-top:14px"><b>ยังยืนยันผล Build ไม่ได้</b><br>ยังไม่ถือว่า Build สำเร็จ สามารถตรวจสถานะซ้ำได้โดยไม่ยิง Build ใหม่</div>` : ""}
         <div class="toolbar" style="margin-top:16px">
-          <button id="build-run" class="button primary" type="button" ${!ready || actionBusy || control.lastBuildAt ? "disabled" : ""}>${icon("build", "nav-icon")} ${firstBuild ? "Run First Build" : "Build Master"}</button>
-          <button class="button" data-route="pipeline-check" type="button">Verify with Pipeline Check</button>
+          <button id="build-run" class="button primary" type="button" ${!ready || actionBusy || control.lastBuildAt || buildPending ? "disabled" : ""}>${icon("build", "nav-icon")} ${firstBuild ? "Run First Build" : "Build Master"}</button>
+          ${control.buildVerifyStatus === "pending_verification" ? `<button id="verify-build-status" class="button warm" type="button" ${actionBusy || buildVerifyBusy ? "disabled" : ""}>Verify Build Status</button>` : ""}
+          <button class="button" data-route="pipeline-check" type="button">Open Pipeline Check</button>
         </div>
         ${!scope ? '<div class="notice warning">เริ่มจาก Pipeline Check แล้วกด Build Master หรือทำ Repair Preview ก่อน</div>' : ""}
         ${control.error ? `<div class="notice danger">${escapeHtml(control.error)}</div>` : ""}
@@ -965,6 +985,105 @@ export function renderDataControlBuildPage() {
       </div>
     </article>
   </div>`;
+}
+
+
+const BUILD_VERIFY_MAX_ATTEMPTS = 9;
+const BUILD_VERIFY_WAIT_MS = 15000;
+let buildVerifyBusy = false;
+
+function buildHealthRow(rows, scope) {
+  return rows.find((item) =>
+    (item.game_code || item.game) === scope.game
+    && (item.period_key || item.month) === scope.month
+  ) || null;
+}
+
+function buildVerifiedActionStatus(row) {
+  const status = String(row?.action_status || "").toLowerCase();
+  return status === "ready" || status === "ready_provisional";
+}
+
+function waitMs(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
+  if (!scope || buildVerifyBusy) return false;
+  buildVerifyBusy = true;
+  setControl({
+    buildVerifyStatus: "checking",
+    buildProgress: Math.max(65, Number(getState().control.buildProgress || 0)),
+    error: "",
+  });
+  window.dispatchEvent(new Event("cqr-page-refresh"));
+
+  try {
+    const attempts = oneShot ? 1 : BUILD_VERIFY_MAX_ATTEMPTS;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      if (attempt > 0) await waitMs(BUILD_VERIFY_WAIT_MS);
+
+      const healthResult = await callAuthorized("admin.pipeline.health", {
+        game: scope.game,
+        month: scope.month,
+      }, 60000);
+      assertSuccessfulPayload(healthResult, "Build verification");
+      const { rows } = normalizeHealth(healthResult);
+      const row = buildHealthRow(rows, scope);
+      if (!row) throw new Error("ไม่พบ Health row หลัง Build สำหรับ Scope นี้");
+
+      const actionStatus = String(row.action_status || "").toLowerCase();
+      if (buildVerifiedActionStatus(row)) {
+        const previous = getState().control.buildResult;
+        setControl({
+          lastBuildAt: new Date().toISOString(),
+          buildResult: {
+            dispatch: previous?.dispatch || previous || null,
+            verification: row,
+          },
+          buildProgress: 100,
+          buildVerifyStatus: "verified",
+          error: "",
+        });
+        addLog("Build Verify", healthResult, scope);
+        showToast("Build verified");
+        window.dispatchEvent(new Event("cqr-page-refresh"));
+        return true;
+      }
+
+      if (actionStatus === "raw_not_ready" || actionStatus === "raw_missing") {
+        throw new Error(`Build หยุดตรวจสอบ: Raw ไม่พร้อม (${row.action_status || "unknown"})`);
+      }
+
+      const progress = Math.min(95, 70 + Math.round(((attempt + 1) / attempts) * 20));
+      setControl({
+        buildVerifyStatus: "checking",
+        buildProgress: progress,
+        error: "",
+      });
+      window.dispatchEvent(new Event("cqr-page-refresh"));
+    }
+
+    setControl({
+      lastBuildAt: "",
+      buildVerifyStatus: "pending_verification",
+      buildProgress: 90,
+      error: "Build ถูกส่งแล้ว แต่ยังยืนยันผลจาก Pipeline ไม่สำเร็จ จึงยังไม่ถือว่า Completed",
+    });
+    window.dispatchEvent(new Event("cqr-page-refresh"));
+    return false;
+  } catch (error) {
+    setControl({
+      lastBuildAt: "",
+      buildVerifyStatus: "verification_failed",
+      buildProgress: 0,
+      error: error.message || String(error),
+    });
+    window.dispatchEvent(new Event("cqr-page-refresh"));
+    return false;
+  } finally {
+    buildVerifyBusy = false;
+  }
 }
 
 async function build() {
@@ -1039,23 +1158,26 @@ async function build() {
     const result = await callAuthorized("admin.n8n.master.run", payloadParams, 120000);
     const payload = assertSuccessfulPayload(result, "Master build");
     setControl({
-      lastBuildAt: new Date().toISOString(),
-      buildResult: payload,
-      buildProgress: 100,
+      lastBuildAt: "",
+      buildResult: { dispatch: payload },
+      buildProgress: 60,
+      buildVerifyStatus: "processing",
       error: "",
     });
-    addLog(firstBuild ? "First Build" : "Repair Build", result, {
+    addLog(firstBuild ? "First Build Sent" : "Repair Build Sent", result, {
       ...scope,
       runId: scope.runId || "",
       rawHash: scope.rawHash || "",
     });
     if (firstBuild) persistFirstBuild(null);
-    showToast(firstBuild ? "First Build completed" : "Build completed");
+    showToast(firstBuild ? "First Build sent — verifying" : "Build sent — verifying");
+    await verifyBuildCompletion(scope);
   } catch (error) {
     setControl({
       lastBuildAt: "",
       buildResult: null,
       buildProgress: 0,
+      buildVerifyStatus: "dispatch_failed",
       error: error.message || String(error),
     });
   } finally {
@@ -1074,6 +1196,16 @@ export function bindDataControlBuildPage() {
       return;
     }
   }
+
+  const resumeScope = control.buildMode === "first_build" ? control.buildScope : control.previewScope;
+  if (resumeScope && ["processing", "checking"].includes(String(control.buildVerifyStatus || ""))) {
+    queueMicrotask(() => verifyBuildCompletion(resumeScope));
+  }
+  document.getElementById("verify-build-status")?.addEventListener("click", () => {
+    const latest = getState().control;
+    const verifyScope = latest.buildMode === "first_build" ? latest.buildScope : latest.previewScope;
+    if (verifyScope) verifyBuildCompletion(verifyScope, { oneShot: true });
+  });
 
   document.getElementById("build-run")?.addEventListener("click", () => {
     const latest = getState().control;

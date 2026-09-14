@@ -72,7 +72,7 @@ const initialState = {
     lookupQuery: "", lookupPerformed: false, previewResult: null, previewScope: null,
     lastClearAt: "", clearResult: null, lastBuildAt: "", buildResult: null,
     buildMode: "", buildScope: null, buildRawHash: "", buildRawCheckId: "",
-    buildActionStatus: "", buildHealthStatus: "",
+    buildActionStatus: "", buildHealthStatus: "", buildVerifyStatus: "",
     buildProgress: 0, error: "",
   },
   aiMessages: Array.isArray(SAVED_AI_MESSAGES) && SAVED_AI_MESSAGES.length ? SAVED_AI_MESSAGES.slice(-40) : [DEFAULT_AI_MESSAGE],
@@ -99,7 +99,7 @@ function persistAiMessages(messages) {
 
 function persistControlState(control) {
   const keys = [
-    "buildMode", "buildScope", "buildRawHash", "buildRawCheckId", "buildActionStatus", "buildHealthStatus",
+    "buildMode", "buildScope", "buildRawHash", "buildRawCheckId", "buildActionStatus", "buildHealthStatus", "buildVerifyStatus",
     "previewToken", "previewAt", "previewScope", "lastClearAt", "lastBuildAt", "buildProgress",
     "selectedRuns", "lookupQuery", "repairSeedScope",
   ];

@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3507";
+import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3509";
 import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill } from "../ui.js";
 
@@ -219,6 +219,8 @@ async function run(kind) {
 function repairHashFromRow(row) {
   return String(
     row?.master_hash
+    || row?.direct_master_hash
+    || row?.snapshot_hash
     || row?.previous_hash
     || row?.cleanup_hash
     || row?.data_hash_before
@@ -286,7 +288,7 @@ export function bindDataHealthOverviewPage() {
         : recommendation?.cleanup;
     if (!payload) return;
     const repairHash = mode === "repair"
-      ? String(payload.cleanup_hash || payload.search_hash || payload.master_hash || payload.previous_hash || payload.data_hash_before || "").trim()
+      ? String(payload.cleanup_hash || payload.search_hash || payload.master_hash || payload.direct_master_hash || payload.snapshot_hash || payload.previous_hash || payload.data_hash_before || "").trim()
       : "";
     const handoff = mode === "repair"
       ? {
