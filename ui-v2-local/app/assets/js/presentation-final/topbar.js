@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "./config.js";
-import { getState, setFilter, setFilters } from "./state.js?v=3505";
+import { getState, setFilter, setFilters } from "./state.js?v=3506";
 import { icon, optionMarkup, showToast, downloadText } from "./ui.js";
 
 const PAGE_META = {

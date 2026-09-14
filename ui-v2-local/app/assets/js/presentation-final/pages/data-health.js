@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3505";
+import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3506";
 import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill } from "../ui.js";
 

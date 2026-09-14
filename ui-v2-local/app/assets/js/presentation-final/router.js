@@ -1,11 +1,11 @@
 import { hasPermission, PERMISSIONS } from "./permissions.js";
-import { getState, setRoute } from "./state.js?v=3505";
+import { getState, setRoute } from "./state.js?v=3506";
 import { renderDashboardPage, bindDashboardPage } from "./pages/dashboard.js";
 import { renderAiInsightPage, bindAiInsightPage } from "./pages/ai-insight.js";
 import { renderUserAccessPage, bindUserAccessPage } from "./pages/user-access.js";
-import { renderDataHealthOverviewPage, bindDataHealthOverviewPage, renderPipelineCheckPage, bindPipelineCheckPage } from "./pages/data-health.js";
+import { renderDataHealthOverviewPage, bindDataHealthOverviewPage, renderPipelineCheckPage, bindPipelineCheckPage } from "./pages/data-health.js?v=3506";
 import { renderCheckRawPage, bindCheckRawPage } from "./pages/check-raw.js";
-import { renderDataControlHistoryPage, bindDataControlHistoryPage, renderDataControlPreviewPage, bindDataControlPreviewPage, renderDataControlClearPage, bindDataControlClearPage, renderDataControlBuildPage, bindDataControlBuildPage } from "./pages/data-control.js?v=3505";
+import { renderDataControlHistoryPage, bindDataControlHistoryPage, renderDataControlPreviewPage, bindDataControlPreviewPage, renderDataControlClearPage, bindDataControlClearPage, renderDataControlBuildPage, bindDataControlBuildPage } from "./pages/data-control.js?v=3506";
 import { renderProfilePage, bindProfilePage, renderPreferencesPage, bindPreferencesPage } from "./pages/profile.js";
 import { accessDeniedPage } from "./pages/shared.js";
 

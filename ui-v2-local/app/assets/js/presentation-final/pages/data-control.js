@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setControl, setFilters, setRoute } from "../state.js?v=3505";
+import { getState, setControl, setFilters, setRoute } from "../state.js?v=3506";
 import { callAuthorized, normalizePayload, assertSuccessfulPayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill, showToast, openConfirmModal } from "../ui.js";
 
