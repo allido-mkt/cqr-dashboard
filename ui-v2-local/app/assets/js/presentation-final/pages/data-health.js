@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js";
+import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3505";
 import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill } from "../ui.js";
 
@@ -38,46 +38,82 @@ function normalize(result) {
 
 function summaryCards(data) {
   const summary = data.summary;
+  const total = data.rows.length;
+  const actionNeeded = data.rows.filter((row) => nextAction(row).mode).length;
+  const healthy = total > 0 && actionNeeded === 0;
   return `<div class="metric-grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr))">
-    <div class="metric-box"><div class="metric-label">Health Score</div><div class="metric-value">${escapeHtml(summary.health_score ?? "-")}</div></div>
-    <div class="metric-box"><div class="metric-label">Raw Ready</div><div class="metric-value">${Number(summary.raw_ready || 0)}</div></div>
-    <div class="metric-box"><div class="metric-label">Need Build</div><div class="metric-value">${Number(summary.build_required || 0)}</div></div>
-    <div class="metric-box"><div class="metric-label">Need Review</div><div class="metric-value">${Number(summary.needs_review || 0)}</div></div>
-    <div class="metric-box"><div class="metric-label">Need Repair</div><div class="metric-value">${Number(summary.cleanup_needed || 0)}</div></div>
-    <div class="metric-box"><div class="metric-label">Direct Read Ready</div><div class="metric-value">${Number(summary.dashboard_direct_ready || 0)}</div></div>
-    <div class="metric-box"><div class="metric-label">Direct Read Issue</div><div class="metric-value">${Number(summary.dashboard_direct_issues || 0)}</div></div>
+    <div class="metric-box"><div class="metric-label">Scope ที่ตรวจ</div><div class="metric-value">${total}</div></div>
+    <div class="metric-box"><div class="metric-label">Scope พร้อมใช้งาน</div><div class="metric-value">${healthy ? "ทั้งหมด" : total - actionNeeded}</div></div>
+    <div class="metric-box"><div class="metric-label">ต้องสร้าง Master</div><div class="metric-value">${Number(summary.build_required || 0)}</div></div>
+    <div class="metric-box"><div class="metric-label">ต้องซ่อมข้อมูล</div><div class="metric-value">${Number(summary.cleanup_needed || 0)}</div></div>
+    <div class="metric-box"><div class="metric-label">ต้องตรวจ Raw</div><div class="metric-value">${data.rows.filter((row) => nextAction(row).mode === "check_raw").length}</div></div>
   </div>`;
 }
 
-function actionControl(row, index) {
-  const action = String(row.action_status || "").toLowerCase();
-  if (action === "build_required") {
-    return `<button class="button small warm" type="button" data-health-action="first_build" data-row-index="${index}">Build Master</button>`;
-  }
-  if (action === "repair") {
-    return `<button class="button small danger" type="button" data-health-action="repair" data-row-index="${index}">Open Data Control</button>`;
-  }
-  if (["raw_missing", "raw_not_ready"].includes(action)) {
-    return `<button class="button small" type="button" data-health-action="check_raw" data-row-index="${index}">Check Raw</button>`;
-  }
-  return statusPill(tone(row.action_level || row.action_status), escapeHtml(row.action || row.action_status || "-"));
+function simpleStatus(value, fallback = "-") {
+  const status = String(value || "").toLowerCase();
+  if (["ready", "ok", "healthy", "success", "completed", "raw_ready"].includes(status)) return "พร้อม";
+  if (["missing", "raw_missing"].includes(status)) return "ไม่พบข้อมูล";
+  if (["failed", "danger", "repair"].includes(status)) return "มีปัญหา";
+  if (["pending", "running", "queued"].includes(status)) return "กำลังทำงาน";
+  if (["warning", "warn", "partial", "updated", "raw_updated", "raw_partial", "raw_not_ready"].includes(status)) return "ต้องตรวจสอบ";
+  return value || fallback;
 }
 
-function healthTable(data) {
+function rawStatus(row) {
+  return simpleStatus(row.raw_status || row.raw, "-");
+}
+
+function masterStatus(row) {
+  const master = row.master || row.master_status || row.dashboard_direct_read || "";
+  if (row.dashboard_missing_tabs) return "Dashboard ยังไม่ครบ";
+  return simpleStatus(master, "-");
+}
+
+function nextAction(row) {
+  const action = String(row.action_status || "").toLowerCase();
+  if (action === "build_required") {
+    return { mode: "first_build", label: "สร้าง Master", buttonClass: "warm", note: "มี Raw แล้ว แต่ยังไม่มี Master/Dashboard สำหรับ Scope นี้" };
+  }
+  if (action === "repair") {
+    return { mode: "repair", label: "เปิด Repair", buttonClass: "danger", note: "ข้อมูลปลายทางไม่ตรงกัน ควรตรวจและซ่อมผ่านขั้นตอน Repair" };
+  }
+  if (["raw_missing", "raw_not_ready"].includes(action)) {
+    return { mode: "check_raw", label: "ตรวจ Raw", buttonClass: "", note: "ยังต้องตรวจ Raw ก่อนเริ่มสร้างหรือซ่อมข้อมูล" };
+  }
+  return { mode: "", label: "ไม่ต้องทำ Action", buttonClass: "", note: "ข้อมูลพร้อมใช้งานใน Scope นี้" };
+}
+
+function actionControl(row, index) {
+  const action = nextAction(row);
+  if (!action.mode) return statusPill("ready", "ไม่ต้องทำ Action");
+  return `<button class="button small ${action.buttonClass}" type="button" data-health-action="${action.mode}" data-row-index="${index}">${escapeHtml(action.label)}</button>`;
+}
+
+function healthGuidance(data) {
   return data.rows.length
-    ? `<div class="table-wrap"><table>
-        <thead><tr><th>Game</th><th>Month</th><th>Raw</th><th>Master / Central</th><th>Dashboard Direct Read</th><th>Raw Hash</th><th>Master Hash</th><th>Next Step</th></tr></thead>
-        <tbody>${data.rows.map((row, index) => `<tr>
-          <td>${escapeHtml(row.game_code)}</td>
-          <td>${escapeHtml(row.period_key)}</td>
-          <td>${statusPill(tone(row.raw_level || row.raw_status), escapeHtml(row.raw || row.raw_status || "-"))}</td>
-          <td>${statusPill(tone(row.master_level), escapeHtml(row.master || "-"))}</td>
-          <td>${statusPill(tone(row.dashboard_read_level || row.dashboard_direct_read), escapeHtml(row.dashboard_direct_read || "-"))}${row.dashboard_missing_tabs ? `<div class="list-item-meta">Missing: ${escapeHtml(row.dashboard_missing_tabs)}</div>` : ""}</td>
-          <td class="code-chip">${escapeHtml(row.raw_hash || "-")}</td>
-          <td class="code-chip">${escapeHtml(row.master_hash || row.previous_hash || "-")}</td>
-          <td>${actionControl(row, index)}</td>
-        </tr>`).join("")}</tbody>
-      </table></div>`
+    ? `<div class="list-stack">${data.rows.map((row, index) => {
+        const action = nextAction(row);
+        return `<div class="list-item" style="align-items:flex-start;gap:14px">
+          <div class="list-item-icon">${icon(action.mode ? "target" : "check")}</div>
+          <div style="min-width:0;flex:1">
+            <div class="list-item-title">${escapeHtml(row.game_code || "-")} · ${escapeHtml(row.period_key || "-")}</div>
+            <div class="metric-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:10px">
+              <div class="metric-box"><div class="metric-label">Game</div><div class="metric-value" style="font-size:20px">${escapeHtml(row.game_code || "-")}</div></div>
+              <div class="metric-box"><div class="metric-label">Month</div><div class="metric-value" style="font-size:20px">${escapeHtml(row.period_key || "-")}</div></div>
+              <div class="metric-box"><div class="metric-label">Raw status</div><div>${statusPill(tone(row.raw_level || row.raw_status), escapeHtml(rawStatus(row)))}</div></div>
+              <div class="metric-box"><div class="metric-label">Master/Dashboard status</div><div>${statusPill(tone(row.master_level || row.dashboard_read_level || row.dashboard_direct_read), escapeHtml(masterStatus(row)))}</div></div>
+            </div>
+            <div class="notice ${action.mode === "repair" ? "danger" : action.mode ? "warning" : "ready"}" style="margin-top:12px">
+              <strong>ปัญหา:</strong> ${escapeHtml(action.note)}
+            </div>
+          </div>
+          <div style="display:grid;gap:8px;justify-items:end;min-width:150px">
+            <div class="list-item-meta">Action ถัดไป</div>
+            ${actionControl(row, index)}
+          </div>
+        </div>`;
+      }).join("")}</div>`
     : '<div class="empty-state">ไม่พบข้อมูลใน Scope ที่เลือก</div>';
 }
 
@@ -102,20 +138,66 @@ function recommendationAction(recommendation, index) {
   return "";
 }
 
+function simpleIssueText(issue) {
+  const title = issue?.title || issue?.badge || "พบสิ่งที่ต้องตรวจสอบ";
+  const detail = issue?.detail ? `: ${issue.detail}` : "";
+  return `${title}${detail}`;
+}
+
+function simpleRecommendationText(recommendation) {
+  if (recommendation?.build) return "มี Scope ที่ควรสร้าง Master ต่อ";
+  if (recommendation?.cleanup) return "มี Scope ที่ควรเปิด Repair เพื่อตรวจและซ่อมข้อมูล";
+  if (recommendation?.check_raw || recommendation?.raw_check) return "มี Scope ที่ควรตรวจ Raw ก่อน";
+  return recommendation?.title || "ไม่มี Action เพิ่มเติม";
+}
+
+function guidanceNotes(data) {
+  const notes = [
+    ...data.issues.map((issue) => simpleIssueText(issue)),
+    ...data.recommendations.map((recommendation) => simpleRecommendationText(recommendation)),
+  ].filter(Boolean);
+  if (!notes.length) return "";
+  return `<article class="surface-card"><div class="card-header"><div><h2 class="card-title">สิ่งที่ระบบพบ</h2><p class="card-description">สรุปให้อ่านง่ายจากผลตรวจล่าสุด</p></div></div><div class="card-body list-stack">${notes.slice(0, 6).map((note) => `<div class="list-item"><div class="list-item-icon">${icon("warning")}</div><div class="list-item-title">${escapeHtml(note)}</div></div>`).join("")}</div></article>`;
+}
+
+function advancedDetails(data, checkedAt) {
+  return `<article class="surface-card">
+    <details>
+      <summary class="card-header" style="cursor:pointer"><div><h2 class="card-title">Advanced Details</h2><p class="card-description">ข้อมูลเทคนิคสำหรับทีมภายใน · Source: ${escapeHtml(data.source)} · Read mode: ${escapeHtml(data.readMode)} · Checked: ${escapeHtml(checkedAt ? new Date(checkedAt).toLocaleString("th-TH") : "-")}</p></div></summary>
+      <div class="card-body">
+        ${data.rows.length ? `<div class="table-wrap"><table>
+          <thead><tr><th>Game</th><th>Month</th><th>Raw Hash</th><th>Master Hash</th><th>Dashboard Direct Read</th><th>Missing Tabs</th><th>Raw Check ID</th><th>Run ID</th><th>Action Status</th></tr></thead>
+          <tbody>${data.rows.map((row) => `<tr>
+            <td>${escapeHtml(row.game_code || "-")}</td>
+            <td>${escapeHtml(row.period_key || "-")}</td>
+            <td class="code-chip">${escapeHtml(row.raw_hash || "-")}</td>
+            <td class="code-chip">${escapeHtml(row.master_hash || row.previous_hash || "-")}</td>
+            <td>${escapeHtml(row.dashboard_direct_read || "-")}</td>
+            <td>${escapeHtml(row.dashboard_missing_tabs || "-")}</td>
+            <td class="code-chip">${escapeHtml(row.raw_check_id || "-")}</td>
+            <td class="code-chip">${escapeHtml(row.review_run_id || row.ready_run_id || row.latest_run_id || "-")}</td>
+            <td>${escapeHtml(row.action_status || "-")}</td>
+          </tr>`).join("")}</tbody>
+        </table></div>` : '<div class="empty-state">ไม่มีรายละเอียดเทคนิค</div>'}
+      </div>
+    </details>
+  </article>`;
+}
+
 export function renderDataHealthOverviewPage() {
   const health = getState().health;
   const data = health.result ? normalize(health.result) : null;
+  const healthy = data?.rows.length && data.rows.every((row) => !nextAction(row).mode);
   return `<div class="page-grid">
     <article class="surface-card">
-      <div class="card-header"><div><h2 class="card-title">Data Health Overview</h2><p class="card-description">ตรวจ Raw, Master, Central DB และการอ่าน Master โดยตรงของ Dashboard ใน Scope เดียวกัน</p></div>${statusPill(health.status, health.status === "idle" ? "Not checked" : health.status)}</div>
-      <div class="card-body">${filters("health", true)}<div class="toolbar" style="margin-top:14px"><button id="health-run" class="button primary" type="button" ${health.status === "loading" ? "disabled" : ""}>${icon("refresh", "nav-icon")} Run Health Check</button></div>${health.error ? `<div class="notice danger" style="margin-top:12px">${escapeHtml(health.error)}</div>` : ""}</div>
+      <div class="card-header"><div><h2 class="card-title">Data Health & Repair</h2><p class="card-description">1. ตรวจสถานะข้อมูล 2. ระบบบอกปัญหา 3. กด Action เดียวเพื่อไปขั้นตอนถัดไป</p></div>${statusPill(health.status, health.status === "idle" ? "ยังไม่ได้ตรวจ" : health.status)}</div>
+      <div class="card-body">${filters("health", true)}<div class="toolbar" style="margin-top:14px"><button id="health-run" class="button primary" type="button" ${health.status === "loading" ? "disabled" : ""}>${icon("refresh", "nav-icon")} ตรวจสถานะข้อมูล</button></div>${health.error ? `<div class="notice danger" style="margin-top:12px">${escapeHtml(health.error)}</div>` : ""}</div>
     </article>
     ${data ? `<article class="surface-card"><div class="card-body">${summaryCards(data)}</div></article>
-      <article class="surface-card"><div class="card-header"><div><h2 class="card-title">Health by Game</h2><p class="card-description">ข้อมูลจาก admin.pipeline.health · Dashboard Source: Direct Master · Source: ${escapeHtml(data.source)} · Checked: ${escapeHtml(health.checkedAt ? new Date(health.checkedAt).toLocaleString("th-TH") : "-")}</p></div></div><div class="card-body">${healthTable(data)}</div></article>
-      <section class="grid-2">
-        <article class="surface-card"><div class="card-header"><div><h2 class="card-title">Issues</h2></div></div><div class="card-body list-stack">${data.issues.length ? data.issues.map((issue) => `<div class="list-item"><div class="list-item-icon">${icon("warning")}</div><div><div class="list-item-title">${escapeHtml(issue.title || issue.badge)}</div><div class="list-item-meta">${escapeHtml(issue.detail || "")}</div></div></div>`).join("") : '<div class="empty-state">ไม่พบ Issue</div>'}</div></article>
-        <article class="surface-card"><div class="card-header"><div><h2 class="card-title">Recommendations</h2></div></div><div class="card-body list-stack">${data.recommendations.length ? data.recommendations.map((recommendation, index) => `<div class="list-item"><div><div class="list-item-title">${escapeHtml(recommendation.title)}</div><div class="list-item-meta">${escapeHtml(recommendation.detail)}</div></div>${recommendationAction(recommendation, index)}</div>`).join("") : '<div class="empty-state">ไม่มี Action ที่ต้องทำ</div>'}</div></article>
-      </section>` : ""}
+      ${healthy ? '<div class="notice ready">ข้อมูลพร้อมใช้งาน ไม่ต้องทำ Action เพิ่มเติม</div>' : ""}
+      <article class="surface-card"><div class="card-header"><div><h2 class="card-title">สถานะและ Action ถัดไป</h2><p class="card-description">เลือกดูตาม Game และ Month แล้วทำตาม Action ที่ระบบแนะนำในแต่ละ Scope</p></div></div><div class="card-body">${healthGuidance(data)}</div></article>
+      ${guidanceNotes(data)}
+      ${advancedDetails(data, health.checkedAt)}` : ""}
   </div>`;
 }
 
@@ -199,7 +281,7 @@ export function renderPipelineCheckPage() {
       <div class="card-header"><div><h2 class="card-title">Pipeline Check</h2><p class="card-description">ตรวจความสอดคล้อง Raw Source → Master Data → Data Index</p></div>${statusPill(pipeline.status, pipeline.status === "idle" ? "Not checked" : pipeline.status)}</div>
       <div class="card-body">${filters("pipeline", true)}<div class="toolbar" style="margin-top:14px"><button id="pipeline-run" class="button primary" type="button" ${pipeline.status === "loading" ? "disabled" : ""}>${icon("play", "nav-icon")} Run Pipeline Check</button></div>${pipeline.error ? `<div class="notice danger">${escapeHtml(pipeline.error)}</div>` : ""}</div>
     </article>
-    ${data ? `<article class="surface-card"><div class="card-body">${summaryCards(data)}<div style="margin-top:16px">${healthTable(data)}</div></div></article>` : ""}
+    ${data ? `<article class="surface-card"><div class="card-body">${summaryCards(data)}<div style="margin-top:16px">${healthGuidance(data)}</div></div></article>` : ""}
   </div>`;
 }
 

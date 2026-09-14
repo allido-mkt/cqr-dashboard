@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "./config.js";
-import { getState, setFilter, setFilters } from "./state.js";
+import { getState, setFilter, setFilters } from "./state.js?v=3505";
 import { icon, optionMarkup, showToast, downloadText } from "./ui.js";
 
 const PAGE_META = {
@@ -7,7 +7,7 @@ const PAGE_META = {
 dashboard: ["Dashboard", "ภาพรวม Performance, Retention และ Channel Quality"],
   "ai-insight": ["ASK AI", "Analyze data from your questions and surface insights, comparisons, and recommended next actions."],
   "user-access": ["User Access", "จัดการผู้ใช้ Role และขอบเขตที่บันทึกใน Users table"],
-  "data-health-overview": ["Data Health", "ภาพรวมความพร้อมของ Raw, Master และ Central DB"],
+  "data-health-overview": ["Data Health & Repair", "ตรวจสถานะข้อมูล แล้วแนะนำขั้นตอนแก้ไขถัดไปสำหรับ Game และ Month ที่เลือก"],
   "check-raw": ["Check Raw", "ส่งคำขอตรวจ Raw และติดตาม Queue จนเสร็จ"],
   "pipeline-check": ["Pipeline Check", "ตรวจความสอดคล้องระหว่าง Raw, Master และ Data Index"],
   "data-control-history": ["Data Control · History", "ประวัติการสั่งงานใน Browser นี้; ตรวจหลักฐานกลางที่ Central DB / n8n"],
