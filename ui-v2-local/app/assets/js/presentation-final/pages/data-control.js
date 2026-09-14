@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setControl, setFilters, setRoute } from "../state.js?v=3506";
+import { getState, setControl, setFilters, setRoute } from "../state.js?v=3507";
 import { callAuthorized, normalizePayload, assertSuccessfulPayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill, showToast, openConfirmModal } from "../ui.js";
 
@@ -7,6 +7,8 @@ const LOG_KEY = "cqr_admin_action_logs";
 const HANDOFF_KEY = "cqr_data_control_handoff";
 const FIRST_BUILD_KEY = "cqr_first_build_scope";
 let actionBusy = false;
+let repairRecoveryBusy = false;
+let repairRecoveryAttemptedKey = "";
 
 function logs() {
   try {
@@ -198,6 +200,37 @@ function shortHash(value) {
   return `${text.slice(0, 10)}...${text.slice(-6)}`;
 }
 
+function repairHashFromHealthRow(row) {
+  return String(
+    row?.master_hash
+    || row?.previous_hash
+    || row?.cleanup_hash
+    || row?.data_hash_before
+    || row?.master_data_hash
+    || ""
+  ).trim();
+}
+
+function repairRunIdFromHealthRow(row) {
+  return String(
+    row?.review_run_id
+    || row?.ready_run_id
+    || row?.latest_run_id
+    || row?.run_id
+    || ""
+  ).trim();
+}
+
+function repairSeedNeedsRecovery() {
+  const seed = getState().control.repairSeedScope;
+  return Boolean(
+    seed?.game
+    && seed?.month
+    && String(seed.actionStatus || "").toLowerCase() === "repair"
+    && !String(seed.hash || "").trim()
+  );
+}
+
 function extractRuns(result) {
   const payload = normalizePayload(result);
   if (Array.isArray(result?.matches)) return result.matches;
@@ -322,18 +355,42 @@ function consumeHandoff() {
       if (getState().route !== "data-control-build") setRoute("data-control-build");
       return true;
     }
-    const repairHash = handoff.cleanup_hash || handoff.search_hash || handoff.master_hash || handoff.previous_hash || handoff.hash || "";
+    const repairHash = String(
+      handoff.cleanup_hash
+      || handoff.search_hash
+      || handoff.master_hash
+      || handoff.previous_hash
+      || handoff.data_hash_before
+      || handoff.master_data_hash
+      || handoff.hash
+      || ""
+    ).trim();
+    const repairRunId = String(
+      handoff.run_id
+      || handoff.review_run_id
+      || handoff.ready_run_id
+      || handoff.latest_run_id
+      || ""
+    ).trim();
     setControl({
       buildMode: "repair",
       buildScope: null,
-      lookupQuery: handoff.run_id || repairHash || "",
+      lookupQuery: repairRunId || repairHash || "",
       repairSeedScope: {
         game,
         month,
-        runId: handoff.run_id || "",
+        runId: repairRunId,
         hash: repairHash,
-        actionStatus: handoff.action_status || handoff.actionStatus || "",
+        actionStatus: handoff.action_status || handoff.actionStatus || "repair",
       },
+      previewToken: "",
+      previewScope: null,
+      previewResult: null,
+      lastClearAt: "",
+      clearResult: null,
+      lastBuildAt: "",
+      buildResult: null,
+      buildProgress: 0,
       error: "",
     });
     if (getState().route !== "data-control-preview") setRoute("data-control-preview");
@@ -409,16 +466,22 @@ export function bindDataControlHistoryPage() {
 export function renderDataControlPreviewPage() {
   const control = getState().control;
   const hashScope = hashRepairScope();
+  const repairSeed = control.repairSeedScope;
+  const repairExpected = Boolean(
+    repairSeed?.game
+    && repairSeed?.month
+    && String(repairSeed.actionStatus || "").toLowerCase() === "repair"
+  );
   const noMatches = control.lookupPerformed && !control.lookupRuns.length && !actionBusy;
-  const firstBuildNotice = noMatches && !hashScope ? `<div class="notice warning">
+  const firstBuildNotice = noMatches && !hashScope && !repairExpected ? `<div class="notice warning">
     <b>ไม่พบข้อมูล Master เดิมในขอบเขตนี้</b><br>
     ตรวจสอบก่อนว่าเป็นการสร้างครั้งแรกจริงหรือไม่
     <div class="dc-button-row"><button id="continue-first-build" class="button warm" type="button">Check First Build Eligibility</button></div>
   </div>` : "";
   const manualSearch = `<div class="dc-manual-panel">
     <div class="dc-section-title">
-      <h3>${hashScope ? "Advanced / หา Run แบบ Manual" : "หา Run แบบ Manual"}</h3>
-      <p>${hashScope ? "ใช้เมื่อจำเป็นต้องเลือก Run เฉพาะแทน Master Hash ที่ระบบส่งมา" : "เลือก Game/Month แล้วค้นหา Run เดิมเพื่อ Preview ก่อน Clear"}</p>
+      <h3>${hashScope || repairExpected ? "Advanced / หา Run แบบ Manual" : "หา Run แบบ Manual"}</h3>
+      <p>${hashScope || repairExpected ? "ใช้เมื่อจำเป็นต้องเลือก Run เฉพาะแทน Repair Scope ที่ระบบส่งมา" : "เลือก Game/Month แล้วค้นหา Run เดิมเพื่อ Preview ก่อน Clear"}</p>
     </div>
     ${controlFilters()}
     <label class="form-field"><span class="form-label">Run ID / Hash</span><input id="control-query" class="form-control" value="${escapeHtml(control.lookupQuery || "")}" placeholder="RUN-... หรือ hash"></label>
@@ -444,6 +507,19 @@ export function renderDataControlPreviewPage() {
             ${noMatches ? `<div class="notice warning"><b>ไม่พบ Run History</b><br>ยัง Preview Repair ด้วย Master Hash ที่ตรวจพบได้ ไม่ต้องใช้ First Build</div>` : ""}
             <details class="dc-advanced"><summary>Advanced / หา Run แบบ Manual</summary>${manualSearch}</details>
           </div>
+        </article>` : repairExpected ? `<article class="surface-card warm-card dc-repair-card">
+          <div class="card-header"><div><h2 class="card-title">ตรวจขอบเขตซ่อมข้อมูลก่อนเริ่ม</h2><p class="card-description">Data Health ระบุว่า Scope นี้ต้อง Repair แต่ยังไม่ได้ Master Hash สำหรับล็อกขอบเขต</p></div>${statusPill(actionBusy || repairRecoveryBusy ? "running" : "warning", actionBusy || repairRecoveryBusy ? "Checking" : "Needs scope")}</div>
+          <div class="card-body">
+            <div class="notice warning"><b>กำลังยืนยัน Repair Scope</b><br>ระบบจะอ่าน Data Health ของ ${escapeHtml(repairSeed?.game || "-")} / ${escapeHtml(repairSeed?.month || "-")} ใหม่เพื่อดึง Master Hash ที่ใช้ Preview/Clear อย่างปลอดภัย</div>
+            <div class="dc-scope-summary">
+              <div class="metric-box"><div class="metric-label">Game</div><div class="metric-value">${escapeHtml(repairSeed?.game || "-")}</div></div>
+              <div class="metric-box"><div class="metric-label">Month</div><div class="metric-value">${escapeHtml(repairSeed?.month || "-")}</div></div>
+              <div class="metric-box"><div class="metric-label">Repair Status</div><div>${statusPill("warning", "รอ Master Hash")}</div></div>
+            </div>
+            <div class="dc-button-row"><button id="reload-repair-scope" class="button primary" type="button" ${actionBusy || repairRecoveryBusy ? "disabled" : ""}>Reload Repair Scope</button></div>
+            ${control.error ? `<div class="notice danger">${escapeHtml(control.error)}</div>` : ""}
+            <details class="dc-advanced"><summary>Advanced / หา Run แบบ Manual</summary>${manualSearch}</details>
+          </div>
         </article>` : `<article class="surface-card warm-card dc-repair-card">
           <div class="card-header"><div><h2 class="card-title">ตรวจขอบเขตซ่อมข้อมูลก่อนเริ่ม</h2><p class="card-description">ยังไม่มี Master Hash จาก Data Health ให้ค้นหา Run เดิมแบบ Manual</p></div>${statusPill(actionBusy ? "running" : control.previewToken ? "ready" : "warm", actionBusy ? "Working" : control.previewToken ? "Preview ready" : "Ready")}</div>
           <div class="card-body">
@@ -457,8 +533,8 @@ export function renderDataControlPreviewPage() {
         <div class="card-header"><div><h2 class="card-title">สถานะขอบเขต</h2><p class="card-description">ล็อกหลัง Preview เท่านั้น</p></div></div>
         <div class="card-body">
           <div class="dc-status-list">
-            <div><span>Game / Month</span><b>${escapeHtml(control.previewScope?.game || hashScope?.game || "-")} / ${escapeHtml(control.previewScope?.month || hashScope?.month || "-")}</b></div>
-            <div><span>Master เดิม</span><b class="code-chip" title="${escapeHtml(control.previewScope?.hash || hashScope?.hash || "")}">${escapeHtml(shortHash(control.previewScope?.hash || hashScope?.hash || ""))}</b></div>
+            <div><span>Game / Month</span><b>${escapeHtml(control.previewScope?.game || hashScope?.game || repairSeed?.game || "-")} / ${escapeHtml(control.previewScope?.month || hashScope?.month || repairSeed?.month || "-")}</b></div>
+            <div><span>Master เดิม</span><b class="code-chip" title="${escapeHtml(control.previewScope?.hash || hashScope?.hash || repairSeed?.hash || "")}">${escapeHtml(shortHash(control.previewScope?.hash || hashScope?.hash || repairSeed?.hash || ""))}</b></div>
             <div><span>Preview Receipt</span><b class="code-chip">${escapeHtml(control.previewToken || "-")}</b></div>
           </div>
         </div>
@@ -578,6 +654,70 @@ async function preview() {
   }
 }
 
+async function recoverRepairScope(force = false) {
+  const seed = getState().control.repairSeedScope;
+  if (!seed?.game || !seed?.month) return;
+  const key = `${seed.game}|${seed.month}`;
+  if (repairRecoveryBusy) return;
+  if (!force && repairRecoveryAttemptedKey === key) return;
+
+  repairRecoveryAttemptedKey = key;
+  repairRecoveryBusy = true;
+  setControl({ error: "" });
+  window.dispatchEvent(new Event("cqr-page-refresh"));
+  try {
+    const result = await callAuthorized("admin.pipeline.health", { game: seed.game, month: seed.month }, 60000);
+    assertSuccessfulPayload(result, "Repair scope check");
+    const { rows } = normalizeHealth(result);
+    const row = rows.find((item) =>
+      (item.game_code || item.game) === seed.game
+      && (item.period_key || item.month) === seed.month
+    );
+    if (!row) throw new Error("ไม่พบ Data Health ของ Repair Scope นี้");
+
+    const actionStatus = String(row.action_status || "").toLowerCase();
+    if (actionStatus !== "repair") {
+      if (actionStatus === "ready") throw new Error("Scope นี้พร้อมใช้งานแล้ว ไม่ต้อง Repair");
+      if (actionStatus === "build_required") throw new Error("Scope นี้ไม่มี Master เดิม ต้องใช้ First Build");
+      throw new Error(`สถานะล่าสุดไม่อนุญาต Repair (${row.action_status || "unknown"})`);
+    }
+
+    const repairHash = repairHashFromHealthRow(row);
+    const repairRunId = repairRunIdFromHealthRow(row);
+    if (!repairHash) {
+      throw new Error("Data Health ยืนยันว่าเป็น Repair แต่ยังไม่ส่ง Master Hash จึงยัง Preview/Clear อย่างปลอดภัยไม่ได้");
+    }
+
+    setFilters({ game: seed.game, month: seed.month });
+    setControl({
+      buildMode: "repair",
+      buildScope: null,
+      lookupQuery: repairRunId || repairHash,
+      repairSeedScope: {
+        game: seed.game,
+        month: seed.month,
+        runId: repairRunId,
+        hash: repairHash,
+        actionStatus: "repair",
+      },
+      previewToken: "",
+      previewScope: null,
+      previewResult: null,
+      lastClearAt: "",
+      clearResult: null,
+      lastBuildAt: "",
+      buildResult: null,
+      buildProgress: 0,
+      error: "",
+    });
+  } catch (error) {
+    setControl({ error: error.message || String(error) });
+  } finally {
+    repairRecoveryBusy = false;
+    window.dispatchEvent(new Event("cqr-page-refresh"));
+  }
+}
+
 async function previewHashScope() {
   const scope = hashRepairScope();
   if (!scope) {
@@ -654,6 +794,7 @@ export function bindDataControlPreviewPage() {
   document.getElementById("lookup-run")?.addEventListener("click", lookup);
   document.getElementById("preview-run")?.addEventListener("click", preview);
   document.getElementById("preview-hash-scope")?.addEventListener("click", previewHashScope);
+  document.getElementById("reload-repair-scope")?.addEventListener("click", () => recoverRepairScope(true));
   document.getElementById("continue-first-build")?.addEventListener("click", prepareFirstBuild);
   document.querySelectorAll('input[name="run-select"]').forEach((radio) => radio.addEventListener("change", () => setControl({
     selectedRuns: [radio.value],
@@ -667,6 +808,9 @@ export function bindDataControlPreviewPage() {
     buildResult: null,
   })));
   document.querySelectorAll("[data-route]").forEach((button) => button.addEventListener("click", () => setRoute(button.dataset.route)));
+  if (repairSeedNeedsRecovery()) {
+    queueMicrotask(() => recoverRepairScope(false));
+  }
 }
 
 export function renderDataControlClearPage() {

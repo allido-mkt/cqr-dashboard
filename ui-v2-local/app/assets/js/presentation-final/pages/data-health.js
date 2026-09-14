@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3506";
+import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3507";
 import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill } from "../ui.js";
 
@@ -216,7 +216,29 @@ async function run(kind) {
   }
 }
 
+function repairHashFromRow(row) {
+  return String(
+    row?.master_hash
+    || row?.previous_hash
+    || row?.cleanup_hash
+    || row?.data_hash_before
+    || row?.master_data_hash
+    || ""
+  ).trim();
+}
+
+function repairRunIdFromRow(row) {
+  return String(
+    row?.review_run_id
+    || row?.ready_run_id
+    || row?.latest_run_id
+    || row?.run_id
+    || ""
+  ).trim();
+}
+
 function handoffFromRow(row, mode) {
+  const repairHash = repairHashFromRow(row);
   return {
     mode,
     target_game_code: row.game_code || "",
@@ -225,8 +247,11 @@ function handoffFromRow(row, mode) {
     raw_check_id: row.raw_check_id || "",
     raw_status: row.raw_status || "",
     action_status: row.action_status || "",
-    run_id: row.review_run_id || row.ready_run_id || row.latest_run_id || "",
-    search_hash: row.master_hash || row.previous_hash || "",
+    run_id: repairRunIdFromRow(row),
+    master_hash: row.master_hash || repairHash,
+    previous_hash: row.previous_hash || "",
+    cleanup_hash: repairHash,
+    search_hash: repairHash,
   };
 }
 
@@ -260,7 +285,22 @@ export function bindDataHealthOverviewPage() {
         ? (recommendation?.check_raw || recommendation?.raw_check)
         : recommendation?.cleanup;
     if (!payload) return;
-    sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({ ...payload, mode }));
+    const repairHash = mode === "repair"
+      ? String(payload.cleanup_hash || payload.search_hash || payload.master_hash || payload.previous_hash || payload.data_hash_before || "").trim()
+      : "";
+    const handoff = mode === "repair"
+      ? {
+        ...payload,
+        mode,
+        target_game_code: payload.target_game_code || payload.game_code || "",
+        target_month: payload.target_month || payload.period_key || payload.month || "",
+        run_id: payload.run_id || payload.review_run_id || payload.ready_run_id || payload.latest_run_id || "",
+        master_hash: payload.master_hash || repairHash,
+        cleanup_hash: repairHash,
+        search_hash: repairHash,
+      }
+      : { ...payload, mode };
+    sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(handoff));
     setFilters({
       game: payload.target_game_code || getState().filters.game,
       month: payload.target_month || getState().filters.month,
