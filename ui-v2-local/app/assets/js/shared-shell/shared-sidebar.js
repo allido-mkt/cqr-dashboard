@@ -1,4 +1,13 @@
 (() => {
+  const APP_BUILD_VERSION = (() => {
+    try {
+      const src = document.currentScript?.src || "";
+      const version = new URL(src, window.location.href).searchParams.get("v");
+      return version ? `v${version}` : "";
+    } catch (_) {
+      return "";
+    }
+  })();
   "use strict";
 
   const SESSION_KEY = "cqr_auth";
@@ -145,6 +154,11 @@
     .child { min-height:34px;padding-left:9px; }
     .chevron { transition:transform .18s ease; }
     .parent[aria-expanded="true"] .chevron { transform:rotate(180deg); }
+    .build-version {
+      min-height:18px;display:flex;align-items:center;padding:0 14px 2px;
+      color:rgba(102,115,137,.62);font-size:8.5px;font-weight:400;line-height:1;letter-spacing:.035em;user-select:none;
+    }
+    :host([collapsed]) .build-version { justify-content:center;padding-inline:0;font-size:7.5px; }
     .footer { position:relative;padding:11px; }
     /* CQR_SHARED_SIDEBAR_AUTH_PROFILE_FIX_V1 */
     .profile {
@@ -374,6 +388,7 @@
             <button class="toggle" id="toggle" type="button" aria-label="ย่อหรือขยาย Sidebar" title="ย่อหรือขยาย Sidebar">${icon("collapse")}</button>
           </div>
           <div class="scroll">${groups}</div>
+          ${APP_BUILD_VERSION ? `<div class="build-version" aria-label="Frontend version">${escapeHtml(APP_BUILD_VERSION)}</div>` : ""}
           <div class="footer">
             <button class="profile" id="profile-toggle" type="button" aria-expanded="false">
               <span class="avatar">${escapeHtml(user.initials)}</span>
