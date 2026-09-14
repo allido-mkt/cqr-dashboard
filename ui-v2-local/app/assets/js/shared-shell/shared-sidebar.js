@@ -1,13 +1,5 @@
 (() => {
-  const APP_BUILD_VERSION = (() => {
-    try {
-      const src = document.currentScript?.src || "";
-      const version = new URL(src, window.location.href).searchParams.get("v");
-      return version ? `v${version}` : "";
-    } catch (_) {
-      return "";
-    }
-  })();
+  const APP_BUILD_VERSION = "v3512";
   "use strict";
 
   const SESSION_KEY = "cqr_auth";
