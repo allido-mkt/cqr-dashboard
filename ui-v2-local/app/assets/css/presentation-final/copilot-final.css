@@ -1268,6 +1268,115 @@ body{overflow-x:hidden}
   #page-content .workflow-steps.dc-workflow .workflow-step { flex: 0 0 132px !important; }
 }
 
+/* Data Control Preview: guided repair path with a compact status panel. */
+#page-content .data-control-preview-page,
+#page-content .data-control-preview-page * {
+  min-width: 0;
+}
+#page-content .dc-preview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+#page-content .dc-preview-main,
+#page-content .dc-repair-card .card-body,
+#page-content .dc-manual-panel {
+  display: grid;
+  gap: 14px;
+}
+#page-content .dc-scope-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+#page-content .dc-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+}
+#page-content .dc-button-row .button {
+  min-width: 0;
+  white-space: normal;
+}
+#page-content .dc-section-title h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+#page-content .dc-section-title p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+#page-content .dc-advanced {
+  border: 1px solid rgba(122,137,160,.18);
+  border-radius: 12px;
+  background: rgba(255,255,255,.56);
+}
+#page-content .dc-advanced > summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+}
+#page-content .dc-advanced > .dc-manual-panel {
+  padding: 0 14px 14px;
+}
+#page-content .dc-status-panel .card-header,
+#page-content .dc-status-panel .card-body {
+  padding: 16px;
+}
+#page-content .dc-status-list {
+  display: grid;
+  gap: 10px;
+}
+#page-content .dc-status-list > div {
+  display: grid;
+  gap: 5px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(122,137,160,.14);
+}
+#page-content .dc-status-list > div:last-child {
+  border-bottom: 0;
+}
+#page-content .dc-status-list span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+#page-content .dc-status-list b {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+#page-content .dc-status-list .code-chip,
+#page-content .dc-scope-summary .code-chip {
+  display: inline-flex;
+  max-width: 100%;
+}
+@media (max-width: 1180px) {
+  #page-content .dc-preview-layout {
+    grid-template-columns: 1fr;
+  }
+  #page-content .dc-status-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  #page-content .dc-scope-summary,
+  #page-content .dc-status-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* CQR_AI_WARM_MINIMAL_TITLES_FINAL_START */
 /* One heading system for every Copilot/Admin page.
    The topbar sits outside #page-content, so target the real topbar directly. */

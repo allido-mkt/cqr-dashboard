@@ -1,6 +1,6 @@
 import { NAVIGATION } from "./navigation.js";
 import { hasPermission } from "./permissions.js";
-import { getState, setRoute, toggleGroup, toggleSidebar } from "./state.js";
+import { getState, setRoute, toggleGroup, toggleSidebar } from "./state.js?v=3505";
 import { icon } from "./ui.js";
 import { signOutAndRedirect } from "./session.js";
 

@@ -101,7 +101,7 @@ function persistControlState(control) {
   const keys = [
     "buildMode", "buildScope", "buildRawHash", "buildRawCheckId", "buildActionStatus", "buildHealthStatus",
     "previewToken", "previewAt", "previewScope", "lastClearAt", "lastBuildAt", "buildProgress",
-    "selectedRuns", "lookupQuery",
+    "selectedRuns", "lookupQuery", "repairSeedScope",
   ];
   const value = Object.fromEntries(keys.map((key) => [key, control?.[key] ?? null]));
   try { sessionStorage.setItem(CONTROL_STATE_KEY, JSON.stringify(value)); } catch {}

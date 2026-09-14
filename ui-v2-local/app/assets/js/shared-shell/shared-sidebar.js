@@ -57,25 +57,12 @@
         { id: "user-access", label: "User Access", icon: "users", permission: "manage_user_access" },
         {
           id: "data-health",
-          label: "Data Health",
+          label: "Data Health & Repair",
           icon: "health",
           permission: "view_data_health",
           children: [
             { id: "data-health-overview", label: "Overview", icon: "overview", permission: "view_data_health" },
-            { id: "check-raw", label: "Check Raw", icon: "raw", permission: "run_raw_check" },
-            { id: "pipeline-check", label: "Pipeline Check", icon: "pipeline", permission: "run_pipeline_check" },
-          ],
-        },
-        {
-          id: "data-control",
-          label: "Data Control",
-          icon: "control",
-          permission: "view_data_control_history",
-          children: [
-            { id: "data-control-history", label: "History", icon: "history", permission: "view_data_control_history" },
-            { id: "data-control-preview", label: "Preview", icon: "eye", permission: "run_data_preview" },
-            { id: "data-control-clear", label: "Clear", icon: "trash", permission: "run_data_clear" },
-            { id: "data-control-build", label: "Build", icon: "build", permission: "run_data_build" },
+            { id: "data-control-history", label: "Activity Log", icon: "history", permission: "view_data_control_history" },
           ],
         },
       ],
