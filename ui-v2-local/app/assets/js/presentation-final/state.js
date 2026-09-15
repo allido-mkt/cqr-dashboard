@@ -70,7 +70,7 @@ const initialState = {
     previewToken: "", previewAt: "", selectedRuns: [], lookupRuns: [], lookupResult: null,
     lookupQuery: "", lookupPerformed: false, previewResult: null, previewScope: null,
     repairSeedScope: null,
-    lastClearAt: "", clearResult: null, lastBuildAt: "", buildResult: null,
+    lastClearAt: "", clearResult: null,\n    clearVerifyStatus: "", clearDispatchAt: "", clearRequestId: "", clearProgress: 0, clearRunMessage: "",\n    lastBuildAt: "", buildResult: null,
     buildMode: "", buildScope: null, buildRawHash: "", buildRawCheckId: "",
     buildActionStatus: "", buildHealthStatus: "", buildVerifyStatus: "",
     buildDispatchAt: "", buildRequestId: "", buildRunStatus: "", buildRunId: "", buildRunMessage: "",
@@ -105,7 +105,7 @@ function persistControlState(control) {
   const keys = [
     "buildMode", "buildScope", "buildRawHash", "buildRawCheckId", "buildActionStatus", "buildHealthStatus", "buildVerifyStatus",
     "buildDispatchAt", "buildRequestId", "buildRunStatus", "buildRunId", "buildRunMessage",
-    "previewToken", "previewAt", "previewScope", "lastClearAt", "lastBuildAt", "buildProgress",
+    "previewToken", "previewAt", "previewScope", "lastClearAt", "clearVerifyStatus", "clearDispatchAt", "clearRequestId", "clearProgress", "clearRunMessage", "lastBuildAt", "buildProgress",
     "selectedRuns", "lookupQuery", "repairSeedScope",
   ];
   const value = Object.fromEntries(keys.map((key) => [key, control?.[key] ?? null]));
