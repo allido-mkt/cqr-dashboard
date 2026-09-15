@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3511";
+import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3513";
 import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill } from "../ui.js";
 
@@ -7,7 +7,7 @@ const HANDOFF_KEY = "cqr_data_control_handoff";
 
 function tone(level) {
   const value = String(level || "").toLowerCase();
-  return ["ok", "ready", "healthy", "raw_ready"].includes(value)
+  return ["ok", "ready", "healthy", "raw_ready", "raw_updated"].includes(value)
     ? "ready"
     : ["danger", "failed", "missing", "raw_missing", "raw_not_ready", "repair"].includes(value)
       ? "danger"
@@ -18,7 +18,7 @@ function normalize(result) {
   const payload = normalizePayload(result);
   const source = payload && typeof payload === "object" ? payload : {};
   const rows = Array.isArray(source.scope_rows) ? source.scope_rows : Array.isArray(source.rows) ? source.rows : [];
-  const action = (row) => String(row.action_status || "").toLowerCase();
+  const action = (row) => normalizedActionStatus(row);
   const direct = (row) => String(row.dashboard_direct_read || "").toLowerCase();
   return {
     rows,
@@ -52,11 +52,11 @@ function summaryCards(data) {
 
 function simpleStatus(value, fallback = "-") {
   const status = String(value || "").toLowerCase();
-  if (["ready", "ok", "healthy", "success", "completed", "raw_ready"].includes(status)) return "พร้อม";
+  if (["ready", "ready_provisional", "ok", "healthy", "success", "completed", "raw_ready", "raw_updated"].includes(status)) return "พร้อม";
   if (["missing", "raw_missing"].includes(status)) return "ไม่พบข้อมูล";
   if (["failed", "danger", "repair"].includes(status)) return "มีปัญหา";
   if (["pending", "running", "queued"].includes(status)) return "กำลังทำงาน";
-  if (["warning", "warn", "partial", "updated", "raw_updated", "raw_partial", "raw_not_ready"].includes(status)) return "ต้องตรวจสอบ";
+  if (["warning", "warn", "partial", "updated", "raw_partial", "raw_not_ready"].includes(status)) return "ต้องตรวจสอบ";
   return value || fallback;
 }
 
@@ -70,8 +70,14 @@ function masterStatus(row) {
   return simpleStatus(master, "-");
 }
 
+function normalizedActionStatus(row) {
+  const action = String(row?.action_status || "").toLowerCase();
+  if (["direct_master_missing", "direct_master_stale"].includes(action)) return "repair";
+  return action;
+}
+
 function nextAction(row) {
-  const action = String(row.action_status || "").toLowerCase();
+  const action = normalizedActionStatus(row);
   if (action === "build_required") {
     return { mode: "first_build", label: "สร้าง Master", buttonClass: "warm", note: "มี Raw แล้ว แต่ยังไม่มี Master/Dashboard สำหรับ Scope นี้" };
   }

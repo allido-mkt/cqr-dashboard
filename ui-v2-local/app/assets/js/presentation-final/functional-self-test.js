@@ -77,7 +77,7 @@ export async function runFunctionalSelfTest() {
     const health = assertSuccessfulPayload(await callAuthorized("admin.pipeline.health", { game: "CBM_TH", month: "2026-02" }), "First build health");
     const scopeRows = health.scope_rows || health.rows || [];
     const row = scopeRows.find((item) => item.game_code === "CBM_TH" && item.period_key === "2026-02");
-    if (!row || row.raw_status !== "raw_ready" || row.action_status !== "build_required" || !row.raw_hash) {
+    if (!row || !["raw_ready", "raw_updated"].includes(String(row.raw_status || "")) || row.action_status !== "build_required" || !row.raw_hash) {
       throw new Error("first build health contract missing");
     }
     const result = await callAuthorized("admin.n8n.master.run", {

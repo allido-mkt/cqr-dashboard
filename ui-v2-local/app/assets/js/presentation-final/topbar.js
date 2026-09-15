@@ -1,14 +1,14 @@
 import { APP_CONFIG } from "./config.js";
-import { getState, setFilter, setFilters } from "./state.js?v=3511";
+import { getState, setFilter, setFilters } from "./state.js?v=3513";
 import { icon, optionMarkup, showToast, downloadText } from "./ui.js";
 
 const PAGE_META = {
   "daily-retention": ["Daily Retention", "ดูว่าผู้เล่นใหม่กลับมาเล่นต่อมากน้อยแค่ไหน และเลือกวันที่เพื่อย้อนดู Performance"],
-dashboard: ["Dashboard", "ภาพรวม Performance, Retention และ Channel Quality"],
+  dashboard: ["Dashboard", "ภาพรวม Performance, Retention และ Channel Quality"],
   "ai-insight": ["ASK AI", "Analyze data from your questions and surface insights, comparisons, and recommended next actions."],
   "user-access": ["User Access", "จัดการผู้ใช้ Role และขอบเขตที่บันทึกใน Users table"],
   "data-health-overview": ["Data Health & Repair", "ตรวจสถานะข้อมูล แล้วแนะนำขั้นตอนแก้ไขถัดไปสำหรับ Game และ Month ที่เลือก"],
-  "check-raw": ["Check Raw", "ส่งคำขอตรวจ Raw และติดตาม Queue จนเสร็จ"],
+  "check-raw": ["Check Raw", "ส่งคำขอตรวจ Raw และติดตามผลจาก n8n / RawIngestionLogs จนเสร็จ"],
   "pipeline-check": ["Pipeline Check", "ตรวจความสอดคล้องระหว่าง Raw, Master และ Data Index"],
   "data-control-history": ["Data Control · History", "ประวัติการสั่งงานใน Browser นี้; ตรวจหลักฐานกลางที่ Central DB / n8n"],
   "data-control-preview": ["Data Control · Preview", "เลือก Game/Month แล้วตรวจขอบเขตก่อนแก้ข้อมูลจริง"],

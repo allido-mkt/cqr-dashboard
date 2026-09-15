@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setControl, setFilters, setRoute } from "../state.js?v=3511";
+import { getState, setControl, setFilters, setRoute } from "../state.js?v=3513";
 import { callAuthorized, normalizePayload, assertSuccessfulPayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill, showToast, openConfirmModal } from "../ui.js";
 
@@ -9,6 +9,10 @@ const FIRST_BUILD_KEY = "cqr_first_build_scope";
 let actionBusy = false;
 let repairRecoveryBusy = false;
 let repairRecoveryAttemptedKey = "";
+
+function isUsableRawStatus(status) {
+  return ["raw_ready", "raw_updated"].includes(String(status || "").toLowerCase());
+}
 
 function logs() {
   try {
@@ -158,7 +162,7 @@ function guide(active, mode = "") {
     { id: "verify", number: "5", label: "Verify", state: control.lastBuildAt ? "ready" : "locked" },
   ];
   const scope = control.buildScope || readFirstBuild();
-  const rawReady = Boolean(scope?.rawStatus === "raw_ready" && scope?.actionStatus === "build_required" && scope?.rawHash);
+  const rawReady = Boolean(isUsableRawStatus(scope?.rawStatus) && scope?.actionStatus === "build_required" && scope?.rawHash);
   const firstSteps = [
     { id: "health", number: "1", label: "Raw Ready", state: rawReady ? "complete" : "locked" },
     { id: "build", number: "2", label: "First Build", state: control.lastBuildAt ? "complete" : rawReady ? "available" : "locked" },
@@ -326,7 +330,7 @@ function firstBuildIsReady(scope) {
     && scope.game !== "ALL"
     && scope.month
     && scope.month !== "ALL"
-    && scope.rawStatus === "raw_ready"
+    && isUsableRawStatus(scope.rawStatus)
     && scope.actionStatus === "build_required"
     && scope.rawHash
   );
@@ -674,7 +678,7 @@ async function preview() {
     const scope = lockedScopeForRun(run);
     const result = await callAuthorized("admin.n8n.cleanup.preview", cleanupParams(scope), 60000);
     const payload = assertSuccessfulPayload(result, "Cleanup preview");
-    const receipt = String(payload.preview_token || payload.receipt || result.request_id || payload.request_id || `PREVIEW-${Date.now()}-${scope.runId}`);
+    const receipt = String(payload.preview_receipt || payload.preview_token || payload.receipt || result.preview_receipt || result.request_id || payload.request_id || `PREVIEW-${Date.now()}-${scope.runId}`);
     setControl({
       buildMode: "repair",
       buildScope: null,
@@ -792,7 +796,7 @@ async function previewRepairScope() {
   try {
     const result = await callAuthorized("admin.n8n.cleanup.preview", cleanupParams(scope), 60000);
     const payload = assertSuccessfulPayload(result, "Cleanup preview");
-    const receipt = String(payload.preview_token || payload.receipt || result.request_id || payload.request_id || `PREVIEW-${Date.now()}-${scope.hash}`);
+    const receipt = String(payload.preview_receipt || payload.preview_token || payload.receipt || result.preview_receipt || result.request_id || payload.request_id || `PREVIEW-${Date.now()}-${scope.hash}`);
     setControl({
       buildMode: "repair",
       buildScope: null,
@@ -833,7 +837,7 @@ async function prepareFirstBuild() {
     const { rows } = normalizeHealth(result);
     const row = rows.find((item) => (item.game_code || item.game) === scope.game && (item.period_key || item.month) === scope.month);
     if (!row) throw new Error("ไม่พบ Health row ของ Scope นี้");
-    if (String(row.raw_status || "") !== "raw_ready") {
+    if (!isUsableRawStatus(row.raw_status)) {
       throw new Error("Raw ยังไม่พร้อม กรุณารัน Check Raw ก่อน");
     }
     if (String(row.action_status || "") !== "build_required") {
@@ -978,7 +982,7 @@ export function bindDataControlClearPage() {
 
 function firstBuildPrerequisites(scope) {
   return {
-    rawReady: scope?.rawStatus === "raw_ready",
+    rawReady: isUsableRawStatus(scope?.rawStatus),
     buildRequired: scope?.actionStatus === "build_required",
     specific: Boolean(scope?.game && scope.game !== "ALL" && scope?.month && scope.month !== "ALL"),
     rawHash: Boolean(scope?.rawHash),
@@ -1195,8 +1199,8 @@ async function build() {
         && (item.period_key || item.month) === scope.month
       );
       if (!latestRow) throw new Error("ไม่พบ Health row ล่าสุดของ Scope นี้");
-      if (String(latestRow.raw_status || "") !== "raw_ready") {
-        throw new Error("Raw ไม่อยู่ในสถานะ raw_ready แล้ว กรุณารัน Check Raw ใหม่");
+      if (!isUsableRawStatus(latestRow.raw_status)) {
+        throw new Error("Raw ไม่อยู่ในสถานะพร้อมใช้แล้ว กรุณารัน Check Raw ใหม่");
       }
       if (String(latestRow.action_status || "") !== "build_required") {
         if (String(latestRow.action_status || "") === "ready") {
