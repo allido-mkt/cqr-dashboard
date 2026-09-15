@@ -2,7 +2,7 @@ import { hasPermission, PERMISSIONS } from "./permissions.js";
 import { getState, setRoute } from "./state.js?v=3516";
 import { renderDashboardPage, bindDashboardPage } from "./pages/dashboard.js";
 import { renderAiInsightPage, bindAiInsightPage } from "./pages/ai-insight.js";
-import { renderUserAccessPage, bindUserAccessPage } from "./pages/user-access.js";
+import { renderUserAccessPage, bindUserAccessPage } from "./pages/user-access.js?v=3517";
 import { renderDataHealthOverviewPage, bindDataHealthOverviewPage, renderPipelineCheckPage, bindPipelineCheckPage } from "./pages/data-health.js?v=3516";
 import { renderCheckRawPage, bindCheckRawPage } from "./pages/check-raw.js?v=3516";
 import { renderDataControlHistoryPage, bindDataControlHistoryPage, renderDataControlPreviewPage, bindDataControlPreviewPage, renderDataControlClearPage, bindDataControlClearPage, renderDataControlBuildPage, bindDataControlBuildPage } from "./pages/data-control.js?v=3516";

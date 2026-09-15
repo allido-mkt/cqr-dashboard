@@ -1,6 +1,6 @@
-import { getState, subscribe, setRoute, setUser } from "./state.js?v=3516";
-import { renderTopbar, bindTopbarEvents } from "./topbar.js?v=3516";
-import { renderCurrentPage } from "./router.js?v=3516";
+import { getState, subscribe, setRoute, setUser } from "./state.js?v=3517";
+import { renderTopbar, bindTopbarEvents } from "./topbar.js?v=3517";
+import { renderCurrentPage } from "./router.js?v=3517";
 import { getSavedSession, userFromSession } from "./session.js";
 
 

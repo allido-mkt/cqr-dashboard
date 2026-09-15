@@ -812,15 +812,10 @@ function handleAdminUsersUpsert_(e, callback) {
     bumpUserAccessCacheVersion_();
     primeUserAccessCache_(nextUser);
 
-    const users = readAdminUsers_().sort(function (a, b) {
-      return String(a.email).localeCompare(String(b.email));
-    });
-
     return json_({
       ok: true,
       source: 'central_db_user_access',
       user: nextUser,
-      users,
       audit_warning: '',
       session_refresh_required:
         email !== normalizeEmail_(session.email)

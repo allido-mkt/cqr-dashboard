@@ -15,6 +15,7 @@ let configuredSuperAdmins = [];
 let currentActorEmail = "";
 let accessLogs = [];
 let loginLogs = [];
+let addUserDraft = {};
 
 const ROLES = ["viewer", "analyst", "manager", "admin", "super_admin", "guest"];
 const STATUSES = ["active", "pending", "disabled"];
@@ -169,7 +170,9 @@ function historyTable(rows, type) {
 }
 
 export function renderUserAccessPage() {
-  const selectedUser = users.find((user) => String(user.email).toLowerCase() === selectedEmail) || {};
+  const selectedUser = selectedEmail
+    ? users.find((user) => String(user.email).toLowerCase() === selectedEmail) || {}
+    : addUserDraft;
   const selectedLower = String(selectedUser.email || "").toLowerCase();
   const deleteBlocked = selectedLower === currentActorEmail || configuredSuperAdmins.includes(selectedLower);
   return `<div class="page-grid ua-page"><div class="ua-info-strip"><span class="ua-info-dot"></span><span>Permissions are verified by the backend. Changes are recorded in Access History.</span></div>${info ? `<div class="notice ready">${escapeHtml(info)}</div>` : ""}<section class="grid-wide-aside ua-layout"><article class="surface-card"><div class="card-header"><div><h2 class="card-title">User Access</h2><p class="card-description">ข้อมูลจริงจาก Apps Script พร้อม Last Login</p></div><button id="users-refresh" class="button" type="button" ${loading || busy ? "disabled" : ""}>${loading ? "Loading…" : "Refresh"}</button></div><div class="card-body">${error ? `<div class="notice danger">${escapeHtml(error)}</div>` : ""}${loading ? '<div class="empty-state">Loading users…</div>' : users.length ? `<div class="table-wrap"><table><thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Games</th><th>Regions</th><th>Last Login</th><th></th></tr></thead><tbody>${users.map(row).join("")}</tbody></table></div>` : loaded ? '<div class="empty-state">ยังไม่มี User</div>' : '<div class="empty-state">กำลังโหลด…</div>'}</div></article><aside class="surface-card warm-card ua-form-card"><div class="card-header"><div><h2 class="card-title">${selectedEmail ? "Edit User" : "Add User"}</h2><p class="card-description">Changes are verified after saving.</p></div>${statusPill(busy ? "running" : "ready", busy ? "Saving" : "Ready")}</div><div class="card-body">${form(selectedUser)}<div class="toolbar" style="margin-top:14px"><button id="user-save" class="button primary" type="button" ${busy ? "disabled" : ""}>Save</button><button id="user-clear" class="button ghost" type="button" ${busy ? "disabled" : ""}>Clear</button>${selectedEmail ? `<button id="user-delete" class="button danger" type="button" ${busy || deleteBlocked ? "disabled" : ""}>Delete</button>` : ""}</div></div></aside></section><section class="grid-2 ua-history"><article class="surface-card"><div class="card-header"><div><h2 class="card-title">Access History</h2><p class="card-description">Add / Edit / Delete ของ ${escapeHtml(selectedEmail || "User ที่เลือก")}</p></div></div><div class="card-body">${historyLoading ? '<div class="empty-state">Loading history…</div>' : historyTable(accessLogs, "access")}</div></article><article class="surface-card"><div class="card-header"><div><h2 class="card-title">Login History</h2><p class="card-description">ประวัติ Login หลายรายการ</p></div></div><div class="card-body">${historyLoading ? '<div class="empty-state">Loading history…</div>' : historyTable(loginLogs, "login")}</div></article></section></div>`;
@@ -216,6 +219,79 @@ function verifySaved(saved, requested) {
   if (bad.length) throw new Error(`Backend saved different values: ${bad.join(", ")}`);
 }
 
+function readFormDraft() {
+  return {
+    email: document.getElementById("user-email")?.value.trim().toLowerCase() || "",
+    display_name: document.getElementById("user-name")?.value.trim() || "",
+    role_id: document.getElementById("user-role")?.value || "viewer",
+    status: document.getElementById("user-status")?.value || "active",
+    allowed_games: serialize("games"),
+    allowed_regions: serialize("regions"),
+  };
+}
+
+function isTransportError(error) {
+  const message = String(error?.message || error || "");
+  return message.includes("เรียก Apps Script ไม่สำเร็จ") || message.includes("Apps Script ไม่ตอบกลับภายในเวลาที่กำหนด");
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function findMatchingUser(list, requested) {
+  return list.find((user) => String(user.email || "").toLowerCase() === String(requested.email || "").toLowerCase()) || null;
+}
+
+async function verifyPersistedUser(requested) {
+  const result = await callAuthorized("admin.users.list", {}, 60000);
+  assertSuccessfulPayload(result, "User list");
+  const saved = findMatchingUser(extractUsers(result), requested);
+  if (!saved) return null;
+  verifySaved(saved, requested);
+  return saved;
+}
+
+async function upsertUserReliably(requested) {
+  let originalTransportError = null;
+
+  async function upsertOnce() {
+    const result = await callAuthorized("admin.users.upsert", requested, 60000);
+    const payload = assertSuccessfulPayload(result, "Save user");
+    const saved = result.user || payload.user || payload;
+    verifySaved(saved, requested);
+    return { result, payload, saved };
+  }
+
+  try {
+    return await upsertOnce();
+  } catch (requestError) {
+    if (!isTransportError(requestError)) throw requestError;
+    originalTransportError = requestError;
+  }
+
+  try {
+    const saved = await verifyPersistedUser(requested);
+    if (saved) return { result: { ok: true, user: saved }, payload: { user: saved }, saved };
+  } catch {}
+
+  await wait(1200);
+
+  try {
+    return await upsertOnce();
+  } catch (requestError) {
+    if (!isTransportError(requestError)) throw requestError;
+    originalTransportError = originalTransportError || requestError;
+  }
+
+  try {
+    const saved = await verifyPersistedUser(requested);
+    if (saved) return { result: { ok: true, user: saved }, payload: { user: saved }, saved };
+  } catch {}
+
+  throw originalTransportError;
+}
+
 async function refreshSelfSession() {
   try {
     const result = await callAuthorized("session.me");
@@ -235,13 +311,12 @@ async function save() {
   const regions = checkedValues("regions");
   const invalid = mismatch(games, regions);
   if (invalid.length) { showToast(`Scope ไม่สอดคล้อง: ${invalid.join(", ")}`); return; }
-  const requested = { email, display_name: displayName, role_id: document.getElementById("user-role")?.value || "viewer", status: document.getElementById("user-status")?.value || "active", allowed_games: serialize("games"), allowed_regions: serialize("regions") };
+  const requested = readFormDraft();
+  if (!selectedEmail) addUserDraft = { ...requested };
   busy = true; error = ""; info = ""; window.dispatchEvent(new Event("cqr-page-refresh"));
   try {
-    const result = await callAuthorized("admin.users.upsert", requested);
-    const payload = assertSuccessfulPayload(result, "Save user");
-    const saved = result.user || payload.user || payload;
-    verifySaved(saved, requested);
+    const { result, payload, saved } = await upsertUserReliably(requested);
+    addUserDraft = {};
     selectedEmail = email;
     await loadUsers({ quiet: true });
     if (email === String(getSavedSession()?.email || "").toLowerCase()) await refreshSelfSession();
@@ -267,7 +342,7 @@ export function bindUserAccessPage() {
   document.querySelectorAll("[data-user]").forEach((button) => button.addEventListener("click", () => { selectedEmail = String(button.dataset.user || "").toLowerCase(); info = ""; window.dispatchEvent(new Event("cqr-page-refresh")); }));
   document.querySelectorAll("[data-history]").forEach((button) => button.addEventListener("click", () => loadHistory(button.dataset.history)));
   document.getElementById("user-save")?.addEventListener("click", save);
-  document.getElementById("user-clear")?.addEventListener("click", () => { selectedEmail = ""; accessLogs = []; loginLogs = []; error = ""; info = ""; window.dispatchEvent(new Event("cqr-page-refresh")); });
+  document.getElementById("user-clear")?.addEventListener("click", () => { selectedEmail = ""; addUserDraft = {}; accessLogs = []; loginLogs = []; error = ""; info = ""; window.dispatchEvent(new Event("cqr-page-refresh")); });
   document.getElementById("user-delete")?.addEventListener("click", remove);
   bindPicker("games"); bindPicker("regions"); updateScopePreview();
   if (!loaded && !loading && !error) loadUsers();
