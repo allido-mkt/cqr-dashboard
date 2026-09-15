@@ -911,7 +911,8 @@ function handleAdminPipelineHealth_(e, callback) {
   const wantedGame=normalizeGameCode_(e.parameter.game||'ALL'),wantedMonth=normalizePeriodKey_(e.parameter.month||'');
   const cache=CacheService.getScriptCache();
   const cacheKey=['admin_pipeline_health_v1',wantedGame,wantedMonth||'ALL'].join(':');
-  const cached=cache.get(cacheKey);
+  const forceRefresh=/^(1|true|yes)$/i.test(String(e.parameter.force_refresh||'').trim());
+  const cached=forceRefresh?'':cache.get(cacheKey);
   if(cached){
     const parsed=safeJsonParse_(cached,null);
     if(parsed&&parsed.ok===true)return json_(parsed,callback);

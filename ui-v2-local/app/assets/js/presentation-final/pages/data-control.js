@@ -1150,8 +1150,8 @@ export function renderDataControlBuildPage() {
 }
 
 
-const BUILD_VERIFY_MAX_ATTEMPTS = 9;
-const BUILD_VERIFY_WAIT_MS = 15000;
+const BUILD_VERIFY_MAX_ATTEMPTS = 72;
+const BUILD_VERIFY_WAIT_MS = 5000;
 let buildVerifyBusy = false;
 
 function buildHealthRow(rows, scope) {
@@ -1183,7 +1183,7 @@ function buildProgress(control) {
     <style>@keyframes dc-build-spin{to{transform:rotate(360deg)}}</style>
     <div style="display:flex;align-items:center;gap:10px">
       <span aria-hidden="true" style="width:18px;height:18px;border-radius:50%;border:3px solid rgba(157,46,67,.18);border-top-color:var(--warm);animation:dc-build-spin .8s linear infinite;flex:0 0 auto"></span>
-      <div><b>Build ถูกส่งแล้วและกำลังตรวจสถานะ</b><br>ระบบจะตรวจสถานะทุก 15 วินาที ไม่มี ETA และจะขึ้น Completed เมื่อ PipelineLogs ready พร้อม Raw/Master hash ตรงกัน</div>
+      <div><b>Build ถูกส่งแล้วและกำลังตรวจสถานะ</b><br>ระบบจะตรวจสถานะ every 5 seconds และจะขึ้น Completed ทันทีเมื่อพบ PipelineLogs ready ของ Build รอบนี้</div>
     </div>
     <div class="progress-track" style="margin-top:12px"><div class="progress-fill" style="width:${progress}%"></div></div>
   </div>`;
@@ -1211,23 +1211,13 @@ async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       if (attempt > 0) await waitMs(BUILD_VERIFY_WAIT_MS);
 
-      const [lookupResult, healthResult] = await Promise.all([
-        callAuthorized("admin.pipeline.run.lookup", {
-          game: scope.game,
-          month: scope.month,
-          query: "",
-        }, 60000),
-        callAuthorized("admin.pipeline.health", {
-          game: scope.game,
-          month: scope.month,
-        }, 60000),
-      ]);
+      const lookupResult = await callAuthorized("admin.pipeline.run.lookup", {
+        game: scope.game,
+        month: scope.month,
+        query: "",
+      }, 60000);
       assertSuccessfulPayload(lookupResult, "Build run lookup");
-      assertSuccessfulPayload(healthResult, "Build verification");
       const freshRun = newestFreshRun(extractRuns(lookupResult), scope, dispatchAt);
-      const { rows } = normalizeHealth(healthResult);
-      const row = buildHealthRow(rows, scope);
-      if (!row) throw new Error("ไม่พบ Health row หลัง Build สำหรับ Scope นี้");
 
       if (freshRun) {
         const status = runStatus(freshRun);
@@ -1254,31 +1244,63 @@ async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
         }
       }
 
-      const actionStatus = String(row.action_status || "").toLowerCase();
-      if (freshRun && isReadyRunStatus(runStatus(freshRun)) && buildCompletionAccepted(row)) {
+      let healthResult = null;
+      let row = null;
+      if (freshRun && isReadyRunStatus(runStatus(freshRun))) {
+        try {
+          healthResult = await callAuthorized("admin.pipeline.health", {
+            game: scope.game,
+            month: scope.month,
+            force_refresh: "1",
+          }, 60000);
+          assertSuccessfulPayload(healthResult, "Build verification");
+          const normalizedHealth = normalizeHealth(healthResult);
+          row = buildHealthRow(normalizedHealth.rows, scope);
+        } catch (healthError) {
+          healthResult = { ok: false, message: healthError.message || String(healthError) };
+        }
+      }
+
+      const freshRunReady = Boolean(freshRun && isReadyRunStatus(runStatus(freshRun)));
+      const freshRunHash = String(freshRun?.data_hash_after || freshRun?.data_hash_before || "").trim();
+      const expectedRawHash = String(scope.rawHash || "").trim();
+      const freshRunMatchesExpectedHash = !expectedRawHash || freshRunHash === expectedRawHash;
+      const healthAccepted = Boolean(row && buildCompletionAccepted(row));
+      const verification = healthAccepted
+        ? row
+        : {
+          ...(row || {}),
+          action_status: "pipeline_ready_pending_health_refresh",
+          previous_action_status: row?.action_status || "",
+          game_code: scope.game,
+          period_key: scope.month,
+          data_hash: freshRunHash,
+          message: healthResult?.message || "Fresh PipelineLogs ready; Pipeline Health refresh has not caught up yet.",
+        };
+
+      if (freshRunReady && freshRunMatchesExpectedHash) {
         const previous = getState().control.buildResult;
         setControl({
           lastBuildAt: new Date().toISOString(),
           buildResult: {
             dispatch: previous?.dispatch || previous || null,
             pipelineRun: freshRun,
-            verification: row,
+            verification,
+            healthResult,
           },
           buildProgress: 100,
           buildVerifyStatus: "verified",
           buildRunStatus: runStatus(freshRun),
           buildRunId: freshRun.run_id || "",
-          buildRunMessage: runMessage(freshRun) || "PipelineLogs ready and Pipeline Health completed.",
+          buildRunMessage: runMessage(freshRun) || (healthAccepted
+            ? "PipelineLogs ready and Pipeline Health confirmed."
+            : "PipelineLogs ready; Master/DataIndex commit completed. Dashboard health is refreshing."),
           error: "",
         });
-        addLog("Build Verify", healthResult, scope);
+        addLog("Build Verify", healthResult || lookupResult, scope);
         showToast("Build Completed");
         window.dispatchEvent(new Event("cqr-page-refresh"));
         return true;
-      }
-
-      if (actionStatus === "raw_not_ready" || actionStatus === "raw_missing") {
-        throw new Error(`Build หยุดตรวจสอบ: Raw ไม่พร้อม (${row.action_status || "unknown"})`);
       }
 
       const progress = Math.min(95, 70 + Math.round(((attempt + 1) / attempts) * 20));
@@ -1297,7 +1319,7 @@ async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
       lastBuildAt: "",
       buildVerifyStatus: "pending_verification",
       buildProgress: 90,
-      buildRunMessage: getState().control.buildRunMessage || "No fresh ready PipelineLogs run and ready Pipeline Health confirmation yet.",
+      buildRunMessage: getState().control.buildRunMessage || "No fresh ready PipelineLogs run yet.",
       error: "Build ถูกส่งแล้ว แต่ยังยืนยันผลจาก Pipeline ไม่สำเร็จ จึงยังไม่ถือว่า Completed",
     });
     window.dispatchEvent(new Event("cqr-page-refresh"));

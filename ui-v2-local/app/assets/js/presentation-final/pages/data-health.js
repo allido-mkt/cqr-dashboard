@@ -250,7 +250,7 @@ async function run(kind, { auto = false } = {}) {
   const setter = kind === "pipeline" ? setPipeline : setHealth;
   setter({ status: "loading", error: "" });
   try {
-    const result = await callAuthorized("admin.pipeline.health", { game, month: month === "ALL" ? "" : month }, 60000);
+    const result = await callAuthorized("admin.pipeline.health", { game, month: month === "ALL" ? "" : month, force_refresh: "1" }, 60000);
     assertSuccessfulPayload(result, kind === "pipeline" ? "Pipeline check" : "Data health");
     setter({ status: "completed", checkedAt: new Date().toISOString(), result, error: "" });
   } catch (error) {

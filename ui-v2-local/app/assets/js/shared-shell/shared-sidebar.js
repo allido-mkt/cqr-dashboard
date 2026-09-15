@@ -1,5 +1,5 @@
 (() => {
-  const APP_BUILD_VERSION = "v3519";
+  const APP_BUILD_VERSION = "v3520";
   "use strict";
 
   const SESSION_KEY = "cqr_auth";
