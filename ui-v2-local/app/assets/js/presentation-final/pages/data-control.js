@@ -8,9 +8,6 @@ const HANDOFF_KEY = "cqr_data_control_handoff";
 const FIRST_BUILD_KEY = "cqr_first_build_scope";
 const CLEANUP_PREVIEW_TIMEOUT_MS = 180000;
 const CLEANUP_RUN_TIMEOUT_MS = 300000;
-const CLEAR_VERIFY_MAX_ATTEMPTS = 240;
-const CLEAR_VERIFY_WAIT_MS = 5000;
-let clearVerifyBusy = false;
 let actionBusy = false;
 let repairRecoveryBusy = false;
 let repairRecoveryAttemptedKey = "";
@@ -422,7 +419,7 @@ function applyFirstBuildScope(scope) {
     previewResult: null,
     selectedRuns: [],
     repairSeedScope: null,
-    lastClearAt: "", clearVerifyStatus: "", clearDispatchAt: "", clearRequestId: "", clearProgress: 0, clearRunMessage: "",
+    lastClearAt: "",
     clearResult: null,
     lastBuildAt: "",
     buildResult: null,
@@ -493,7 +490,7 @@ function consumeHandoff() {
       previewToken: "",
       previewScope: null,
       previewResult: null,
-      lastClearAt: "", clearVerifyStatus: "", clearDispatchAt: "", clearRequestId: "", clearProgress: 0, clearRunMessage: "",
+      lastClearAt: "",
       clearResult: null,
       lastBuildAt: "",
       buildResult: null,
@@ -702,7 +699,7 @@ async function lookup() {
     previewToken: "",
     previewScope: null,
     previewResult: null,
-    lastClearAt: "", clearVerifyStatus: "", clearDispatchAt: "", clearRequestId: "", clearProgress: 0, clearRunMessage: "",
+    lastClearAt: "",
     clearResult: null,
     lastBuildAt: "",
     buildResult: null,
@@ -757,7 +754,7 @@ async function preview() {
       previewResult: payload,
       previewScope: scope,
       clearResult: null,
-      lastClearAt: "", clearVerifyStatus: "", clearDispatchAt: "", clearRequestId: "", clearProgress: 0, clearRunMessage: "",
+      lastClearAt: "",
       buildResult: null,
       lastBuildAt: "",
       buildProgress: 0,
@@ -843,7 +840,7 @@ async function recoverRepairScope(force = false) {
       previewToken: "",
       previewScope: null,
       previewResult: null,
-      lastClearAt: "", clearVerifyStatus: "", clearDispatchAt: "", clearRequestId: "", clearProgress: 0, clearRunMessage: "",
+      lastClearAt: "",
       clearResult: null,
       lastBuildAt: "",
       buildResult: null,
@@ -885,7 +882,7 @@ async function previewRepairScope() {
       previewResult: payload,
       previewScope: scope,
       clearResult: null,
-      lastClearAt: "", clearVerifyStatus: "", clearDispatchAt: "", clearRequestId: "", clearProgress: 0, clearRunMessage: "",
+      lastClearAt: "",
       buildResult: null,
       lastBuildAt: "",
       buildProgress: 0,
@@ -954,7 +951,7 @@ export function bindDataControlPreviewPage() {
     previewToken: "",
     previewScope: null,
     previewResult: null,
-    lastClearAt: "", clearVerifyStatus: "", clearDispatchAt: "", clearRequestId: "", clearProgress: 0, clearRunMessage: "",
+    lastClearAt: "",
     clearResult: null,
     lastBuildAt: "",
     buildResult: null,
@@ -976,87 +973,40 @@ export function renderDataControlClearPage() {
       </article>
     </div>`;
   }
-
   const scope = control.previewScope;
   const phrase = scope ? `CLEAR ${scope.game} ${scope.month}` : "";
   const clearComplete = Boolean(control.lastClearAt);
-  const clearPending = ["processing", "checking"].includes(String(control.clearVerifyStatus || ""));
-  const clearPendingVerification = control.clearVerifyStatus === "pending_verification";
-  const clearFailed = control.clearVerifyStatus === "failed";
-  const progress = Math.max(0, Math.min(99, Number(control.clearProgress || 0)));
-
-  const clearStatus = clearFailed
-    ? statusPill("failed", "Failed")
-    : clearComplete
-      ? statusPill("ready", "Completed")
-      : clearPending
-        ? statusPill("running", "Processing")
-        : clearPendingVerification
-          ? statusPill("warning", "Needs verification")
-          : scope
-            ? statusPill("warning", "Confirmation required")
-            : statusPill("danger", "Preview required");
-
-  const clearStatusVisible = Boolean(
-    control.clearVerifyStatus || control.clearRequestId || control.clearRunMessage
-  );
-
   return `<div class="page-grid">${guide("clear")}
     <article class="surface-card danger-card">
-      <div class="card-header"><div><h2 class="card-title">Clear Selected Run</h2><p class="card-description">การลบจริงต้องมี Preview Receipt และ Scope ที่ล็อกไว้</p></div>${clearStatus}</div>
+      <div class="card-header"><div><h2 class="card-title">Clear Selected Run</h2><p class="card-description">การลบจริงต้องมี Preview Receipt และ Scope ที่ล็อกไว้</p></div>${statusPill(control.lastClearAt ? "ready" : scope ? "warning" : "danger", control.lastClearAt ? "Completed" : scope ? "Confirmation required" : "Preview required")}</div>
       <div class="card-body">${scope ? `<div class="metric-grid">
         <div class="metric-box"><div class="metric-label">Scope</div><div class="metric-value">${escapeHtml(scope.game)} / ${escapeHtml(scope.month)}</div></div>
         <div class="metric-box"><div class="metric-label">Repair Target</div><div class="metric-value code-chip">${escapeHtml(scope.runId || scope.hash || "-")}</div></div>
         <div class="metric-box"><div class="metric-label">Preview Receipt</div><div class="metric-value code-chip">${escapeHtml(control.previewToken)}</div></div>
       </div>
-
-      ${clearPending ? `<div class="notice warning" style="margin-top:18px">
-        <style>@keyframes dc-clear-spin{to{transform:rotate(360deg)}}</style>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span aria-hidden="true" style="width:18px;height:18px;border-radius:50%;border:3px solid rgba(157,46,67,.18);border-top-color:var(--warm);animation:dc-clear-spin .8s linear infinite;flex:0 0 auto"></span>
-          <div><b>Clear ถูกส่งแล้วและกำลังตรวจสถานะ</b><br>ระบบตรวจทุก 5 วินาที และจะขึ้น Completed เมื่อยืนยันว่า Scope พร้อมสำหรับ Build ใหม่</div>
-        </div>
-        <div class="progress-track" style="margin-top:12px"><div class="progress-fill" style="width:${progress}%"></div></div>
-      </div>` : ""}
-
-      ${!clearComplete && !clearPending && !clearPendingVerification ? `<div style="display:grid;gap:26px;margin-top:22px">
+      <div style="display:grid;gap:26px;margin-top:22px">
         <div style="display:grid;gap:18px;padding:20px;border:1px solid rgba(157,46,67,.24);border-radius:14px;background:rgba(255,247,249,.72)">
           <div class="notice danger">พิมพ์ <b>${escapeHtml(phrase)}</b> และยืนยัน Checkbox ก่อนดำเนินการ</div>
           <div style="display:grid;gap:8px;padding:16px;border:1px solid rgba(157,46,67,.16);border-radius:12px;background:#fff">
-            <label class="form-field"><span class="form-label">Confirmation phrase</span><input id="clear-phrase" class="form-control" autocomplete="off"></label>
+            <label class="form-field"><span class="form-label">Confirmation phrase</span><input id="clear-phrase" class="form-control" autocomplete="off" ${control.lastClearAt ? "disabled" : ""}></label>
           </div>
           <div style="display:grid;gap:8px;padding:16px;border:1px solid rgba(157,46,67,.16);border-radius:12px;background:#fff">
             <label class="checkbox-row" style="display:grid;grid-template-columns:20px minmax(0,1fr);align-items:start;column-gap:14px;line-height:1.65;margin:0">
-              <input id="clear-ack" type="checkbox" style="width:18px;height:18px;margin:4px 0 0">
+              <input id="clear-ack" type="checkbox" style="width:18px;height:18px;margin:4px 0 0" ${control.lastClearAt ? "disabled" : ""}>
               <span>ฉันตรวจ Scope และ Preview Result แล้ว</span>
             </label>
           </div>
         </div>
         <div style="display:grid;gap:12px;padding:18px;border:1px solid rgba(157,46,67,.18);border-radius:14px;background:#fff">
           <div class="metric-label">Clear action</div>
-          <button id="clear-run" class="button danger" type="button" ${actionBusy ? "disabled" : ""}>${icon("trash", "nav-icon")} Clear Run</button>
+          <button id="clear-run" class="button danger" type="button" ${actionBusy || control.lastClearAt ? "disabled" : ""}>${icon("trash", "nav-icon")} Clear Run</button>
         </div>
-      </div>` : ""}
-
-      ${clearPendingVerification ? `<div class="notice warning" style="margin-top:18px"><b>ยังยืนยัน Clear ไม่ได้</b><br>n8n อาจยังทำงานอยู่ สามารถตรวจสถานะซ้ำได้โดยไม่ยิง Clear ใหม่</div>
-      <button id="verify-clear-status" class="button warm" type="button" style="margin-top:12px" ${clearVerifyBusy ? "disabled" : ""}>Verify Clear Status</button>` : ""}
-      ` : '<div class="empty-state">กลับไป Preview และเลือก Run ก่อน</div>'}
-
-      ${clearStatusVisible ? `<div style="display:grid;gap:10px;margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:8px;background:#fff">
-        <div class="metric-label">n8n Clear Status</div>
-        <div class="dc-status-list">
-          <div><span>Status</span><b>${escapeHtml(control.clearVerifyStatus || "-")}</b></div>
-          <div><span>Request ID</span><b class="code-chip">${escapeHtml(control.clearRequestId || "-")}</b></div>
-          <div><span>Message</span><b>${escapeHtml(control.clearRunMessage || "-")}</b></div>
-        </div>
-      </div>` : ""}
-
-      ${control.error ? `<div class="notice danger" style="margin-top:18px">${escapeHtml(control.error)}</div>` : ""}
-      ${control.clearResult ? `<div style="display:grid;gap:16px;margin-top:18px;padding:18px;border:1px solid var(--line);border-radius:14px;background:#fff">
+      </div>` : '<div class="empty-state">กลับไป Preview และเลือก Run ก่อน</div>'}
+      ${(control.error || control.clearResult) ? `<div style="display:grid;gap:16px;margin-top:26px;padding:18px;border:1px solid var(--line);border-radius:14px;background:#fff">
         <div class="metric-label">Clear result</div>
-        <pre class="json-preview">${escapeHtml(JSON.stringify(control.clearResult, null, 2))}</pre>
+        ${control.error ? `<div class="notice danger">${escapeHtml(control.error)}</div>` : ""}
+        ${control.clearResult ? `<pre class="json-preview">${escapeHtml(JSON.stringify(control.clearResult, null, 2))}</pre>` : ""}
       </div>` : ""}
-
       ${clearComplete ? `<div style="display:grid;gap:14px;margin-top:26px;padding:20px;border:1px solid rgba(23,97,63,.28);border-radius:14px;background:rgba(238,248,243,.95)">
         <div><div class="metric-label">Clear completed</div><div style="font-size:14px;font-weight:800;color:#17613f;margin-top:5px">พร้อมไปขั้นตอน Build สำหรับ Scope เดิม</div></div>
         <button class="button primary" data-route="data-control-build" type="button" style="justify-content:center;min-height:48px;padding:0 22px;width:100%;max-width:320px">${icon("build", "nav-icon")} ไปขั้นตอน Build</button>
@@ -1066,190 +1016,42 @@ export function renderDataControlClearPage() {
   </div>`;
 }
 
-function clearHealthRow(rows, scope) {
-  return rows.find((item) =>
-    (item.game_code || item.game) === scope.game
-    && (item.period_key || item.month) === scope.month
-  ) || null;
-}
-
-function clearCompletionAccepted(row) {
-  return String(row?.action_status || "").toLowerCase() === "build_required";
-}
-
-async function verifyClearCompletion(scope, { oneShot = false } = {}) {
-  if (!scope || clearVerifyBusy) return false;
-  clearVerifyBusy = true;
-  const attempts = oneShot ? 1 : CLEAR_VERIFY_MAX_ATTEMPTS;
-
-  setControl({
-    clearVerifyStatus: "checking",
-    clearProgress: Math.max(10, Number(getState().control.clearProgress || 0)),
-    error: "",
-  });
-  window.dispatchEvent(new Event("cqr-page-refresh"));
-
-  try {
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-      if (attempt > 0) await waitMs(CLEAR_VERIFY_WAIT_MS);
-      try {
-        const healthResult = await callAuthorized("admin.pipeline.health", {
-          game: scope.game,
-          month: scope.month,
-          force_refresh: "1",
-        }, 60000);
-        assertSuccessfulPayload(healthResult, "Clear verification");
-        const { rows } = normalizeHealth(healthResult);
-        const row = clearHealthRow(rows, scope);
-
-        if (row && clearCompletionAccepted(row)) {
-          const previous = getState().control.clearResult;
-          setControl({
-            lastClearAt: new Date().toISOString(),
-            clearResult: {
-              dispatch: previous?.dispatch || previous || null,
-              verification: row,
-              healthResult,
-            },
-            clearVerifyStatus: "verified",
-            clearProgress: 100,
-            clearRunMessage: "Cleanup completed. Pipeline Health now confirms build_required for the locked scope.",
-            error: "",
-          });
-          addLog("Clear Verify", healthResult, scope);
-          showToast("Clear Completed");
-          window.dispatchEvent(new Event("cqr-page-refresh"));
-          return true;
-        }
-
-        const actionStatus = String(row?.action_status || "waiting").toLowerCase();
-        setControl({
-          clearVerifyStatus: "checking",
-          clearProgress: Math.min(95, 15 + Math.round(((attempt + 1) / attempts) * 80)),
-          clearRunMessage: `Waiting for cleanup completion. Current Pipeline Health: ${actionStatus}`,
-          error: "",
-        });
-      } catch (pollError) {
-        setControl({
-          clearVerifyStatus: "checking",
-          clearProgress: Math.min(95, 15 + Math.round(((attempt + 1) / attempts) * 80)),
-          clearRunMessage: `Status check retrying: ${pollError.message || String(pollError)}`,
-          error: "",
-        });
-      }
-      window.dispatchEvent(new Event("cqr-page-refresh"));
-    }
-
-    setControl({
-      clearVerifyStatus: "pending_verification",
-      clearProgress: Math.min(95, Number(getState().control.clearProgress || 0)),
-      clearRunMessage: "Clear is still not confirmed. Verify again without sending another Clear request.",
-      error: "",
-    });
-    window.dispatchEvent(new Event("cqr-page-refresh"));
-    return false;
-  } finally {
-    clearVerifyBusy = false;
-  }
-}
-
 async function clearNow() {
   const control = getState().control;
   const scope = control.previewScope;
   if (control.buildMode === "first_build") throw new Error("First Build ไม่ต้อง Clear");
   if (!scope || !control.previewToken) return;
-
   actionBusy = true;
-  const dispatchAt = new Date().toISOString();
-  setControl({
-    lastClearAt: "",
-    clearResult: null,
-    clearVerifyStatus: "processing",
-    clearDispatchAt: dispatchAt,
-    clearRequestId: "",
-    clearProgress: 5,
-    clearRunMessage: "Sending confirmed cleanup request to n8n...",
-    error: "",
-  });
+  setControl({ error: "" });
   window.dispatchEvent(new Event("cqr-page-refresh"));
-
   try {
     const result = await callAuthorized("admin.n8n.cleanup.run", {
       ...cleanupParams(scope),
       preview_receipt: control.previewToken,
     }, CLEANUP_RUN_TIMEOUT_MS);
-
     const payload = assertSuccessfulPayload(result, "Cleanup run");
-    const accepted = payload?.n8n_result || result?.n8n_result || payload || result || {};
-    const acceptedStatus = String(accepted?.status || "").toLowerCase();
-    const requestId = String(accepted?.request_id || result?.request_id || payload?.request_id || "");
-
-    if (acceptedStatus === "no_rows_to_delete") {
-      setControl({
-        lastClearAt: new Date().toISOString(),
-        clearResult: { dispatch: accepted },
-        clearVerifyStatus: "verified",
-        clearRequestId: requestId,
-        clearProgress: 100,
-        clearRunMessage: accepted?.message || "No matching rows remained; cleanup is complete.",
-        error: "",
-      });
-      addLog("Clear", result, scope);
-      showToast("Clear Completed");
-      return;
-    }
-
-    if (acceptedStatus !== "cleanup_accepted") {
-      throw new Error(accepted?.message || `Unexpected cleanup response: ${acceptedStatus || "unknown"}`);
-    }
-
-    setControl({
-      clearResult: { dispatch: accepted },
-      clearVerifyStatus: "processing",
-      clearRequestId: requestId,
-      clearProgress: 10,
-      clearRunMessage: accepted?.message || "Cleanup accepted. Waiting for completion verification.",
-      error: "",
-    });
-    addLog("Clear Accepted", result, scope);
-    showToast("Clear accepted");
+    setControl({ lastClearAt: new Date().toISOString(), clearResult: payload, error: "" });
+    addLog("Clear", result, scope);
+    showToast("Clear completed");
   } catch (error) {
-    setControl({
-      lastClearAt: "",
-      clearResult: null,
-      clearVerifyStatus: "failed",
-      clearProgress: 0,
-      clearRunMessage: error.message || String(error),
-      error: error.message || String(error),
-    });
-    return;
+    setControl({ lastClearAt: "", clearResult: null, error: error.message || String(error) });
   } finally {
     actionBusy = false;
     window.dispatchEvent(new Event("cqr-page-refresh"));
   }
-
-  void verifyClearCompletion(scope);
 }
 
 export function bindDataControlClearPage() {
-  document.querySelectorAll("[data-route]").forEach((button) =>
-    button.addEventListener("click", () => setRoute(button.dataset.route))
-  );
-
+  document.querySelectorAll("[data-route]").forEach((button) => button.addEventListener("click", () => setRoute(button.dataset.route)));
   const control = getState().control;
   const scope = control.previewScope;
   if (!scope || control.buildMode === "first_build") return;
-
   const phrase = `CLEAR ${scope.game} ${scope.month}`;
   document.getElementById("clear-run")?.addEventListener("click", () => {
-    if (
-      document.getElementById("clear-phrase")?.value.trim() !== phrase
-      || !document.getElementById("clear-ack")?.checked
-    ) {
+    if (document.getElementById("clear-phrase")?.value.trim() !== phrase || !document.getElementById("clear-ack")?.checked) {
       showToast("Confirmation ยังไม่ครบ");
       return;
     }
-
     openConfirmModal({
       title: "Final Clear Confirmation",
       message: `ล้างข้อมูล ${scope.runId ? `Run ${scope.runId}` : `Hash ${scope.hash}`} ของ ${scope.game} / ${scope.month}?`,
@@ -1258,14 +1060,6 @@ export function bindDataControlClearPage() {
       onConfirm: clearNow,
     });
   });
-
-  document.getElementById("verify-clear-status")?.addEventListener("click", () => {
-    void verifyClearCompletion(scope, { oneShot: true });
-  });
-
-  if (["processing", "checking"].includes(String(getState().control.clearVerifyStatus || ""))) {
-    queueMicrotask(() => { void verifyClearCompletion(scope); });
-  }
 }
 
 function firstBuildPrerequisites(scope) {

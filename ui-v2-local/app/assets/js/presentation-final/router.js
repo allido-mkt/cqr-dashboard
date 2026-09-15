@@ -5,7 +5,7 @@ import { renderAiInsightPage, bindAiInsightPage } from "./pages/ai-insight.js?v=
 import { renderUserAccessPage, bindUserAccessPage } from "./pages/user-access.js?v=3518";
 import { renderDataHealthOverviewPage, bindDataHealthOverviewPage, renderPipelineCheckPage, bindPipelineCheckPage } from "./pages/data-health.js?v=3520";
 import { renderCheckRawPage, bindCheckRawPage } from "./pages/check-raw.js?v=3518";
-import { renderDataControlHistoryPage, bindDataControlHistoryPage, renderDataControlPreviewPage, bindDataControlPreviewPage, renderDataControlClearPage, bindDataControlClearPage, renderDataControlBuildPage, bindDataControlBuildPage } from "./pages/data-control.js?v=3523";
+import { renderDataControlHistoryPage, bindDataControlHistoryPage, renderDataControlPreviewPage, bindDataControlPreviewPage, renderDataControlClearPage, bindDataControlClearPage, renderDataControlBuildPage, bindDataControlBuildPage } from "./pages/data-control.js?v=3520";
 import { renderProfilePage, bindProfilePage, renderPreferencesPage, bindPreferencesPage } from "./pages/profile.js?v=3518";
 import { accessDeniedPage } from "./pages/shared.js";
 
