@@ -748,6 +748,17 @@ function monthRangeKeys(start, end){
 
 function knownDashboardMonths(){
   const months = new Set();
+  const collectMonth = value => {
+    if(value && typeof value === 'object') value = value.value || value.month || value.key || value.period_key;
+    const month = normalizeMonthKey(value);
+    if(month) months.add(month);
+  };
+  if(Array.isArray(D?.months)) D.months.forEach(collectMonth);
+  if(Array.isArray(D?.periods)) D.periods.forEach(period => {
+    if(period && typeof period === 'object') collectMonth(period.month || period.key || period.period_key);
+    else collectMonth(period);
+  });
+  collectMonth(D?.data_version?.latest_available_period);
   const collectKey = key => {
     const month = normalizeMonthKey(String(key || '').split('|').pop());
     if(month) months.add(month);
@@ -757,7 +768,8 @@ function knownDashboardMonths(){
     Object.keys(source).forEach(collectKey);
   });
   const known = [...months].sort();
-  const latest = known.length ? known[known.length - 1] : currentMonthKey();
+  const latestCandidates = [...known, normalizeMonthKey(D?.data_version?.latest_available_period), currentMonthKey()].filter(Boolean).sort();
+  const latest = latestCandidates[latestCandidates.length - 1] || currentMonthKey();
   return monthRangeKeys(REPORT_START_MONTH, latest).sort().reverse();
 }
 
