@@ -887,6 +887,8 @@ function handleAdminPipelineHealth_(e, callback) {
     if(row.action_status==='repair'){
       issues.push({level:'danger',badge:'Repair',game_code:row.game_code,period_key:row.period_key,title:'Master/Dashboard ต้องซ่อม',detail:row.direct_master_message||'Master, DataIndex หรือ dashboard direct read ไม่ตรงกัน'});
       recommendations.push({title:'ซ่อม Master '+row.game_code+' '+row.period_key,detail:'เปิด Data Control เพื่อตรวจ Preview/Clear/Build',cleanup:{target_game_code:row.game_code,target_month:row.period_key,run_id:row.latest_run_id||row.ready_run_id||'',search_hash:row.master_hash||row.previous_hash||''}});
+    } else if(row.action_status==='dashboard_sync_pending'){
+      issues.push({level:'warn',badge:'Dashboard Sync',game_code:row.game_code,period_key:row.period_key,title:'Dashboard กำลัง Sync',detail:row.direct_master_message||'Master Build สำเร็จและ hash ตรง Raw แล้ว เหลือ Dashboard Direct Master sync'});
     } else if(row.action_status==='build_required'){
       recommendations.push({title:'Build Master '+row.game_code+' '+row.period_key,detail:'Raw พร้อมแล้วแต่ยังไม่มี Master/DataIndex สำหรับ Scope นี้',build:{target_game_code:row.game_code,target_month:row.period_key,raw_hash:row.raw_hash,raw_check_id:row.raw_check_id}});
     } else if(row.action_status==='raw_missing'||row.action_status==='raw_not_ready'){
@@ -895,7 +897,7 @@ function handleAdminPipelineHealth_(e, callback) {
     }
   });
   const readyCount=rows.filter(function(r){return r.action_status==='ready'||r.action_status==='ready_provisional';}).length,rawReady=rows.filter(function(r){return isUsableRawStatus_(r.raw_status);}).length;
-  return json_({ok:true,source:'apps_script_direct_master_verified',dashboard_read_mode:'direct_master_aggregation',scope_rows:rows,summary:{health_score:readyCount===rows.length?'Ready':'Needs Review',raw_ready:rawReady,ready:rows.filter(function(r){return r.action_status==='ready';}).length,ready_provisional:rows.filter(function(r){return r.action_status==='ready_provisional';}).length,build_required:rows.filter(function(r){return r.action_status==='build_required';}).length,needs_review:rows.filter(function(r){return r.action_status==='repair';}).length,cleanup_needed:rows.filter(function(r){return r.action_status==='repair';}).length,dashboard_direct_ready:rows.filter(function(r){return r.direct_master_status==='ready'||r.dashboard_direct_read==='ready';}).length,total_scopes:rows.length},issues:issues,recommendations:recommendations,checked_at:new Date().toISOString()},callback);
+  return json_({ok:true,source:'apps_script_direct_master_verified',dashboard_read_mode:'direct_master_aggregation',scope_rows:rows,summary:{health_score:readyCount===rows.length?'Ready':'Needs Review',raw_ready:rawReady,ready:rows.filter(function(r){return r.action_status==='ready';}).length,ready_provisional:rows.filter(function(r){return r.action_status==='ready_provisional';}).length,dashboard_sync_pending:rows.filter(function(r){return r.action_status==='dashboard_sync_pending';}).length,build_required:rows.filter(function(r){return r.action_status==='build_required';}).length,needs_review:rows.filter(function(r){return r.action_status==='repair';}).length,cleanup_needed:rows.filter(function(r){return r.action_status==='repair';}).length,dashboard_direct_ready:rows.filter(function(r){return r.direct_master_status==='ready'||r.dashboard_direct_read==='ready';}).length,total_scopes:rows.length},issues:issues,recommendations:recommendations,checked_at:new Date().toISOString()},callback);
 }
 
 function adminHealthResponseHasScope_(data, game, month) {
@@ -1020,17 +1022,21 @@ function buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, 
           masterLabel = 'Master พร้อมใช้';
           masterLevel = 'ok';
           if (!direct_masterHash) {
-            actionLabel = 'สร้าง Dashboard Direct Master';
-            actionLevel = 'danger';
-            actionStatus = 'repair';
-            direct_masterMessage = 'Master พร้อมแล้ว แต่ cqr_data direct_master ยังไม่มี game/period นี้';
+            direct_masterLabel = 'กำลัง Sync Dashboard';
+            direct_masterLevel = 'warn';
+            direct_masterStatus = 'sync_pending';
+            actionLabel = 'กำลังยืนยัน Dashboard';
+            actionLevel = 'warn';
+            actionStatus = 'dashboard_sync_pending';
+            direct_masterMessage = 'Master และ DataIndex ตรงกับ Raw แล้ว แต่ Dashboard Direct Master ยังไม่อ่าน game/period รอบล่าสุด';
           } else if (!direct_masterMatchesMaster) {
-            direct_masterLabel = 'Direct Master เป็นข้อมูลเก่า';
-            direct_masterLevel = 'danger';
-            actionLabel = 'Rebuild Dashboard Direct Master';
-            actionLevel = 'danger';
-            actionStatus = 'repair';
-            direct_masterMessage = 'Direct Master hash ' + direct_masterHash + ' ไม่ตรง Master hash ' + masterHash;
+            direct_masterLabel = 'กำลัง Sync Dashboard';
+            direct_masterLevel = 'warn';
+            direct_masterStatus = 'sync_pending';
+            actionLabel = 'กำลังยืนยัน Dashboard';
+            actionLevel = 'warn';
+            actionStatus = 'dashboard_sync_pending';
+            direct_masterMessage = 'Master hash ' + masterHash + ' พร้อมแล้ว แต่ Dashboard ยังอ่าน hash ' + direct_masterHash;
           } else {
             direct_masterLabel = direct_masterMaturity === 'matured' ? 'Direct Master พร้อมใช้' : 'Direct Master Provisional';
             direct_masterLevel = direct_masterMaturity === 'matured' ? 'ok' : 'warn';

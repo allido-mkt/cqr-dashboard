@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3515";
+import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3516";
 import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill } from "../ui.js";
 
@@ -19,13 +19,14 @@ function normalize(result) {
   const source = payload && typeof payload === "object" ? payload : {};
   const rows = Array.isArray(source.scope_rows) ? source.scope_rows : Array.isArray(source.rows) ? source.rows : [];
   const action = (row) => normalizedActionStatus(row);
-  const direct = (row) => String(row.dashboard_direct_read || "").toLowerCase();
+  const direct = (row) => String(row.direct_master_status || row.dashboard_direct_read || "").toLowerCase();
   return {
     rows,
     summary: {
       ...(source.summary || {}),
       build_required: rows.filter((row) => action(row) === "build_required").length,
       cleanup_needed: rows.filter((row) => action(row) === "repair").length,
+      dashboard_sync_pending: rows.filter((row) => action(row) === "dashboard_sync_pending").length,
       dashboard_direct_ready: rows.filter((row) => direct(row) === "ready").length,
       dashboard_direct_issues: rows.filter((row) => direct(row) && direct(row) !== "ready").length,
     },
@@ -39,12 +40,13 @@ function normalize(result) {
 function summaryCards(data) {
   const summary = data.summary;
   const total = data.rows.length;
-  const actionNeeded = data.rows.filter((row) => nextAction(row).mode).length;
+  const actionNeeded = data.rows.filter((row) => nextAction(row).mode || normalizedActionStatus(row) === "dashboard_sync_pending").length;
   const healthy = total > 0 && actionNeeded === 0;
   return `<div class="metric-grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr))">
     <div class="metric-box"><div class="metric-label">Scope ที่ตรวจ</div><div class="metric-value">${total}</div></div>
     <div class="metric-box"><div class="metric-label">Scope พร้อมใช้งาน</div><div class="metric-value">${healthy ? "ทั้งหมด" : total - actionNeeded}</div></div>
     <div class="metric-box"><div class="metric-label">ต้องสร้าง Master</div><div class="metric-value">${Number(summary.build_required || 0)}</div></div>
+    <div class="metric-box"><div class="metric-label">รอ Sync Dashboard</div><div class="metric-value">${Number(summary.dashboard_sync_pending || 0)}</div></div>
     <div class="metric-box"><div class="metric-label">ต้องซ่อมข้อมูล</div><div class="metric-value">${Number(summary.cleanup_needed || 0)}</div></div>
     <div class="metric-box"><div class="metric-label">ต้องตรวจ Raw</div><div class="metric-value">${data.rows.filter((row) => nextAction(row).mode === "check_raw").length}</div></div>
   </div>`;
@@ -53,6 +55,7 @@ function summaryCards(data) {
 function simpleStatus(value, fallback = "-") {
   const status = String(value || "").toLowerCase();
   if (["ready", "ready_provisional", "ok", "healthy", "success", "completed", "raw_ready", "raw_updated"].includes(status)) return "พร้อม";
+  if (["dashboard_sync_pending", "sync_pending"].includes(status)) return "กำลัง Sync Dashboard";
   if (["missing", "raw_missing"].includes(status)) return "ไม่พบข้อมูล";
   if (["failed", "danger", "repair"].includes(status)) return "มีปัญหา";
   if (["pending", "running", "queued"].includes(status)) return "กำลังทำงาน";
@@ -65,6 +68,7 @@ function rawStatus(row) {
 }
 
 function masterStatus(row) {
+  if (normalizedActionStatus(row) === "dashboard_sync_pending" || String(row.direct_master_status || "").toLowerCase() === "sync_pending") return "กำลัง Sync Dashboard";
   const master = row.master || row.master_status || row.dashboard_direct_read || "";
   if (row.dashboard_missing_tabs) return "Dashboard ยังไม่ครบ";
   return simpleStatus(master, "-");
@@ -84,6 +88,9 @@ function nextAction(row) {
   if (action === "repair") {
     return { mode: "repair", label: "เปิด Repair", buttonClass: "danger", note: "ข้อมูลปลายทางไม่ตรงกัน ควรตรวจและซ่อมผ่านขั้นตอน Repair" };
   }
+  if (action === "dashboard_sync_pending") {
+    return { mode: "dashboard_sync_pending", label: "กำลัง Sync Dashboard", buttonClass: "warm", note: "Master Build สำเร็จและ hash ตรง Raw แล้ว Dashboard กำลัง sync ข้อมูลรอบล่าสุด" };
+  }
   if (["raw_missing", "raw_not_ready"].includes(action)) {
     return { mode: "check_raw", label: "ตรวจ Raw", buttonClass: "", note: "ยังต้องตรวจ Raw ก่อนเริ่มสร้างหรือซ่อมข้อมูล" };
   }
@@ -92,6 +99,7 @@ function nextAction(row) {
 
 function actionControl(row, index) {
   const action = nextAction(row);
+  if (normalizedActionStatus(row) === "dashboard_sync_pending") return statusPill("warning", "กำลัง Sync Dashboard");
   if (!action.mode) return statusPill("ready", "ไม่ต้องทำ Action");
   return `<button class="button small ${action.buttonClass}" type="button" data-health-action="${action.mode}" data-row-index="${index}">${escapeHtml(action.label)}</button>`;
 }
@@ -111,7 +119,7 @@ function healthGuidance(data) {
               <div class="metric-box"><div class="metric-label">Master/Dashboard status</div><div>${statusPill(tone(row.master_level || row.dashboard_read_level || row.dashboard_direct_read), escapeHtml(masterStatus(row)))}</div></div>
             </div>
             <div class="notice ${action.mode === "repair" ? "danger" : action.mode ? "warning" : "ready"}" style="margin-top:12px">
-              <strong>ปัญหา:</strong> ${escapeHtml(action.note)}
+              <strong>${action.mode === "dashboard_sync_pending" ? "สถานะ:" : action.mode ? "ปัญหา:" : "สถานะ:"}</strong> ${escapeHtml(action.note)}
             </div>
           </div>
           <div style="display:grid;gap:8px;justify-items:end;min-width:150px">
@@ -193,7 +201,8 @@ function advancedDetails(data, checkedAt) {
 export function renderDataHealthOverviewPage() {
   const health = getState().health;
   const data = health.result ? normalize(health.result) : null;
-  const healthy = data?.rows.length && data.rows.every((row) => !nextAction(row).mode);
+  const hasDashboardSyncPending = data?.rows.some((row) => normalizedActionStatus(row) === "dashboard_sync_pending");
+  const healthy = data?.rows.length && !hasDashboardSyncPending && data.rows.every((row) => !nextAction(row).mode);
   return `<div class="page-grid">
     <article class="surface-card">
       <div class="card-header"><div><h2 class="card-title">Data Health & Repair</h2><p class="card-description">1. ตรวจสถานะข้อมูล 2. ระบบบอกปัญหา 3. กด Action เดียวเพื่อไปขั้นตอนถัดไป</p></div>${statusPill(health.status, health.status === "idle" ? "ยังไม่ได้ตรวจ" : health.status)}</div>
@@ -201,6 +210,7 @@ export function renderDataHealthOverviewPage() {
     </article>
     ${data ? `<article class="surface-card"><div class="card-body">${summaryCards(data)}</div></article>
       ${healthy ? '<div class="notice ready">ข้อมูลพร้อมใช้งาน ไม่ต้องทำ Action เพิ่มเติม</div>' : ""}
+      ${hasDashboardSyncPending ? '<div class="notice warning">กำลัง Sync Dashboard: Master Build สำเร็จและ hash ตรง Raw แล้ว Dashboard กำลัง sync ข้อมูลรอบล่าสุด ไม่ต้องเปิด Repair</div>' : ""}
       <article class="surface-card"><div class="card-header"><div><h2 class="card-title">สถานะและ Action ถัดไป</h2><p class="card-description">เลือกดูตาม Game และ Month แล้วทำตาม Action ที่ระบบแนะนำในแต่ละ Scope</p></div></div><div class="card-body">${healthGuidance(data)}</div></article>
       ${guidanceNotes(data)}
       ${advancedDetails(data, health.checkedAt)}` : ""}

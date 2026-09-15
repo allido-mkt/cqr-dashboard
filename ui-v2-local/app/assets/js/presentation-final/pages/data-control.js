@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setControl, setFilters, setRoute } from "../state.js?v=3515";
+import { getState, setControl, setFilters, setRoute } from "../state.js?v=3516";
 import { callAuthorized, normalizePayload, assertSuccessfulPayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill, showToast, openConfirmModal } from "../ui.js";
 
@@ -1087,7 +1087,7 @@ export function renderDataControlBuildPage() {
   const buildStatus = failedStatus
     ? statusPill("failed", "Failed")
     : control.lastBuildAt
-    ? statusPill("ready", "Verified")
+    ? statusPill("ready", "Completed")
     : ["processing", "checking"].includes(String(control.buildVerifyStatus || ""))
       ? statusPill("running", "Processing")
       : control.buildVerifyStatus === "pending_verification"
@@ -1095,7 +1095,7 @@ export function renderDataControlBuildPage() {
         : statusPill(ready ? "warning" : "danger", ready ? "Ready" : "Blocked");
   const n8nStatusVisible = Boolean(control.buildVerifyStatus || control.buildRunStatus || control.buildRunId || control.buildRunMessage || control.buildRequestId);
   const n8nStatusTone = failedStatus ? "failed" : control.lastBuildAt ? "ready" : ["processing", "checking"].includes(String(control.buildVerifyStatus || "")) ? "running" : "warning";
-  const n8nStatusLabel = failedStatus ? "Failed" : control.lastBuildAt ? "Verified" : ["processing", "checking"].includes(String(control.buildVerifyStatus || "")) ? "Processing" : (control.buildVerifyStatus || "Pending");
+  const n8nStatusLabel = failedStatus ? "Failed" : control.lastBuildAt ? "Completed" : ["processing", "checking"].includes(String(control.buildVerifyStatus || "")) ? "Processing" : (control.buildVerifyStatus || "Pending");
 
   return `<div class="page-grid">${guide("build", firstBuild ? "first_build" : "")}
     <article class="surface-card warm-card">
@@ -1124,7 +1124,8 @@ export function renderDataControlBuildPage() {
           <div class="prerequisite"><span>Clear completed for locked scope</span>${statusPill(control.lastClearAt ? "ready" : "danger", control.lastClearAt ? "Pass" : "Missing")}</div>
           <div class="prerequisite"><span>Specific Game and Month</span>${statusPill(scope && scope.game !== "ALL" && scope.month !== "ALL" ? "ready" : "danger", scope ? `${scope.game} / ${scope.month}` : "Missing")}</div>
         </div>`}
-        ${["processing", "checking"].includes(String(control.buildVerifyStatus || "")) ? `<div class="notice warning" style="margin-top:14px"><b>Build ถูกส่งแล้วและกำลังทำงาน</b><br>ระบบจะยังไม่ขึ้น Completed จนกว่า Pipeline Health จะยืนยัน Scope นี้</div>` : ""}
+        ${["processing", "checking"].includes(String(control.buildVerifyStatus || "")) ? buildProgress(control) : ""}
+        ${control.lastBuildAt ? `<div class="notice ready" style="margin-top:14px"><b>Build Complete</b><br>Completed จาก PipelineLogs ready และ Raw/Master hash ตรงกัน</div>` : ""}
         ${control.buildVerifyStatus === "pending_verification" ? `<div class="notice warning" style="margin-top:14px"><b>ยังยืนยันผล Build ไม่ได้</b><br>ยังไม่ถือว่า Build สำเร็จ สามารถตรวจสถานะซ้ำได้โดยไม่ยิง Build ใหม่</div>` : ""}
         ${n8nStatusVisible ? `<div style="display:grid;gap:10px;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:8px;background:#fff">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div class="metric-label">n8n Build Status</div><div style="font-size:12px;color:var(--muted);margin-top:3px">Source: PipelineLogs / n8n result</div></div>${statusPill(n8nStatusTone, escapeHtml(n8nStatusLabel))}</div>
@@ -1163,6 +1164,29 @@ function buildHealthRow(rows, scope) {
 function buildVerifiedActionStatus(row) {
   const status = String(row?.action_status || "").toLowerCase();
   return status === "ready" || status === "ready_provisional";
+}
+
+function buildRawMasterHashesMatch(row) {
+  const rawHash = String(row?.raw_hash || "").trim();
+  const masterHash = String(row?.master_hash || "").trim();
+  return Boolean(rawHash && masterHash && rawHash === masterHash);
+}
+
+function buildCompletionAccepted(row) {
+  const status = String(row?.action_status || "").toLowerCase();
+  return buildVerifiedActionStatus(row) || (status === "dashboard_sync_pending" && buildRawMasterHashesMatch(row));
+}
+
+function buildProgress(control) {
+  const progress = Math.max(0, Math.min(99, Number(control.buildProgress || 0)));
+  return `<div class="notice warning" style="margin-top:14px">
+    <style>@keyframes dc-build-spin{to{transform:rotate(360deg)}}</style>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span aria-hidden="true" style="width:18px;height:18px;border-radius:50%;border:3px solid rgba(157,46,67,.18);border-top-color:var(--warm);animation:dc-build-spin .8s linear infinite;flex:0 0 auto"></span>
+      <div><b>Build ถูกส่งแล้วและกำลังตรวจสถานะ</b><br>ระบบจะตรวจสถานะทุก 15 วินาที ไม่มี ETA และจะขึ้น Completed เมื่อ PipelineLogs ready พร้อม Raw/Master hash ตรงกัน</div>
+    </div>
+    <div class="progress-track" style="margin-top:12px"><div class="progress-fill" style="width:${progress}%"></div></div>
+  </div>`;
 }
 
 function waitMs(ms) {
@@ -1231,7 +1255,7 @@ async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
       }
 
       const actionStatus = String(row.action_status || "").toLowerCase();
-      if (freshRun && isReadyRunStatus(runStatus(freshRun)) && buildVerifiedActionStatus(row)) {
+      if (freshRun && isReadyRunStatus(runStatus(freshRun)) && buildCompletionAccepted(row)) {
         const previous = getState().control.buildResult;
         setControl({
           lastBuildAt: new Date().toISOString(),
@@ -1244,11 +1268,11 @@ async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
           buildVerifyStatus: "verified",
           buildRunStatus: runStatus(freshRun),
           buildRunId: freshRun.run_id || "",
-          buildRunMessage: runMessage(freshRun) || "PipelineLogs ready and Pipeline Health ready.",
+          buildRunMessage: runMessage(freshRun) || "PipelineLogs ready and Pipeline Health completed.",
           error: "",
         });
         addLog("Build Verify", healthResult, scope);
-        showToast("Build verified");
+        showToast("Build Completed");
         window.dispatchEvent(new Event("cqr-page-refresh"));
         return true;
       }
