@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setControl, setFilters, setRoute } from "../state.js?v=3513";
+import { getState, setControl, setFilters, setRoute } from "../state.js?v=3515";
 import { callAuthorized, normalizePayload, assertSuccessfulPayload } from "../services/admin-api.js";
 import { escapeHtml, icon, optionMarkup, statusPill, showToast, openConfirmModal } from "../ui.js";
 
@@ -288,6 +288,55 @@ function extractRuns(result) {
   return [];
 }
 
+function runStatus(run) {
+  return String(run?.status || "").trim().toLowerCase();
+}
+
+function runMessage(run) {
+  return String(run?.message || run?.error_message || run?.error || "").trim();
+}
+
+function parsePipelineTime(value) {
+  const text = String(value || "").trim();
+  if (!text) return 0;
+  const parsed = Date.parse(text);
+  if (Number.isFinite(parsed)) return parsed;
+  const match = text.match(/(20\d{6}T\d{6})Z?/);
+  if (!match) return 0;
+  const compact = match[1];
+  const iso = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}T${compact.slice(9, 11)}:${compact.slice(11, 13)}:${compact.slice(13, 15)}Z`;
+  const compactParsed = Date.parse(iso);
+  return Number.isFinite(compactParsed) ? compactParsed : 0;
+}
+
+function runEvidenceTime(run) {
+  return Math.max(parsePipelineTime(run?.run_finished_at), parsePipelineTime(run?.run_started_at));
+}
+
+function isFreshRun(run, scope, dispatchAt) {
+  if (!run) return false;
+  if ((run.game_code || run.game) !== scope.game || (run.period_key || run.month) !== scope.month) return false;
+  const dispatchTime = parsePipelineTime(dispatchAt);
+  if (!dispatchTime) return false;
+  const evidenceTime = runEvidenceTime(run);
+  return evidenceTime && evidenceTime >= dispatchTime - 30000;
+}
+
+function newestFreshRun(runs, scope, dispatchAt) {
+  return (Array.isArray(runs) ? runs : [])
+    .filter((run) => isFreshRun(run, scope, dispatchAt))
+    .sort((a, b) => runEvidenceTime(b) - runEvidenceTime(a))[0] || null;
+}
+
+function isTerminalFailureStatus(status) {
+  const value = String(status || "").toLowerCase();
+  return value === "write_failed" || value === "failed" || value === "error" || value.endsWith("_failed") || value.includes("error");
+}
+
+function isReadyRunStatus(status) {
+  return String(status || "").toLowerCase() === "ready";
+}
+
 function lockedScopeForRun(run) {
   const selected = exactScope();
   const runGame = run.game_code || run.game || selected.game;
@@ -376,6 +425,11 @@ function applyFirstBuildScope(scope) {
     buildResult: null,
     buildProgress: 0,
     buildVerifyStatus: "",
+    buildDispatchAt: "",
+    buildRequestId: "",
+    buildRunStatus: "",
+    buildRunId: "",
+    buildRunMessage: "",
     error: "",
   });
   persistFirstBuild(scope);
@@ -442,6 +496,11 @@ function consumeHandoff() {
       buildResult: null,
       buildProgress: 0,
       buildVerifyStatus: "",
+      buildDispatchAt: "",
+      buildRequestId: "",
+      buildRunStatus: "",
+      buildRunId: "",
+      buildRunMessage: "",
       error: "",
     });
     if (getState().route !== "data-control-preview") setRoute("data-control-preview");
@@ -645,6 +704,12 @@ async function lookup() {
     lastBuildAt: "",
     buildResult: null,
     buildProgress: 0,
+    buildVerifyStatus: "",
+    buildDispatchAt: "",
+    buildRequestId: "",
+    buildRunStatus: "",
+    buildRunId: "",
+    buildRunMessage: "",
   });
   persistFirstBuild(null);
   actionBusy = true;
@@ -694,6 +759,11 @@ async function preview() {
       lastBuildAt: "",
       buildProgress: 0,
       buildVerifyStatus: "",
+      buildDispatchAt: "",
+      buildRequestId: "",
+      buildRunStatus: "",
+      buildRunId: "",
+      buildRunMessage: "",
       error: "",
     });
     addLog("Preview", result, scope);
@@ -776,6 +846,11 @@ async function recoverRepairScope(force = false) {
       buildResult: null,
       buildProgress: 0,
       buildVerifyStatus: "",
+      buildDispatchAt: "",
+      buildRequestId: "",
+      buildRunStatus: "",
+      buildRunId: "",
+      buildRunMessage: "",
       error: "",
     });
   } catch (error) {
@@ -812,6 +887,11 @@ async function previewRepairScope() {
       lastBuildAt: "",
       buildProgress: 0,
       buildVerifyStatus: "",
+      buildDispatchAt: "",
+      buildRequestId: "",
+      buildRunStatus: "",
+      buildRunId: "",
+      buildRunMessage: "",
       error: "",
     });
     addLog("Preview", result, scope);
@@ -1002,13 +1082,20 @@ export function renderDataControlBuildPage() {
   const ready = (firstReady || repairReady) && !buildPending;
   const phrase = firstBuild && scope ? `BUILD ${scope.game} ${scope.month}` : "";
   const modeLabel = firstBuild ? "First Build" : "Repair Build";
-  const buildStatus = control.lastBuildAt
+  const failedStatus = ["failed", "verification_failed", "dispatch_failed"].includes(String(control.buildVerifyStatus || ""))
+    || isTerminalFailureStatus(control.buildRunStatus);
+  const buildStatus = failedStatus
+    ? statusPill("failed", "Failed")
+    : control.lastBuildAt
     ? statusPill("ready", "Verified")
     : ["processing", "checking"].includes(String(control.buildVerifyStatus || ""))
       ? statusPill("running", "Processing")
       : control.buildVerifyStatus === "pending_verification"
         ? statusPill("warning", "Needs verification")
         : statusPill(ready ? "warning" : "danger", ready ? "Ready" : "Blocked");
+  const n8nStatusVisible = Boolean(control.buildVerifyStatus || control.buildRunStatus || control.buildRunId || control.buildRunMessage || control.buildRequestId);
+  const n8nStatusTone = failedStatus ? "failed" : control.lastBuildAt ? "ready" : ["processing", "checking"].includes(String(control.buildVerifyStatus || "")) ? "running" : "warning";
+  const n8nStatusLabel = failedStatus ? "Failed" : control.lastBuildAt ? "Verified" : ["processing", "checking"].includes(String(control.buildVerifyStatus || "")) ? "Processing" : (control.buildVerifyStatus || "Pending");
 
   return `<div class="page-grid">${guide("build", firstBuild ? "first_build" : "")}
     <article class="surface-card warm-card">
@@ -1027,13 +1114,27 @@ export function renderDataControlBuildPage() {
         </div>
         <div class="notice warning" style="margin-top:14px">พิมพ์ <b>${escapeHtml(phrase)}</b> และยืนยันว่า Raw Hash ตรงกับ Pipeline Check ล่าสุด</div>
         <label class="form-field" style="margin-top:12px"><span class="form-label">Confirmation phrase</span><input id="build-phrase" class="form-control" autocomplete="off"></label>
-        <label class="checkbox-row"><input id="build-ack" type="checkbox"><span>ฉันตรวจ Game, Month และ Raw Hash แล้ว</span></label>` : `<div class="prerequisite-list">
+        <div style="display:grid;gap:8px;padding:16px;border:1px solid rgba(157,46,67,.16);border-radius:12px;background:#fff;margin-top:12px">
+          <label class="checkbox-row" style="display:grid;grid-template-columns:20px minmax(0,1fr);align-items:start;column-gap:18px;line-height:1.65;margin:0">
+            <input id="build-ack" type="checkbox" style="width:18px;height:18px;margin:4px 0 0">
+            <span>ฉันตรวจ Game, Month และ Raw Hash แล้ว</span>
+          </label>
+        </div>` : `<div class="prerequisite-list">
           <div class="prerequisite"><span>Preview receipt exists</span>${statusPill(control.previewToken ? "ready" : "danger", control.previewToken ? "Pass" : "Missing")}</div>
           <div class="prerequisite"><span>Clear completed for locked scope</span>${statusPill(control.lastClearAt ? "ready" : "danger", control.lastClearAt ? "Pass" : "Missing")}</div>
           <div class="prerequisite"><span>Specific Game and Month</span>${statusPill(scope && scope.game !== "ALL" && scope.month !== "ALL" ? "ready" : "danger", scope ? `${scope.game} / ${scope.month}` : "Missing")}</div>
         </div>`}
         ${["processing", "checking"].includes(String(control.buildVerifyStatus || "")) ? `<div class="notice warning" style="margin-top:14px"><b>Build ถูกส่งแล้วและกำลังทำงาน</b><br>ระบบจะยังไม่ขึ้น Completed จนกว่า Pipeline Health จะยืนยัน Scope นี้</div>` : ""}
         ${control.buildVerifyStatus === "pending_verification" ? `<div class="notice warning" style="margin-top:14px"><b>ยังยืนยันผล Build ไม่ได้</b><br>ยังไม่ถือว่า Build สำเร็จ สามารถตรวจสถานะซ้ำได้โดยไม่ยิง Build ใหม่</div>` : ""}
+        ${n8nStatusVisible ? `<div style="display:grid;gap:10px;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:8px;background:#fff">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div class="metric-label">n8n Build Status</div><div style="font-size:12px;color:var(--muted);margin-top:3px">Source: PipelineLogs / n8n result</div></div>${statusPill(n8nStatusTone, escapeHtml(n8nStatusLabel))}</div>
+          <div class="dc-status-list">
+            <div><span>Run ID</span><b class="code-chip">${escapeHtml(control.buildRunId || "-")}</b></div>
+            <div><span>Run status</span><b>${escapeHtml(control.buildRunStatus || control.buildVerifyStatus || "-")}</b></div>
+            <div><span>Request ID</span><b class="code-chip">${escapeHtml(control.buildRequestId || "-")}</b></div>
+            <div><span>Message</span><b>${escapeHtml(control.buildRunMessage || control.error || "-")}</b></div>
+          </div>
+        </div>` : ""}
         <div class="toolbar" style="margin-top:16px">
           <button id="build-run" class="button primary" type="button" ${!ready || actionBusy || control.lastBuildAt || buildPending ? "disabled" : ""}>${icon("build", "nav-icon")} ${firstBuild ? "Run First Build" : "Build Master"}</button>
           ${control.buildVerifyStatus === "pending_verification" ? `<button id="verify-build-status" class="button warm" type="button" ${actionBusy || buildVerifyBusy ? "disabled" : ""}>Verify Build Status</button>` : ""}
@@ -1071,9 +1172,12 @@ function waitMs(ms) {
 async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
   if (!scope || buildVerifyBusy) return false;
   buildVerifyBusy = true;
+  const control = getState().control;
+  const dispatchAt = control.buildDispatchAt || new Date().toISOString();
   setControl({
     buildVerifyStatus: "checking",
     buildProgress: Math.max(65, Number(getState().control.buildProgress || 0)),
+    buildDispatchAt: dispatchAt,
     error: "",
   });
   window.dispatchEvent(new Event("cqr-page-refresh"));
@@ -1083,26 +1187,64 @@ async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       if (attempt > 0) await waitMs(BUILD_VERIFY_WAIT_MS);
 
-      const healthResult = await callAuthorized("admin.pipeline.health", {
-        game: scope.game,
-        month: scope.month,
-      }, 60000);
+      const [lookupResult, healthResult] = await Promise.all([
+        callAuthorized("admin.pipeline.run.lookup", {
+          game: scope.game,
+          month: scope.month,
+          query: "",
+        }, 60000),
+        callAuthorized("admin.pipeline.health", {
+          game: scope.game,
+          month: scope.month,
+        }, 60000),
+      ]);
+      assertSuccessfulPayload(lookupResult, "Build run lookup");
       assertSuccessfulPayload(healthResult, "Build verification");
+      const freshRun = newestFreshRun(extractRuns(lookupResult), scope, dispatchAt);
       const { rows } = normalizeHealth(healthResult);
       const row = buildHealthRow(rows, scope);
       if (!row) throw new Error("ไม่พบ Health row หลัง Build สำหรับ Scope นี้");
 
+      if (freshRun) {
+        const status = runStatus(freshRun);
+        const message = runMessage(freshRun);
+        setControl({
+          buildRunStatus: status,
+          buildRunId: freshRun.run_id || "",
+          buildRunMessage: message,
+        });
+        if (isTerminalFailureStatus(status)) {
+          const detail = [freshRun.run_id ? `run_id=${freshRun.run_id}` : "", message].filter(Boolean).join(" · ");
+          setControl({
+            lastBuildAt: "",
+            buildVerifyStatus: "failed",
+            buildProgress: 0,
+            buildRunStatus: status,
+            buildRunId: freshRun.run_id || "",
+            buildRunMessage: message || `PipelineLogs status=${status}`,
+            error: detail || `PipelineLogs status=${status}`,
+          });
+          addLog("Build Failed", lookupResult, scope);
+          window.dispatchEvent(new Event("cqr-page-refresh"));
+          return false;
+        }
+      }
+
       const actionStatus = String(row.action_status || "").toLowerCase();
-      if (buildVerifiedActionStatus(row)) {
+      if (freshRun && isReadyRunStatus(runStatus(freshRun)) && buildVerifiedActionStatus(row)) {
         const previous = getState().control.buildResult;
         setControl({
           lastBuildAt: new Date().toISOString(),
           buildResult: {
             dispatch: previous?.dispatch || previous || null,
+            pipelineRun: freshRun,
             verification: row,
           },
           buildProgress: 100,
           buildVerifyStatus: "verified",
+          buildRunStatus: runStatus(freshRun),
+          buildRunId: freshRun.run_id || "",
+          buildRunMessage: runMessage(freshRun) || "PipelineLogs ready and Pipeline Health ready.",
           error: "",
         });
         addLog("Build Verify", healthResult, scope);
@@ -1119,6 +1261,9 @@ async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
       setControl({
         buildVerifyStatus: "checking",
         buildProgress: progress,
+        buildRunStatus: freshRun ? runStatus(freshRun) : getState().control.buildRunStatus,
+        buildRunId: freshRun?.run_id || getState().control.buildRunId || "",
+        buildRunMessage: freshRun ? (runMessage(freshRun) || `PipelineLogs status=${runStatus(freshRun)}`) : "Waiting for fresh PipelineLogs evidence.",
         error: "",
       });
       window.dispatchEvent(new Event("cqr-page-refresh"));
@@ -1128,6 +1273,7 @@ async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
       lastBuildAt: "",
       buildVerifyStatus: "pending_verification",
       buildProgress: 90,
+      buildRunMessage: getState().control.buildRunMessage || "No fresh ready PipelineLogs run and ready Pipeline Health confirmation yet.",
       error: "Build ถูกส่งแล้ว แต่ยังยืนยันผลจาก Pipeline ไม่สำเร็จ จึงยังไม่ถือว่า Completed",
     });
     window.dispatchEvent(new Event("cqr-page-refresh"));
@@ -1137,6 +1283,8 @@ async function verifyBuildCompletion(scope, { oneShot = false } = {}) {
       lastBuildAt: "",
       buildVerifyStatus: "verification_failed",
       buildProgress: 0,
+      buildRunStatus: getState().control.buildRunStatus || "verification_failed",
+      buildRunMessage: error.message || String(error),
       error: error.message || String(error),
     });
     window.dispatchEvent(new Event("cqr-page-refresh"));
@@ -1219,13 +1367,20 @@ async function build() {
       }
     }
 
+    const dispatchAt = new Date().toISOString();
     const result = await callAuthorized("admin.n8n.master.run", payloadParams, 120000);
     const payload = assertSuccessfulPayload(result, "Master build");
+    const requestId = String(result?.request_id || payload?.request_id || "");
     setControl({
       lastBuildAt: "",
       buildResult: { dispatch: payload },
       buildProgress: 60,
       buildVerifyStatus: "processing",
+      buildDispatchAt: dispatchAt,
+      buildRequestId: requestId,
+      buildRunStatus: String(payload?.status || result?.status || "sent").toLowerCase(),
+      buildRunId: "",
+      buildRunMessage: payload?.message || result?.message || "Build dispatched; waiting for fresh PipelineLogs evidence.",
       error: "",
     });
     addLog(firstBuild ? "First Build Sent" : "Repair Build Sent", result, {
@@ -1242,6 +1397,8 @@ async function build() {
       buildResult: null,
       buildProgress: 0,
       buildVerifyStatus: "dispatch_failed",
+      buildRunStatus: "failed",
+      buildRunMessage: error.message || String(error),
       error: error.message || String(error),
     });
   } finally {

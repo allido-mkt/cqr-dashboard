@@ -73,6 +73,7 @@ const initialState = {
     lastClearAt: "", clearResult: null, lastBuildAt: "", buildResult: null,
     buildMode: "", buildScope: null, buildRawHash: "", buildRawCheckId: "",
     buildActionStatus: "", buildHealthStatus: "", buildVerifyStatus: "",
+    buildDispatchAt: "", buildRequestId: "", buildRunStatus: "", buildRunId: "", buildRunMessage: "",
     buildProgress: 0, error: "",
     ...SAVED_CONTROL_STATE,
     // API payloads/results are transient; keep only the compact workflow state above across refreshes.
@@ -103,6 +104,7 @@ function persistAiMessages(messages) {
 function persistControlState(control) {
   const keys = [
     "buildMode", "buildScope", "buildRawHash", "buildRawCheckId", "buildActionStatus", "buildHealthStatus", "buildVerifyStatus",
+    "buildDispatchAt", "buildRequestId", "buildRunStatus", "buildRunId", "buildRunMessage",
     "previewToken", "previewAt", "previewScope", "lastClearAt", "lastBuildAt", "buildProgress",
     "selectedRuns", "lookupQuery", "repairSeedScope",
   ];

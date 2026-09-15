@@ -1213,7 +1213,8 @@ function handleAdminPipelineRunLookup_(e, callback) {
     summary: rows.length
       ? 'ใช้ข้อมูลนี้เพื่อกรอก Cleanup Config หรือยืนยันว่ารอบล่าสุดเขียนสำเร็จแล้ว'
       : buildRunLookupEmptySummary_(pipelineRows.length, gameRows.length, monthRows.length, query),
-    risk_level: rows.some(item => item.status === 'needs_review') ? 'warn' : 'ok',
+    risk_level: rows.some(item => ['write_failed', 'failed', 'error'].indexOf(item.status) >= 0) ? 'danger'
+      : rows.some(item => item.status === 'needs_review') ? 'warn' : 'ok',
     badge: rows.length + ' match',
     matches: rows.map(item => ({
       run_id: item.run_id || '',
@@ -1257,7 +1258,18 @@ function isPipelineLookupCandidate_(item, hasQuery) {
   if (/^CLEANUP/i.test(runId)) return false;
   if (status.indexOf('cleanup') >= 0 || status.indexOf('deleted') >= 0) return false;
   if (hasQuery) return true;
-  return ['ready', 'needs_review', 'raw_ready', 'raw_updated'].indexOf(status) >= 0;
+  return [
+    'ready',
+    'needs_review',
+    'raw_ready',
+    'raw_updated',
+    'write_failed',
+    'failed',
+    'error',
+    'running',
+    'processing',
+    'queued'
+  ].indexOf(status) >= 0;
 }
 
 function compactPipelineLookupRows_(rows, hasQuery) {

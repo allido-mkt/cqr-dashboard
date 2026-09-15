@@ -1,0 +1,58 @@
+CQR Build Status / Rate Limit Fix 3515
+
+Commit:
+- This file is included in the task commit `Fix Master Build status and Sheets rate limits 3515`.
+- Exact pushed hash is reported in the Codex final response because the file cannot self-reference its final commit hash.
+
+Changed files:
+- APPS_SCRIPT_SECURE_API.gs
+- CQR_Master_Update_Webhook_V1.json
+- copilot.html
+- ui-v2-local/app/copilot-v2.html
+- ui-v2-local/app/assets/js/presentation-final/app.js
+- ui-v2-local/app/assets/js/presentation-final/router.js
+- ui-v2-local/app/assets/js/presentation-final/state.js
+- ui-v2-local/app/assets/js/presentation-final/topbar.js
+- ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js
+- ui-v2-local/app/assets/js/presentation-final/pages/data-health.js
+- ui-v2-local/app/assets/js/presentation-final/pages/data-control.js
+- test-results/CQR_BUILD_STATUS_RATE_LIMIT_3515.txt
+
+Summary:
+- Build dispatch remains Processing after webhook send/accepted; completion now requires fresh PipelineLogs evidence plus Pipeline Health ready/ready_provisional.
+- Verification polls admin.pipeline.run.lookup and admin.pipeline.health every 15s.
+- Dispatch timestamp/request id are persisted as buildDispatchAt/buildRequestId with run status fields buildRunStatus/buildRunId/buildRunMessage.
+- Freshness checks use run_started_at/run_finished_at so historical runs are not accepted as completion evidence.
+- Fresh terminal failures write_failed/failed/error stop polling, keep lastBuildAt empty, mark Failed, and surface run_id plus message/error.
+- Build page now shows compact "n8n Build Status" panel labeled "PipelineLogs / n8n result".
+- First Build checkbox row spacing now uses 20px checkbox column, 18px gap, 18x18 checkbox, and top margin alignment.
+- Pipeline lookup no-query candidates now include terminal failed statuses and active running/processing/queued statuses while excluding cleanup/deleted runs.
+- Pipeline lookup risk_level is danger for write_failed/failed/error and warn for needs_review.
+- n8n workflow Google Sheets nodes now retry with staggered backoff.
+
+Google Sheets node count:
+- 20 Google Sheets nodes patched.
+- Append Central DB - PipelineLogs: retryOnFail=true, maxTries=8, waitBetweenTries=15000.
+- All other Google Sheets nodes: retryOnFail=true, maxTries=5, waitBetweenTries staggered from 6000 to 15000 ms.
+
+Accepted response message:
+- No exact V8.13 accepted response message was present in CQR_Master_Update_Webhook_V1.json, so no V8.14 text replacement was made.
+
+Tests:
+- PASS: node --check ui-v2-local/app/assets/js/presentation-final/pages/data-control.js
+- PASS: node --check ui-v2-local/app/assets/js/presentation-final/state.js
+- PASS: node --check ui-v2-local/app/assets/js/presentation-final/app.js
+- PASS: node --check ui-v2-local/app/assets/js/presentation-final/router.js
+- PASS: node --check ui-v2-local/app/assets/js/presentation-final/topbar.js
+- PASS: node --check ui-v2-local/app/assets/js/presentation-final/pages/check-raw.js
+- PASS: node --check ui-v2-local/app/assets/js/presentation-final/pages/data-health.js
+- PASS: APPS_SCRIPT_SECURE_API.gs syntax checked through a temporary .js copy.
+- PASS: CQR_Master_Update_Webhook_V1.json parses as JSON.
+- PASS: Every Google Sheets node in master workflow has retryOnFail/maxTries/waitBetweenTries.
+- PASS: PipelineLogs node has maxTries=8 and waitBetweenTries=15000.
+- PASS: Frontend contains 3515 refs and First Build checkbox 18px gap / 18px checkbox assertions.
+- PASS: Build failure status detection includes write_failed.
+- PASS: git diff --check for changed task files.
+
+Blockers:
+- None.

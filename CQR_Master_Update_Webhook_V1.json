@@ -196,7 +196,10 @@
           "name": "Google Sheets account 116"
         }
       },
-      "notes": "อ่าน SourceFiles จาก CQR_Central_DB_TEST"
+      "notes": "อ่าน SourceFiles จาก CQR_Central_DB_TEST",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 6000
     },
     {
       "parameters": {
@@ -227,7 +230,10 @@
           "name": "Google Sheets account 116"
         }
       },
-      "executeOnce": true
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 7500
     },
     {
       "parameters": {
@@ -300,7 +306,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "อ่าน Registered_YYYY-MM; ถ้าไม่มี tab ให้ continueOnFail แล้วให้ Code node mark partial"
+      "notes": "อ่าน Registered_YYYY-MM; ถ้าไม่มี tab ให้ continueOnFail แล้วให้ Code node mark partial",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 9000
     },
     {
       "parameters": {
@@ -334,7 +343,10 @@
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput",
-      "notes": "\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า"
+      "notes": "\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 10500
     },
     {
       "parameters": {
@@ -368,7 +380,10 @@
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput",
-      "notes": "\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า"
+      "notes": "\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 12000
     },
     {
       "parameters": {
@@ -402,7 +417,10 @@
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput",
-      "notes": "\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า"
+      "notes": "\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 13500
     },
     {
       "parameters": {
@@ -436,7 +454,10 @@
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput",
-      "notes": "Login tab อาจหายได้ ให้ partial ไม่ fail ทั้ง flow\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า"
+      "notes": "Login tab อาจหายได้ ให้ partial ไม่ fail ทั้ง flow\nExecute Once เปิดไว้เพื่อกันยิง Google Sheets ซ้ำตามจำนวน rows จาก node ก่อนหน้า",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 15000
     },
     {
       "parameters": {
@@ -490,7 +511,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน PipelineLogs"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน PipelineLogs",
+      "retryOnFail": true,
+      "maxTries": 8,
+      "waitBetweenTries": 15000
     },
     {
       "parameters": {
@@ -602,7 +626,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน RawImports"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน RawImports",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 6000
     },
     {
       "parameters": {
@@ -652,7 +679,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน UserCohort"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน UserCohort",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 7500
     },
     {
       "parameters": {
@@ -917,7 +947,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน ChannelDaily"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน ChannelDaily",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 9000
     },
     {
       "parameters": {
@@ -1112,7 +1145,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน ChannelWeekly"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน ChannelWeekly",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 10500
     },
     {
       "parameters": {
@@ -1162,7 +1198,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน ChannelMonthly"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน ChannelMonthly",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 12000
     },
     {
       "parameters": {
@@ -1277,7 +1316,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน DAUDaily"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน DAUDaily",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 13500
     },
     {
       "parameters": {
@@ -1392,7 +1434,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน Returners"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน Returners",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 15000
     },
     {
       "parameters": {
@@ -1507,7 +1552,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน LateFirstLogin"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน LateFirstLogin",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 6000
     },
     {
       "parameters": {
@@ -1552,7 +1600,10 @@
       ],
       "disabled": true,
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน QualitySignals"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน QualitySignals",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 7500
     },
     {
       "parameters": {
@@ -1606,7 +1657,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน TransformLog"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test; เปิดเมื่อพร้อมเขียน TransformLog",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 9000
     },
     {
       "parameters": {
@@ -1660,7 +1714,10 @@
         }
       },
       "continueOnFail": true,
-      "notes": "Disabled กันเขียนซ้ำระหว่าง test"
+      "notes": "Disabled กันเขียนซ้ำระหว่าง test",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 10500
     },
     {
       "parameters": {
@@ -1704,7 +1761,10 @@
           "id": "TCNFnLz3WEr0FyWM",
           "name": "Google Sheets account 116"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 12000
     },
     {
       "parameters": {
