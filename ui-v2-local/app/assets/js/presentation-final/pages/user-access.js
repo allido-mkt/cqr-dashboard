@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/user-api.js";
+import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/user-api.js?v=3518";
 import { getSavedSession, updateSavedSession } from "../session.js";
 import { escapeHtml, showToast, statusPill, openConfirmModal } from "../ui.js";
 
@@ -235,8 +235,17 @@ function isTransportError(error) {
   return message.includes("เรียก Apps Script ไม่สำเร็จ") || message.includes("Apps Script ไม่ตอบกลับภายในเวลาที่กำหนด");
 }
 
+function isSystemBusy(error) {
+  return String(error?.message || error || "").startsWith("SYSTEM_BUSY:");
+}
+
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryDelayMs(retryIndex) {
+  const base = Math.min(8000, 1200 * (2 ** Math.max(0, retryIndex - 1)));
+  return Math.round(base + Math.random() * 1000);
 }
 
 function findMatchingUser(list, requested) {
@@ -254,6 +263,7 @@ async function verifyPersistedUser(requested) {
 
 async function upsertUserReliably(requested) {
   let originalTransportError = null;
+  let busyRetries = 0;
 
   async function upsertOnce() {
     const result = await callAuthorized("admin.users.upsert", requested, 60000);
@@ -263,8 +273,21 @@ async function upsertUserReliably(requested) {
     return { result, payload, saved };
   }
 
+  async function upsertWithBusyRetry() {
+    for (;;) {
+      try {
+        return await upsertOnce();
+      } catch (requestError) {
+        if (!isSystemBusy(requestError)) throw requestError;
+        busyRetries += 1;
+        if (busyRetries >= 3) throw requestError;
+        await wait(retryDelayMs(busyRetries));
+      }
+    }
+  }
+
   try {
-    return await upsertOnce();
+    return await upsertWithBusyRetry();
   } catch (requestError) {
     if (!isTransportError(requestError)) throw requestError;
     originalTransportError = requestError;
@@ -278,7 +301,7 @@ async function upsertUserReliably(requested) {
   await wait(1200);
 
   try {
-    return await upsertOnce();
+    return await upsertWithBusyRetry();
   } catch (requestError) {
     if (!isTransportError(requestError)) throw requestError;
     originalTransportError = originalTransportError || requestError;
@@ -290,6 +313,19 @@ async function upsertUserReliably(requested) {
   } catch {}
 
   throw originalTransportError;
+}
+
+async function deleteWithBusyRetry(email) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const result = await callAuthorized("admin.users.delete", { email });
+      return assertSuccessfulPayload(result, "Delete user");
+    } catch (requestError) {
+      if (!isSystemBusy(requestError) || attempt >= 3) throw requestError;
+      await wait(retryDelayMs(attempt));
+    }
+  }
+  throw new Error("SYSTEM_BUSY: user access write lock is busy; retry shortly.");
 }
 
 async function refreshSelfSession() {
@@ -331,7 +367,7 @@ function remove() {
   if (!selectedEmail || busy) return;
   openConfirmModal({ title: "Delete user", message: `Delete ${selectedEmail}?`, confirmLabel: "Delete", danger: true, onConfirm: async () => {
     busy = true; error = ""; info = ""; window.dispatchEvent(new Event("cqr-page-refresh"));
-    try { const deleted = selectedEmail; assertSuccessfulPayload(await callAuthorized("admin.users.delete", { email: deleted }), "Delete user"); selectedEmail = ""; accessLogs = []; loginLogs = []; await loadUsers({ quiet: true }); info = `ลบ ${deleted} แล้วและบันทึก Audit Log`; showToast("Deleted user"); }
+    try { const deleted = selectedEmail; await deleteWithBusyRetry(deleted); selectedEmail = ""; accessLogs = []; loginLogs = []; await loadUsers({ quiet: true }); info = `ลบ ${deleted} แล้วและบันทึก Audit Log`; showToast("Deleted user"); }
     catch (requestError) { error = requestError.message || String(requestError); }
     finally { busy = false; window.dispatchEvent(new Event("cqr-page-refresh")); }
   } });

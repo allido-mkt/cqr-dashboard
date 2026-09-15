@@ -196,6 +196,7 @@ const USER_ACCESS_STATUSES = ['active', 'pending', 'disabled'];
 const CQR_USER_GAMES_ = ['CBM_TH', 'CBM_SEA', 'CBPC_TH', 'CBPC_SEA'];
 const CQR_USER_REGIONS_ = ['TH', 'SEA'];
 const CQR_USER_ACCESS_CACHE_TTL_SECONDS_ = 300;
+const CQR_USER_ACCESS_LIST_CACHE_TTL_SECONDS_ = 15;
 const CQR_USER_ACCESS_CACHE_VERSION_PROPERTY_ = 'CQR_USER_ACCESS_CACHE_VERSION';
 let CQR_USER_ACCESS_CACHE_VERSION_MEMO_ = null;
 
@@ -407,6 +408,28 @@ function bumpUserAccessCacheVersion_() {
   PropertiesService.getScriptProperties().setProperty(CQR_USER_ACCESS_CACHE_VERSION_PROPERTY_, version);
   CQR_USER_ACCESS_CACHE_VERSION_MEMO_ = version;
   return version;
+}
+
+function adminUsersListCacheKey_() {
+  return ['admin_users_list', userAccessCacheVersion_()].join(':');
+}
+
+function cachedAdminUsersList_() {
+  const cached = CacheService.getScriptCache().get(adminUsersListCacheKey_());
+  if (!cached) return null;
+  const parsed = safeJsonParse_(cached, null);
+  return parsed && Array.isArray(parsed.users) ? parsed : null;
+}
+
+function primeAdminUsersListCache_(users) {
+  CacheService.getScriptCache().put(
+    adminUsersListCacheKey_(),
+    JSON.stringify({
+      users: users || [],
+      configured_super_admins: CONFIG.SUPER_ADMIN_EMAILS.map(normalizeEmail_)
+    }),
+    CQR_USER_ACCESS_LIST_CACHE_TTL_SECONDS_
+  );
 }
 
 function requireAllowedProfile_(idToken) {
@@ -719,16 +742,24 @@ function roleForSeedEmail_(email) {
 function handleAdminUsersList_(e, callback) {
   const session = validateSession_(e.parameter.session_token);
   requireSuperAdmin_(session);
-  const users = readAdminUsers_().sort(function (a, b) {
-    return String(a.email).localeCompare(String(b.email));
-  });
+  let cached = cachedAdminUsersList_();
+  if (!cached) {
+    const users = readAdminUsers_().sort(function (a, b) {
+      return String(a.email).localeCompare(String(b.email));
+    });
+    cached = {
+      users: users,
+      configured_super_admins: CONFIG.SUPER_ADMIN_EMAILS.map(normalizeEmail_)
+    };
+    primeAdminUsersListCache_(users);
+  }
 
   return json_({
     ok: true,
     source: 'central_db_user_access',
-    users,
+    users: cached.users,
     current_user_email: normalizeEmail_(session.email),
-    configured_super_admins: CONFIG.SUPER_ADMIN_EMAILS.map(normalizeEmail_)
+    configured_super_admins: cached.configured_super_admins || CONFIG.SUPER_ADMIN_EMAILS.map(normalizeEmail_)
   }, callback);
 }
 
@@ -745,7 +776,9 @@ function handleAdminUsersUpsert_(e, callback) {
   if (!displayName) throw new Error('Display name is required.');
 
   const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
+  if (!lock.tryLock(2800)) {
+    throw new Error('SYSTEM_BUSY: user access write lock is busy; retry shortly.');
+  }
 
   try {
     const before = findUserAccessRow_(email);
@@ -847,7 +880,9 @@ function handleAdminUsersDelete_(e, callback) {
   if (CONFIG.SUPER_ADMIN_EMAILS.map(normalizeEmail_).includes(email)) throw new Error('Cannot delete a configured super_admin account.');
 
   const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
+  if (!lock.tryLock(2800)) {
+    throw new Error('SYSTEM_BUSY: user access write lock is busy; retry shortly.');
+  }
   try {
     const before = findUserAccessRow_(email);
     if (!before) throw new Error('User not found.');
@@ -874,6 +909,13 @@ function directMasterScopeCheck_(registry, game, month) {
 function handleAdminPipelineHealth_(e, callback) {
   const session=validateSession_(e.parameter.session_token);requireSuperAdmin_(session);
   const wantedGame=normalizeGameCode_(e.parameter.game||'ALL'),wantedMonth=normalizePeriodKey_(e.parameter.month||'');
+  const cache=CacheService.getScriptCache();
+  const cacheKey=['admin_pipeline_health_v1',wantedGame,wantedMonth||'ALL'].join(':');
+  const cached=cache.get(cacheKey);
+  if(cached){
+    const parsed=safeJsonParse_(cached,null);
+    if(parsed&&parsed.ok===true)return json_(parsed,callback);
+  }
   const pipeline=readCentralSheetRows_('PipelineLogs'),raw=readCentralSheetRows_('RawIngestionLogs'),index=readCentralSheetRows_('DataIndex');
   const dashboardData=readDashboardData_();
   const rows=buildAdminHealthScopeRows_(pipeline,raw,index,wantedGame,wantedMonth,dashboardData);
@@ -892,7 +934,9 @@ function handleAdminPipelineHealth_(e, callback) {
     }
   });
   const readyCount=rows.filter(function(r){return r.action_status==='ready'||r.action_status==='ready_provisional';}).length,rawReady=rows.filter(function(r){return isUsableRawStatus_(r.raw_status);}).length;
-  return json_({ok:true,source:'apps_script_direct_master_verified',dashboard_read_mode:'direct_master_aggregation',scope_rows:rows,summary:{health_score:readyCount===rows.length?'Ready':'Needs Review',raw_ready:rawReady,ready:rows.filter(function(r){return r.action_status==='ready';}).length,ready_provisional:rows.filter(function(r){return r.action_status==='ready_provisional';}).length,dashboard_sync_pending:rows.filter(function(r){return r.action_status==='dashboard_sync_pending';}).length,build_required:rows.filter(function(r){return r.action_status==='build_required';}).length,needs_review:rows.filter(function(r){return r.action_status==='repair';}).length,cleanup_needed:rows.filter(function(r){return r.action_status==='repair';}).length,dashboard_direct_ready:rows.filter(function(r){return r.direct_master_status==='ready'||r.dashboard_direct_read==='ready';}).length,total_scopes:rows.length},issues:issues,recommendations:recommendations,checked_at:new Date().toISOString()},callback);
+  const result={ok:true,source:'apps_script_direct_master_verified',dashboard_read_mode:'direct_master_aggregation',scope_rows:rows,summary:{health_score:readyCount===rows.length?'Ready':'Needs Review',raw_ready:rawReady,ready:rows.filter(function(r){return r.action_status==='ready';}).length,ready_provisional:rows.filter(function(r){return r.action_status==='ready_provisional';}).length,dashboard_sync_pending:rows.filter(function(r){return r.action_status==='dashboard_sync_pending';}).length,build_required:rows.filter(function(r){return r.action_status==='build_required';}).length,needs_review:rows.filter(function(r){return r.action_status==='repair';}).length,cleanup_needed:rows.filter(function(r){return r.action_status==='repair';}).length,dashboard_direct_ready:rows.filter(function(r){return r.direct_master_status==='ready'||r.dashboard_direct_read==='ready';}).length,total_scopes:rows.length},issues:issues,recommendations:recommendations,checked_at:new Date().toISOString()};
+  cache.put(cacheKey,JSON.stringify(result),10);
+  return json_(result,callback);
 }
 
 function adminHealthResponseHasScope_(data, game, month) {

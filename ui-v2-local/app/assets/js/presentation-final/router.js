@@ -1,12 +1,12 @@
 import { hasPermission, PERMISSIONS } from "./permissions.js";
-import { getState, setRoute } from "./state.js?v=3516";
-import { renderDashboardPage, bindDashboardPage } from "./pages/dashboard.js";
-import { renderAiInsightPage, bindAiInsightPage } from "./pages/ai-insight.js";
-import { renderUserAccessPage, bindUserAccessPage } from "./pages/user-access.js?v=3517";
-import { renderDataHealthOverviewPage, bindDataHealthOverviewPage, renderPipelineCheckPage, bindPipelineCheckPage } from "./pages/data-health.js?v=3516";
-import { renderCheckRawPage, bindCheckRawPage } from "./pages/check-raw.js?v=3516";
-import { renderDataControlHistoryPage, bindDataControlHistoryPage, renderDataControlPreviewPage, bindDataControlPreviewPage, renderDataControlClearPage, bindDataControlClearPage, renderDataControlBuildPage, bindDataControlBuildPage } from "./pages/data-control.js?v=3516";
-import { renderProfilePage, bindProfilePage, renderPreferencesPage, bindPreferencesPage } from "./pages/profile.js";
+import { getState, setRoute } from "./state.js?v=3518";
+import { renderDashboardPage, bindDashboardPage } from "./pages/dashboard.js?v=3518";
+import { renderAiInsightPage, bindAiInsightPage } from "./pages/ai-insight.js?v=3518";
+import { renderUserAccessPage, bindUserAccessPage } from "./pages/user-access.js?v=3518";
+import { renderDataHealthOverviewPage, bindDataHealthOverviewPage, renderPipelineCheckPage, bindPipelineCheckPage } from "./pages/data-health.js?v=3518";
+import { renderCheckRawPage, bindCheckRawPage } from "./pages/check-raw.js?v=3518";
+import { renderDataControlHistoryPage, bindDataControlHistoryPage, renderDataControlPreviewPage, bindDataControlPreviewPage, renderDataControlClearPage, bindDataControlClearPage, renderDataControlBuildPage, bindDataControlBuildPage } from "./pages/data-control.js?v=3518";
+import { renderProfilePage, bindProfilePage, renderPreferencesPage, bindPreferencesPage } from "./pages/profile.js?v=3518";
 import { accessDeniedPage } from "./pages/shared.js";
 
 import { renderDailyRetentionPage, bindDailyRetentionPage } from "./pages/daily-retention.js?v=3502";

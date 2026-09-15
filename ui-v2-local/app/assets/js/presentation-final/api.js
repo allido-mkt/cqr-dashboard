@@ -13,6 +13,11 @@ const previewUserLoginLogs = [
 
 function wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
+function retryDelayMs(retryIndex) {
+  const base = Math.min(8000, 1200 * (2 ** Math.max(0, retryIndex - 1)));
+  return Math.round(base + Math.random() * 1000);
+}
+
 function previewHealth(params = {}) {
   const games = params.game && params.game !== "ALL" ? [params.game] : ["CBM_TH", "CBM_SEA", "CBPC_TH", "CBPC_SEA"];
   const month = params.month && params.month !== "ALL" ? params.month : "2026-06";
@@ -238,7 +243,7 @@ export function callAppsScript(action, params = {}, timeoutMs = 25000) {
     let lastError = null;
 
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
-      if (attempt > 1) await wait(1800);
+      if (attempt > 1) await wait(retryDelayMs(attempt - 1));
 
       try {
         return await callAppsScriptOnce(

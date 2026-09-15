@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3516";
-import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/admin-api.js";
+import { getState, setHealth, setPipeline, setFilters, setRoute } from "../state.js?v=3518";
+import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/admin-api.js?v=3518";
 import { escapeHtml, icon, optionMarkup, statusPill } from "../ui.js";
 
 const HANDOFF_KEY = "cqr_data_control_handoff";

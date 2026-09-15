@@ -1,4 +1,4 @@
-import { getState, addAiMessage, clearAiMessages, setAiStatus } from "../state.js";
+import { getState, addAiMessage, clearAiMessages, setAiStatus } from "../state.js?v=3518";
 import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../services/ai-api.js";
 import { icon, escapeHtml, downloadText, showToast } from "../ui.js";
 

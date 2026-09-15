@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setControl, setFilters, setRoute } from "../state.js?v=3516";
-import { callAuthorized, normalizePayload, assertSuccessfulPayload } from "../services/admin-api.js";
+import { getState, setControl, setFilters, setRoute } from "../state.js?v=3518";
+import { callAuthorized, normalizePayload, assertSuccessfulPayload } from "../services/admin-api.js?v=3518";
 import { escapeHtml, icon, optionMarkup, statusPill, showToast, openConfirmModal } from "../ui.js";
 
 const LOG_KEY = "cqr_admin_action_logs";
