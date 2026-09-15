@@ -872,27 +872,30 @@ function handleAdminUsersDelete_(e, callback) {
 
 function directMasterScopeCheck_(registry, game, month) {
   const fileId=registry[game]; if(!fileId)return {ready:false,missing:['MasterFiles registry']};
-  const checks={CohortSummary:directSheetRows_(fileId,'CohortSummary').some(r=>String(r.period_key)===month&&String(r.view)==='monthly'),ChannelMonthly:directSheetRows_(fileId,'ChannelMonthly').some(r=>String(r.period_key)===month),DAUDaily:directSheetRows_(fileId,'DAUDaily').some(r=>String(r.period_key)===month),PlayerTypeMonthly:directSheetRows_(fileId,'PlayerTypeMonthly').some(r=>String(r.period_key)===month),TotalRetentionMonthly:directSheetRows_(fileId,'TotalRetentionMonthly').some(r=>String(r.period_key)===month)};
+  const checks={CohortSummary:directSheetRows_(fileId,'CohortSummary').some(r=>String(r.period_key)===month&&(String(r.scope_type||'').toLowerCase()==='monthly'||String(r.view||'').toLowerCase()==='monthly'||(!r.scope_type&&!r.view))),ChannelMonthly:directSheetRows_(fileId,'ChannelMonthly').some(r=>String(r.period_key)===month),DAUDaily:directSheetRows_(fileId,'DAUDaily').some(r=>String(r.period_key)===month),PlayerTypeMonthly:directSheetRows_(fileId,'PlayerTypeMonthly').some(r=>String(r.period_key)===month),TotalRetentionMonthly:directSheetRows_(fileId,'TotalRetentionMonthly').some(r=>String(r.period_key)===month)};
   return {ready:Object.keys(checks).every(k=>checks[k]),missing:Object.keys(checks).filter(k=>!checks[k]),checks:checks};
 }
 
 function handleAdminPipelineHealth_(e, callback) {
   const session=validateSession_(e.parameter.session_token);requireSuperAdmin_(session);
   const wantedGame=normalizeGameCode_(e.parameter.game||'ALL'),wantedMonth=normalizePeriodKey_(e.parameter.month||'');
-  const registry=directRegistry_(),pipeline=readCentralSheetRows_('PipelineLogs'),raw=readCentralSheetRows_('RawIngestionLogs'),index=readCentralSheetRows_('DataIndex');
-  const games=wantedGame==='ALL'?CQR_DIRECT_GAMES:[wantedGame];const months=wantedMonth?[wantedMonth]:Array.from(new Set(index.map(pipelinePeriod_).filter(Boolean))).sort();const rows=[];const issues=[];const recommendations=[];
-  games.forEach(game=>months.forEach(month=>{
-    const rawRows=raw.filter(r=>pipelineGame_(r)===game&&pipelinePeriod_(r)===month),pipeRows=pipeline.filter(r=>pipelineGame_(r)===game&&pipelinePeriod_(r)===month),idxRows=index.filter(r=>pipelineGame_(r)===game&&pipelinePeriod_(r)===month);
-    const latestRaw=rawRows.sort((a,b)=>String(pipelineTime_(b)).localeCompare(String(pipelineTime_(a))))[0]||{},ready=pipeRows.filter(r=>pipelineStatus_(r)==='ready').sort((a,b)=>String(pipelineTime_(b)).localeCompare(String(pipelineTime_(a))))[0]||{};
-    const rawHash=String(rowValue_(latestRaw,['data_hash_after','raw_data_hash','current_hash'])||''),masterHash=String(rowValue_(idxRows[0]||{},['data_hash','data_hash_after'])||rowValue_(ready,['data_hash_after'])||''),direct=directMasterScopeCheck_(registry,game,month),rawStatus=pipelineStatus_(latestRaw),hashMatch=!!rawHash&&!!masterHash&&rawHash===masterHash;
-    let action='ready',actionLabel='No action required',level='ok',masterLabel='พร้อมใช้';
-    if(rawStatus!=='raw_ready'){action='raw_not_ready';actionLabel='Check Raw';level='danger';masterLabel=direct.ready?'มีข้อมูลเดิม':'ยังไม่พร้อม';}
-    else if(!direct.ready){action='repair';actionLabel='Repair Direct Master';level='danger';masterLabel='Direct read ไม่ครบ';issues.push({level:'danger',badge:'Direct Master',game_code:game,period_key:month,title:'Dashboard อ่าน Master ไม่ครบ',detail:'Missing: '+direct.missing.join(', ')});recommendations.push({title:'ซ่อม Master '+game+' '+month,detail:'ตรวจ summary tabs แล้ว Build scope ใหม่',cleanup:{target_game_code:game,target_month:month}});}
-    else if(!hashMatch){action='repair';actionLabel='Repair hash/index';level='danger';masterLabel='Hash ไม่ตรง';issues.push({level:'warn',badge:'Hash',game_code:game,period_key:month,title:'Raw/Master hash ไม่ตรง',detail:'Raw '+rawHash+' / Master '+masterHash});}
-    rows.push({game_code:game,period_key:month,raw:rawStatus==='raw_ready'?'มีรอบล่าสุดแล้ว':(rawStatus||'ยังไม่มี Raw Check'),raw_level:rawStatus==='raw_ready'?'ok':'danger',master:masterLabel,master_level:level,action:actionLabel,action_level:level,action_status:action,raw_status:rawStatus,raw_hash:rawHash,master_hash:masterHash,dashboard_direct_read:direct.ready?'ready':'missing',dashboard_read_level:direct.ready?'ok':'danger',dashboard_missing_tabs:direct.missing.join(', '),ready_run_id:pipelineRunId_(ready),latest_run_id:pipelineRunId_(ready),raw_checked_at:pipelineTime_(latestRaw),master_updated_at:pipelineTime_(ready)});
-  }));
-  const readyCount=rows.filter(r=>r.action_status==='ready').length,rawReady=rows.filter(r=>r.raw_status==='raw_ready').length;
-  return json_({ok:true,source:'apps_script_direct_master_verified',dashboard_read_mode:'direct_master_aggregation',scope_rows:rows,summary:{health_score:readyCount===rows.length?'Ready':'Needs Review',raw_ready:rawReady,ready:readyCount,build_required:rows.filter(r=>r.action_status==='build_required').length,needs_review:rows.filter(r=>r.action_status==='repair').length,cleanup_needed:rows.filter(r=>r.action_status==='repair').length,dashboard_direct_ready:rows.filter(r=>r.dashboard_direct_read==='ready').length,total_scopes:rows.length},issues:issues,recommendations:recommendations,checked_at:new Date().toISOString()},callback);
+  const pipeline=readCentralSheetRows_('PipelineLogs'),raw=readCentralSheetRows_('RawIngestionLogs'),index=readCentralSheetRows_('DataIndex');
+  const dashboardData=readDashboardData_();
+  const rows=buildAdminHealthScopeRows_(pipeline,raw,index,wantedGame,wantedMonth,dashboardData);
+  const issues=[],recommendations=[];
+  rows.forEach(function(row){
+    if(row.action_status==='repair'){
+      issues.push({level:'danger',badge:'Repair',game_code:row.game_code,period_key:row.period_key,title:'Master/Dashboard ต้องซ่อม',detail:row.direct_master_message||'Master, DataIndex หรือ dashboard direct read ไม่ตรงกัน'});
+      recommendations.push({title:'ซ่อม Master '+row.game_code+' '+row.period_key,detail:'เปิด Data Control เพื่อตรวจ Preview/Clear/Build',cleanup:{target_game_code:row.game_code,target_month:row.period_key,run_id:row.latest_run_id||row.ready_run_id||'',search_hash:row.master_hash||row.previous_hash||''}});
+    } else if(row.action_status==='build_required'){
+      recommendations.push({title:'Build Master '+row.game_code+' '+row.period_key,detail:'Raw พร้อมแล้วแต่ยังไม่มี Master/DataIndex สำหรับ Scope นี้',build:{target_game_code:row.game_code,target_month:row.period_key,raw_hash:row.raw_hash,raw_check_id:row.raw_check_id}});
+    } else if(row.action_status==='raw_missing'||row.action_status==='raw_not_ready'){
+      issues.push({level:'warn',badge:'Raw',game_code:row.game_code,period_key:row.period_key,title:'Raw ยังไม่พร้อม',detail:row.raw_status||'ยังไม่มี Raw Check'});
+      recommendations.push({title:'ตรวจ Raw '+row.game_code+' '+row.period_key,detail:'รัน Check Raw แล้วรอ RawIngestionLogs ล่าสุด',check_raw:{target_game_code:row.game_code,target_month:row.period_key}});
+    }
+  });
+  const readyCount=rows.filter(function(r){return r.action_status==='ready'||r.action_status==='ready_provisional';}).length,rawReady=rows.filter(function(r){return isUsableRawStatus_(r.raw_status);}).length;
+  return json_({ok:true,source:'apps_script_direct_master_verified',dashboard_read_mode:'direct_master_aggregation',scope_rows:rows,summary:{health_score:readyCount===rows.length?'Ready':'Needs Review',raw_ready:rawReady,ready:rows.filter(function(r){return r.action_status==='ready';}).length,ready_provisional:rows.filter(function(r){return r.action_status==='ready_provisional';}).length,build_required:rows.filter(function(r){return r.action_status==='build_required';}).length,needs_review:rows.filter(function(r){return r.action_status==='repair';}).length,cleanup_needed:rows.filter(function(r){return r.action_status==='repair';}).length,dashboard_direct_ready:rows.filter(function(r){return r.direct_master_status==='ready'||r.dashboard_direct_read==='ready';}).length,total_scopes:rows.length},issues:issues,recommendations:recommendations,checked_at:new Date().toISOString()},callback);
 }
 
 function adminHealthResponseHasScope_(data, game, month) {
@@ -966,6 +969,10 @@ function dataIndexHash_(row) {
   return String(rowValue_(row || {}, ['data_hash', 'data hash']) || '').trim();
 }
 
+function isUsableRawStatus_(status) {
+  return ['raw_ready', 'raw_updated'].indexOf(String(status || '').trim().toLowerCase()) >= 0;
+}
+
 function buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, month, dashboardData) {
   const games = adminScopeGames_(game);
   const months = adminScopeMonths_(month, [pipelineRows, rawRows, dataIndexRows]);
@@ -1006,8 +1013,8 @@ function buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, 
       let actionStatus = 'raw_missing';
       let direct_masterMessage = '';
 
-      if (rawStatus === 'raw_ready') {
-        rawLabel = 'Raw พร้อม';
+      if (isUsableRawStatus_(rawStatus)) {
+        rawLabel = rawStatus === 'raw_updated' ? 'Raw อัปเดตพร้อมใช้' : 'Raw พร้อม';
         rawLevel = 'ok';
         if (readyMatchesRaw) {
           masterLabel = 'Master พร้อมใช้';
@@ -1015,14 +1022,14 @@ function buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, 
           if (!direct_masterHash) {
             actionLabel = 'สร้าง Dashboard Direct Master';
             actionLevel = 'danger';
-            actionStatus = 'direct_master_missing';
+            actionStatus = 'repair';
             direct_masterMessage = 'Master พร้อมแล้ว แต่ cqr_data direct_master ยังไม่มี game/period นี้';
           } else if (!direct_masterMatchesMaster) {
             direct_masterLabel = 'Direct Master เป็นข้อมูลเก่า';
             direct_masterLevel = 'danger';
             actionLabel = 'Rebuild Dashboard Direct Master';
             actionLevel = 'danger';
-            actionStatus = 'direct_master_stale';
+            actionStatus = 'repair';
             direct_masterMessage = 'Direct Master hash ' + direct_masterHash + ' ไม่ตรง Master hash ' + masterHash;
           } else {
             direct_masterLabel = direct_masterMaturity === 'matured' ? 'Direct Master พร้อมใช้' : 'Direct Master Provisional';
@@ -1250,7 +1257,7 @@ function isPipelineLookupCandidate_(item, hasQuery) {
   if (/^CLEANUP/i.test(runId)) return false;
   if (status.indexOf('cleanup') >= 0 || status.indexOf('deleted') >= 0) return false;
   if (hasQuery) return true;
-  return ['ready', 'needs_review', 'raw_ready'].indexOf(status) >= 0;
+  return ['ready', 'needs_review', 'raw_ready', 'raw_updated'].indexOf(status) >= 0;
 }
 
 function compactPipelineLookupRows_(rows, hasQuery) {
@@ -1291,6 +1298,7 @@ function handleAdminN8nCommand_(e, callback, command) {
   const requestedRawHash = String(e.parameter.raw_data_hash || e.parameter.raw_hash || '').trim();
   const requestedRawCheckId = String(e.parameter.raw_check_id || '').trim();
   const previewReceipt = String(e.parameter.preview_receipt || '').trim();
+  const suppliedRunMode = String(e.parameter.run_mode || '').trim().toLowerCase();
   let effectiveBuildMode = requestedBuildMode;
   let firstBuildGuard = null;
   if (command === 'raw.check' && (game.toUpperCase() === 'ALL' || month.toUpperCase() === 'ALL')) {
@@ -1324,7 +1332,7 @@ function handleAdminN8nCommand_(e, callback, command) {
         requestedRawCheckId
       );
     } else if (effectiveBuildMode === 'repair') {
-      if (!runId) throw new Error('Repair Build requires run_id.');
+      if (!runId && !cleanupHash) throw new Error('Repair Build requires run_id or cleanup_hash.');
       if (!previewReceipt) throw new Error('Repair Build requires preview_receipt.');
     } else {
       throw new Error('Unsupported build_mode: ' + effectiveBuildMode);
@@ -1366,7 +1374,9 @@ function handleAdminN8nCommand_(e, callback, command) {
         ].join('|')
       : '',
     confirm_delete: command === 'cleanup.run' ? 'YES' : 'NO',
-    run_mode: command === 'master.run' ? 'force' : command === 'raw.check' ? 'manual_check' : '',
+    run_mode: command === 'master.run'
+      ? (['force', 'upsert'].indexOf(suppliedRunMode) >= 0 ? suppliedRunMode : (effectiveBuildMode === 'repair' ? 'force' : 'upsert'))
+      : command === 'raw.check' ? 'manual_check' : '',
     check_mode: command === 'raw.check' ? String(e.parameter.check_mode || 'manual') : '',
     target_games_csv: targetGamesCsv,
     target_months_csv: targetMonthsCsv,
@@ -1406,6 +1416,7 @@ function handleAdminN8nCommand_(e, callback, command) {
     idempotency_key: command === 'master.run' ? payload.idempotency_key : '',
     status: 'sent',
     n8n_result: data,
+    preview_receipt: command === 'cleanup.preview' ? String(data.preview_receipt || data.preview_token || data.receipt || '') : '',
     request_id: payload.request_id
   }, callback);
 }
@@ -1477,9 +1488,7 @@ function getRawCheckRequestStatus_(requestId, includeJobs) {
   const spreadsheet = SpreadsheetApp.openById(CONFIG.CENTRAL_DB_ID);
   const requestSheet = spreadsheet.getSheetByName('RawCheckRequests');
 
-  if (!requestSheet) {
-    throw new Error('Missing Central DB sheet: RawCheckRequests');
-  }
+  if (!requestSheet) return rawStatusFromIngestionLogs_(spreadsheet, normalizedRequestId, includeJobs);
 
   const requestHeaders = getSheetHeaderInfo_(requestSheet);
   const request = findSheetRowByValue_(
@@ -1489,19 +1498,7 @@ function getRawCheckRequestStatus_(requestId, includeJobs) {
     normalizedRequestId
   );
 
-  if (!request) {
-    return {
-      ok: false,
-      found: false,
-      request_id: normalizedRequestId,
-      status: 'not_found',
-      message: 'Raw Check request not found.',
-      jobs_included: false,
-      jobs: [],
-      poll_after_ms: 5000,
-      server_time: new Date().toISOString()
-    };
-  }
+  if (!request) return rawStatusFromIngestionLogs_(spreadsheet, normalizedRequestId, includeJobs);
 
   const result = {
     ok: true,
@@ -1549,6 +1546,111 @@ function getRawCheckRequestStatus_(requestId, includeJobs) {
   }
 
   return result;
+}
+
+function rawStatusFromIngestionLogs_(spreadsheet, requestId, includeJobs) {
+  const logSheet = spreadsheet.getSheetByName('RawIngestionLogs');
+  const rows = rowsFromSheet_(logSheet).filter(function(row) {
+    return String(rowValue_(row, ['request_id', 'raw_check_id', 'run_id']) || '').trim() === requestId;
+  });
+  const now = new Date().toISOString();
+  if (!rows.length) {
+    return {
+      ok: true,
+      found: false,
+      request_id: requestId,
+      status: 'queued',
+      message: 'Raw Check accepted; waiting for RawIngestionLogs.',
+      total_jobs: 1,
+      queued_jobs: 1,
+      running_jobs: 0,
+      completed_jobs: 0,
+      failed_jobs: 0,
+      raw_ready_count: 0,
+      raw_updated_count: 0,
+      raw_partial_count: 0,
+      raw_missing_count: 0,
+      jobs_included: false,
+      jobs: [],
+      poll_after_ms: 5000,
+      server_time: now
+    };
+  }
+
+  const jobs = rows
+    .map(function(row, index) {
+      const status = pipelineStatus_(row);
+      const missingTabs = stringValue_(rowValue_(row, ['missing_tabs', 'missing tab', 'missing_tabs_csv']));
+      return {
+        job_id: stringValue_(rowValue_(row, ['job_id']) || requestId + '-' + (index + 1)),
+        request_id: requestId,
+        batch_id: stringValue_(rowValue_(row, ['batch_id'])),
+        game_code: pipelineGame_(row),
+        period_key: pipelinePeriod_(row),
+        raw_file_id: stringValue_(rowValue_(row, ['raw_file_id', 'file_id'])),
+        raw_file_name: stringValue_(rowValue_(row, ['raw_file_name', 'file_name'])),
+        status: status === 'raw_missing' ? 'failed' : 'completed',
+        result_status: status,
+        tab_count_found: numberValue_(rowValue_(row, ['tab_count_found', 'tabs_found', 'found_tabs'])),
+        tab_count_expected: numberValue_(rowValue_(row, ['tab_count_expected', 'tabs_expected', 'expected_tabs'])),
+        missing_tabs: missingTabs,
+        raw_previous_hash: stringValue_(rowValue_(row, ['raw_previous_hash', 'previous_hash', 'data_hash_before'])),
+        raw_data_hash: stringValue_(rowValue_(row, ['raw_data_hash', 'data_hash_after', 'current_hash'])),
+        registered_rows: numberValue_(rowValue_(row, ['registered_rows'])),
+        dau_rows: numberValue_(rowValue_(row, ['dau_rows'])),
+        returners_rows: numberValue_(rowValue_(row, ['returners_rows'])),
+        late_starters_rows: numberValue_(rowValue_(row, ['late_starters_rows'])),
+        login_rows: numberValue_(rowValue_(row, ['login_rows'])),
+        attempt_count: numberValue_(rowValue_(row, ['attempt_count'])),
+        created_at: stringValue_(rowValue_(row, ['created_at', 'run_started_at', 'started_at'])),
+        started_at: stringValue_(rowValue_(row, ['started_at', 'run_started_at'])),
+        updated_at: stringValue_(rowValue_(row, ['updated_at', 'checked_at'])),
+        finished_at: stringValue_(rowValue_(row, ['finished_at', 'run_finished_at', 'checked_at'])),
+        error_message: stringValue_(rowValue_(row, ['error_message', 'message']))
+      };
+    })
+    .sort(function(a, b) {
+      return String(a.game_code + a.period_key).localeCompare(String(b.game_code + b.period_key));
+    });
+  const counters = {
+    raw_ready_count: jobs.filter(function(job) { return job.result_status === 'raw_ready'; }).length,
+    raw_updated_count: jobs.filter(function(job) { return job.result_status === 'raw_updated'; }).length,
+    raw_partial_count: jobs.filter(function(job) { return job.result_status === 'raw_partial'; }).length,
+    raw_missing_count: jobs.filter(function(job) { return job.result_status === 'raw_missing'; }).length
+  };
+  const latestJob = jobs
+    .slice()
+    .sort(function(a, b) { return String(b.finished_at || b.updated_at || '').localeCompare(String(a.finished_at || a.updated_at || '')); })[0] || {};
+  return {
+    ok: true,
+    found: true,
+    request_id: requestId,
+    batch_id: latestJob.batch_id || '',
+    target_games_csv: uniqueValues_(jobs.map(function(job) { return job.game_code; })).join(','),
+    target_months_csv: uniqueValues_(jobs.map(function(job) { return job.period_key; })).join(','),
+    total_jobs: jobs.length,
+    queued_jobs: 0,
+    running_jobs: 0,
+    completed_jobs: jobs.filter(function(job) { return job.status === 'completed'; }).length,
+    failed_jobs: jobs.filter(function(job) { return job.status === 'failed'; }).length,
+    raw_ready_count: counters.raw_ready_count,
+    raw_updated_count: counters.raw_updated_count,
+    raw_partial_count: counters.raw_partial_count,
+    raw_missing_count: counters.raw_missing_count,
+    status: 'completed',
+    result_status: latestJob.result_status || '',
+    current_job_id: latestJob.job_id || '',
+    current_game_code: latestJob.game_code || '',
+    current_period_key: latestJob.period_key || '',
+    created_at: jobs[0].created_at || '',
+    updated_at: latestJob.updated_at || latestJob.finished_at || '',
+    finished_at: latestJob.finished_at || latestJob.updated_at || '',
+    error_message: jobs.filter(function(job) { return job.error_message; }).map(function(job) { return job.error_message; }).join(' | '),
+    jobs_included: Boolean(includeJobs),
+    jobs: includeJobs ? jobs : [],
+    poll_after_ms: 5000,
+    server_time: now
+  };
 }
 
 function normalizeHeader_(header) {
@@ -2527,11 +2629,11 @@ function validateFirstBuildScope_(game, month, requestedRawHash, requestedRawChe
   });
   const latestRaw = latestPipelineRow_(rawRows);
   const rawStatus = pipelineStatus_(latestRaw || {});
-  const rawHash = pipelineHashAfter_(latestRaw || {});
+  const rawHash = pipelineHashAfter_(latestRaw || {}) || String(rowValue_(latestRaw || {}, ['raw_data_hash']) || '').trim();
   const rawCheckId = pipelineRunId_(latestRaw || {})
     || String(rowValue_(latestRaw || {}, ['raw_check_id', 'request_id']) || '').trim();
 
-  if (!latestRaw || rawStatus !== 'raw_ready') {
+  if (!latestRaw || !isUsableRawStatus_(rawStatus)) {
     throw new Error('Raw is not ready. Run Check Raw first.');
   }
   if (!rawHash) {
