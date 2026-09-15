@@ -6,6 +6,8 @@ import { escapeHtml, icon, optionMarkup, statusPill, showToast, openConfirmModal
 const LOG_KEY = "cqr_admin_action_logs";
 const HANDOFF_KEY = "cqr_data_control_handoff";
 const FIRST_BUILD_KEY = "cqr_first_build_scope";
+const CLEANUP_PREVIEW_TIMEOUT_MS = 180000;
+const CLEANUP_RUN_TIMEOUT_MS = 300000;
 let actionBusy = false;
 let repairRecoveryBusy = false;
 let repairRecoveryAttemptedKey = "";
@@ -676,7 +678,7 @@ async function preview() {
   window.dispatchEvent(new Event("cqr-page-refresh"));
   try {
     const scope = lockedScopeForRun(run);
-    const result = await callAuthorized("admin.n8n.cleanup.preview", cleanupParams(scope), 60000);
+    const result = await callAuthorized("admin.n8n.cleanup.preview", cleanupParams(scope), CLEANUP_PREVIEW_TIMEOUT_MS);
     const payload = assertSuccessfulPayload(result, "Cleanup preview");
     const receipt = String(payload.preview_receipt || payload.preview_token || payload.receipt || result.preview_receipt || result.request_id || payload.request_id || `PREVIEW-${Date.now()}-${scope.runId}`);
     setControl({
@@ -794,7 +796,7 @@ async function previewRepairScope() {
   setControl({ error: "" });
   window.dispatchEvent(new Event("cqr-page-refresh"));
   try {
-    const result = await callAuthorized("admin.n8n.cleanup.preview", cleanupParams(scope), 60000);
+    const result = await callAuthorized("admin.n8n.cleanup.preview", cleanupParams(scope), CLEANUP_PREVIEW_TIMEOUT_MS);
     const payload = assertSuccessfulPayload(result, "Cleanup preview");
     const receipt = String(payload.preview_receipt || payload.preview_token || payload.receipt || result.preview_receipt || result.request_id || payload.request_id || `PREVIEW-${Date.now()}-${scope.hash}`);
     setControl({
@@ -946,7 +948,7 @@ async function clearNow() {
     const result = await callAuthorized("admin.n8n.cleanup.run", {
       ...cleanupParams(scope),
       preview_receipt: control.previewToken,
-    }, 60000);
+    }, CLEANUP_RUN_TIMEOUT_MS);
     const payload = assertSuccessfulPayload(result, "Cleanup run");
     setControl({ lastClearAt: new Date().toISOString(), clearResult: payload, error: "" });
     addLog("Clear", result, scope);
