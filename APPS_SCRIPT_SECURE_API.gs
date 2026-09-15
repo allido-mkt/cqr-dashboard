@@ -918,7 +918,7 @@ function handleAdminPipelineHealth_(e, callback) {
     if(parsed&&parsed.ok===true)return json_(parsed,callback);
   }
   const pipeline=readCentralSheetRows_('PipelineLogs'),raw=readCentralSheetRows_('RawIngestionLogs'),index=readCentralSheetRows_('DataIndex');
-  const dashboardData=readDashboardData_();
+  const dashboardData=readDashboardData_('', wantedGame === 'ALL' ? [] : [wantedGame], forceRefresh);
   const rows=buildAdminHealthScopeRows_(pipeline,raw,index,wantedGame,wantedMonth,dashboardData);
   const issues=[],recommendations=[];
   rows.forEach(function(row){
@@ -1827,7 +1827,7 @@ function validateSession_(sessionToken) {
 }
 
 const CQR_DIRECT_GAMES = ['CBM_TH','CBM_SEA','CBPC_TH','CBPC_SEA'];
-const CQR_DIRECT_SCHEMA = 'cqr-dashboard-direct-master-v2';
+const CQR_DIRECT_SCHEMA = 'cqr-dashboard-direct-master-v3';
 const CQR_DIRECT_TTL_SECONDS = 21600;
 let CQR_DIRECT_REGISTRY_MEMO_ = null;
 
@@ -1895,6 +1895,11 @@ function directNum_(value) { const number = Number(value); return Number.isFinit
 function directRatePct_(value) { const number = Number(value); return Number.isFinite(number) ? Math.round(number * 1000) / 10 : null; }
 function directMonth_(period) { const match = String(period || '').match(/^(20\d{2}-\d{2})/); return match ? match[1] : ''; }
 function directWeekNumber_(period) { const match = String(period || '').match(/-W(\d+)$/); return match ? Number(match[1]) : 0; }
+function directSummaryView_(row) {
+  const explicit = String((row && (row.view || row.scope_type)) || '').trim().toLowerCase();
+  if (explicit === 'monthly' || explicit === 'weekly') return explicit;
+  return directWeekNumber_(row && row.period_key) ? 'weekly' : 'monthly';
+}
 function directWeekLabel_(period) {
   const month = directMonth_(period); const week = directWeekNumber_(period);
   if (!month || !week) return String(period || '');
@@ -2099,16 +2104,16 @@ function readDashboardDailyData_(params) {
 function buildDashboardDataFromMasters_(registry, fingerprint) {
   const loaded = {}; CQR_DIRECT_GAMES.forEach(game => loaded[game]=directLoadGame_(game,registry[game]));
   const allSummary=[]; CQR_DIRECT_GAMES.forEach(game=>loaded[game].summary.forEach(row=>allSummary.push(row)));
-  const months=Array.from(new Set(allSummary.filter(r=>String(r.view)==='monthly').map(r=>directMonth_(r.period_key)).filter(Boolean))).sort();
+  const months=Array.from(new Set(allSummary.filter(r=>directSummaryView_(r)==='monthly').map(r=>directMonth_(r.period_key)).filter(Boolean))).sort();
   const payload={months:months,periods:months.map(m=>({key:m,month:m,type:'month',label:m})),weeks_by_month:{},games:['ALL'].concat(CQR_DIRECT_GAMES),channel_data:{},overview_data:{},legacy:{},game_channel_full:{},player_type_breakdown:{},total_user_retention:{},total_mau:{},data_status:{},ai_summary:directAiMap_(),data_version:{schema_version:CQR_DIRECT_SCHEMA,source:'central_masterfiles_direct',read_mode:'direct_master_aggregation',pre_generated_data_file_required:false,data_index_fingerprint:fingerprint,generated_at:new Date().toISOString(),master_file_ids:registry,latest_available_period:months[months.length-1]||'',latest_common_matured_period:''}};
   const maturityByGame={}; CQR_DIRECT_GAMES.forEach(game=>{maturityByGame[game]={};loaded[game].maturity.forEach(r=>maturityByGame[game][String(r.period_key)]=r);});
   const common=months.filter(m=>CQR_DIRECT_GAMES.every(g=>String((maturityByGame[g][m]||{}).maturity_status)==='matured')); payload.data_version.latest_common_matured_period=common[common.length-1]||'';
-  months.forEach(month=>{const weeks=Array.from(new Set(allSummary.filter(r=>String(r.view)==='weekly'&&directMonth_(r.period_key)===month).map(r=>String(r.period_key)))).sort();payload.weeks_by_month[month]=weeks.map(w=>({key:w,label:directWeekLabel_(w)}));});
+  months.forEach(month=>{const weeks=Array.from(new Set(allSummary.filter(r=>directSummaryView_(r)==='weekly'&&directMonth_(r.period_key)===month).map(r=>String(r.period_key)))).sort();payload.weeks_by_month[month]=weeks.map(w=>({key:w,label:directWeekLabel_(w)}));});
   const periods=[];months.forEach(m=>{periods.push(m);(payload.weeks_by_month[m]||[]).forEach(w=>periods.push(w.key));});
   periods.forEach(period=>{
     const view=directWeekNumber_(period)?'weekly':'monthly', month=directMonth_(period);
     CQR_DIRECT_GAMES.forEach(game=>{
-      const source=loaded[game], summaries=source.summary.filter(r=>String(r.period_key)===period&&String(r.view)===view); if(!summaries.length)return;
+      const source=loaded[game], summaries=source.summary.filter(r=>String(r.period_key)===period&&directSummaryView_(r)===view); if(!summaries.length)return;
       const s=summaries[0], key=game+'|'+period, chRows=(view==='monthly'?source.monthly:source.weekly).filter(r=>String(view==='monthly'?r.period_key:r.week_key)===period);
       const daus=source.dau.filter(r=>String(r.period_key)===month).filter(r=>{const w=directWeekNumber_(period);return !w||Math.floor((new Date(String(r.date)+'T00:00:00Z').getUTCDate()-1)/7)+1===w;});
       payload.channel_data[key]=directChannelAggregate_(chRows);
@@ -2122,7 +2127,7 @@ function buildDashboardDataFromMasters_(registry, fingerprint) {
       const mat=maturityByGame[game][month]||{};payload.data_status[key]={status:String(mat.maturity_status||'collecting'),maturity_status:String(mat.maturity_status||'collecting'),message:String(mat.maturity_status)==='matured'?'Master data พร้อมใช้':'Cohort ยังเก็บ D14 observation window',data_hash:String(s.data_hash||''),dashboard_read_mode:'direct_master_aggregation'};
       payload.game_channel_full[period]=(payload.game_channel_full[period]||[]).concat(payload.channel_data[key].map(row=>Object.assign({game_code:game},row)));
     });
-    const gameSummaries=CQR_DIRECT_GAMES.map(g=>loaded[g].summary.find(r=>String(r.period_key)===period&&String(r.view)===view)).filter(Boolean); if(!gameSummaries.length)return;
+    const gameSummaries=CQR_DIRECT_GAMES.map(g=>loaded[g].summary.find(r=>String(r.period_key)===period&&directSummaryView_(r)===view)).filter(Boolean); if(!gameSummaries.length)return;
     const all=directAggregateSummary_(gameSummaries,'ALL',period,view), allKey='ALL|'+period, allChannels=[];CQR_DIRECT_GAMES.forEach(g=>{const src=loaded[g],rs=(view==='monthly'?src.monthly:src.weekly).filter(r=>String(view==='monthly'?r.period_key:r.week_key)===period);allChannels.push.apply(allChannels,rs);});
     payload.channel_data[allKey]=directChannelAggregate_(allChannels);payload.overview_data[allKey]={new_register:all.register_users,paid_register:all.paid_register,first_login:all.first_login_users,recall_user:all.returners,avg_days_active:all.avg_days_active===null?null:Math.round(all.avg_days_active*10)/10,d1:directRatePct_(all.d1_rate),d3:directRatePct_(all.d3_rate),d7:directRatePct_(all.d7_rate),d14:directRatePct_(all.d14_rate)};
     const allDauByDate={};CQR_DIRECT_GAMES.forEach(g=>loaded[g].dau.filter(r=>String(r.period_key)===month).forEach(r=>{const w=directWeekNumber_(period),date=new Date(String(r.date)+'T00:00:00Z');if(w&&Math.floor((date.getUTCDate()-1)/7)+1!==w)return;allDauByDate[String(r.date)]=(allDauByDate[String(r.date)]||0)+directNum_(r.dau);}));const dates=Object.keys(allDauByDate).sort(),av=dates.length?dates.reduce((s,d)=>s+allDauByDate[d],0)/dates.length:null;
@@ -2133,8 +2138,8 @@ function buildDashboardDataFromMasters_(registry, fingerprint) {
   return payload;
 }
 
-function readDashboardData_() {
-  const registry=directRegistry_(),fingerprint=directFingerprint_(),key='cqr-direct:'+CQR_DIRECT_SCHEMA+':'+fingerprint,cached=directCacheGet_(key);if(cached)return cached;
+function readDashboardData_(contextGroup, explicitGames, forceRefresh) {
+  const registry=directRegistry_(),fingerprint=directFingerprint_(),key='cqr-direct:'+CQR_DIRECT_SCHEMA+':'+fingerprint,cached=forceRefresh?null:directCacheGet_(key);if(cached)return cached;
   const data=buildDashboardDataFromMasters_(registry,fingerprint);directCachePut_(key,data);return data;
 }
 
