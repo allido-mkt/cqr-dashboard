@@ -1039,7 +1039,9 @@ function buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, 
       const readyMatchesRaw = Boolean(rawHash && masterHash && rawHash === masterHash);
       const reviewMatchesRaw = Boolean(rawHash && reviewNewHash === rawHash);
       const direct_master = statusMap[gameCode + '|' + periodKey] || {};
+      const direct_masterPresent = Boolean(direct_master && Object.keys(direct_master).length);
       const direct_masterHash = String(direct_master.data_hash || '').trim();
+      const effectiveDashboardHash = direct_masterHash || (direct_masterPresent ? masterHash : '');
       const direct_masterMaturity = String(direct_master.maturity_status || rowValue_(latestIndex || {}, ['maturity_status']) || '').toLowerCase();
       const direct_masterMatchesMaster = Boolean(direct_masterHash && masterHash && direct_masterHash === masterHash);
 
@@ -1047,9 +1049,9 @@ function buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, 
       let rawLevel = 'warn';
       let masterLabel = latestReady || latestIndex ? 'มีข้อมูลเดิม' : 'ยังไม่ยืนยัน';
       let masterLevel = 'warn';
-      let direct_masterLabel = direct_masterHash ? 'Direct Master มีข้อมูล' : 'ยังไม่มี Direct Master';
-      let direct_masterLevel = direct_masterHash ? 'warn' : 'danger';
-      let direct_masterStatus = direct_masterHash ? 'stale' : 'missing';
+      let direct_masterLabel = direct_masterPresent ? 'Direct Master มีข้อมูล' : 'ยังไม่มี Direct Master';
+      let direct_masterLevel = direct_masterPresent ? 'warn' : 'danger';
+      let direct_masterStatus = direct_masterPresent ? 'stale' : 'missing';
       let actionLabel = 'รัน Raw Check รอบนี้ก่อน';
       let actionLevel = 'warn';
       let actionStatus = 'raw_missing';
@@ -1061,7 +1063,7 @@ function buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, 
         if (readyMatchesRaw) {
           masterLabel = 'Master พร้อมใช้';
           masterLevel = 'ok';
-          if (!direct_masterHash) {
+          if (!direct_masterPresent) {
             direct_masterLabel = 'กำลัง Sync Dashboard';
             direct_masterLevel = 'warn';
             direct_masterStatus = 'sync_pending';
@@ -1070,13 +1072,23 @@ function buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, 
             actionStatus = 'dashboard_sync_pending';
             direct_masterMessage = 'Master และ DataIndex ตรงกับ Raw แล้ว แต่ Dashboard Direct Master ยังไม่อ่าน game/period รอบล่าสุด';
           } else if (!direct_masterMatchesMaster) {
-            direct_masterLabel = 'กำลัง Sync Dashboard';
-            direct_masterLevel = 'warn';
-            direct_masterStatus = 'sync_pending';
-            actionLabel = 'กำลังยืนยัน Dashboard';
-            actionLevel = 'warn';
-            actionStatus = 'dashboard_sync_pending';
-            direct_masterMessage = 'Master hash ' + masterHash + ' พร้อมแล้ว แต่ Dashboard ยังอ่าน hash ' + direct_masterHash;
+            if (direct_masterHash) {
+              direct_masterLabel = 'กำลัง Sync Dashboard';
+              direct_masterLevel = 'warn';
+              direct_masterStatus = 'sync_pending';
+              actionLabel = 'กำลังยืนยัน Dashboard';
+              actionLevel = 'warn';
+              actionStatus = 'dashboard_sync_pending';
+              direct_masterMessage = 'Master hash ' + masterHash + ' พร้อมแล้ว แต่ Dashboard ยังอ่าน hash ' + direct_masterHash;
+            } else {
+              direct_masterLabel = direct_masterMaturity === 'matured' ? 'Direct Master พร้อมใช้' : 'Direct Master Provisional';
+              direct_masterLevel = direct_masterMaturity === 'matured' ? 'ok' : 'warn';
+              direct_masterStatus = 'ready';
+              actionLabel = direct_masterMaturity === 'matured' ? 'ไม่ต้องทำอะไร' : 'รอ Cohort Matured';
+              actionLevel = direct_masterMaturity === 'matured' ? 'ok' : 'warn';
+              actionStatus = direct_masterMaturity === 'matured' ? 'ready' : 'ready_provisional';
+              direct_masterMessage = 'Dashboard Direct Master scope exists; readiness verified by matching Raw/Master/DataIndex hash ' + masterHash;
+            }
           } else {
             direct_masterLabel = direct_masterMaturity === 'matured' ? 'Direct Master พร้อมใช้' : 'Direct Master Provisional';
             direct_masterLevel = direct_masterMaturity === 'matured' ? 'ok' : 'warn';
@@ -1114,6 +1126,9 @@ function buildAdminHealthScopeRows_(pipelineRows, rawRows, dataIndexRows, game, 
         direct_master_level: direct_masterLevel,
         direct_master_status: direct_masterStatus,
         direct_master_hash: direct_masterHash,
+        dashboard_read_available: direct_masterPresent,
+        dashboard_direct_read: direct_masterPresent ? 'ready' : 'missing',
+        effective_dashboard_hash: effectiveDashboardHash || '',
         direct_master_message: direct_masterMessage || String(direct_master.message || ''),
         maturity_status: direct_masterMaturity || String(rowValue_(latestIndex || {}, ['maturity_status']) || ''),
         is_provisional: String(rowValue_(latestIndex || {}, ['is_provisional']) || direct_masterMaturity === 'collecting'),
