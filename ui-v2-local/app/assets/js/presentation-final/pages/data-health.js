@@ -4,6 +4,23 @@ import { callAuthorized, assertSuccessfulPayload, normalizePayload } from "../se
 import { escapeHtml, icon, optionMarkup, statusPill } from "../ui.js";
 
 const HANDOFF_KEY = "cqr_data_control_handoff";
+const HEALTH_SYNC_POLL_MS = 20000;
+const HEALTH_SYNC_MAX_ATTEMPTS = 6;
+
+let healthSyncTimer = null;
+let healthSyncAttempts = 0;
+let healthSyncScopeKey = "";
+
+function clearHealthSyncTimer() {
+  if (healthSyncTimer) window.clearTimeout(healthSyncTimer);
+  healthSyncTimer = null;
+}
+
+function resetHealthSyncPolling() {
+  clearHealthSyncTimer();
+  healthSyncAttempts = 0;
+  healthSyncScopeKey = "";
+}
 
 function tone(level) {
   const value = String(level || "").toLowerCase();
@@ -40,13 +57,18 @@ function normalize(result) {
 function summaryCards(data) {
   const summary = data.summary;
   const total = data.rows.length;
-  const actionNeeded = data.rows.filter((row) => nextAction(row).mode || normalizedActionStatus(row) === "dashboard_sync_pending").length;
-  const healthy = total > 0 && actionNeeded === 0;
-  return `<div class="metric-grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr))">
+  const syncPending = data.rows.filter((row) => normalizedActionStatus(row) === "dashboard_sync_pending").length;
+  const actionNeeded = data.rows.filter((row) => {
+    const action = nextAction(row).mode;
+    return action && action !== "dashboard_sync_pending";
+  }).length;
+  const readyCount = Math.max(0, total - actionNeeded - syncPending);
+  const healthy = total > 0 && actionNeeded === 0 && syncPending === 0;
+  return `<div class="metric-grid data-health-summary-grid">
     <div class="metric-box"><div class="metric-label">Scope ที่ตรวจ</div><div class="metric-value">${total}</div></div>
-    <div class="metric-box"><div class="metric-label">Scope พร้อมใช้งาน</div><div class="metric-value">${healthy ? "ทั้งหมด" : total - actionNeeded}</div></div>
+    <div class="metric-box"><div class="metric-label">Scope พร้อมใช้งาน</div><div class="metric-value">${healthy ? "ทั้งหมด" : readyCount}</div></div>
     <div class="metric-box"><div class="metric-label">ต้องสร้าง Master</div><div class="metric-value">${Number(summary.build_required || 0)}</div></div>
-    <div class="metric-box"><div class="metric-label">รอ Sync Dashboard</div><div class="metric-value">${Number(summary.dashboard_sync_pending || 0)}</div></div>
+    <div class="metric-box"><div class="metric-label">รอ Sync Dashboard</div><div class="metric-value">${syncPending}</div></div>
     <div class="metric-box"><div class="metric-label">ต้องซ่อมข้อมูล</div><div class="metric-value">${Number(summary.cleanup_needed || 0)}</div></div>
     <div class="metric-box"><div class="metric-label">ต้องตรวจ Raw</div><div class="metric-value">${data.rows.filter((row) => nextAction(row).mode === "check_raw").length}</div></div>
   </div>`;
@@ -106,23 +128,26 @@ function actionControl(row, index) {
 
 function healthGuidance(data) {
   return data.rows.length
-    ? `<div class="list-stack">${data.rows.map((row, index) => {
+    ? `<div class="data-health-scope-list">${data.rows.map((row, index) => {
         const action = nextAction(row);
-        return `<div class="list-item" style="align-items:flex-start;gap:14px">
-          <div class="list-item-icon">${icon(action.mode ? "target" : "check")}</div>
-          <div style="min-width:0;flex:1">
+        const isSyncPending = action.mode === "dashboard_sync_pending";
+        const noticeClass = action.mode === "repair" ? "danger" : action.mode ? "warning" : "ready";
+        const noticeLabel = isSyncPending || !action.mode ? "สถานะ:" : "ปัญหา:";
+        return `<div class="data-health-scope-item">
+          <div class="list-item-icon data-health-scope-icon">${icon(action.mode ? "target" : "check")}</div>
+          <div class="data-health-scope-main">
             <div class="list-item-title">${escapeHtml(row.game_code || "-")} · ${escapeHtml(row.period_key || "-")}</div>
-            <div class="metric-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:10px">
-              <div class="metric-box"><div class="metric-label">Game</div><div class="metric-value" style="font-size:20px">${escapeHtml(row.game_code || "-")}</div></div>
-              <div class="metric-box"><div class="metric-label">Month</div><div class="metric-value" style="font-size:20px">${escapeHtml(row.period_key || "-")}</div></div>
+            <div class="metric-grid data-health-scope-metrics">
+              <div class="metric-box"><div class="metric-label">Game</div><div class="metric-value data-health-scope-value">${escapeHtml(row.game_code || "-")}</div></div>
+              <div class="metric-box"><div class="metric-label">Month</div><div class="metric-value data-health-scope-value">${escapeHtml(row.period_key || "-")}</div></div>
               <div class="metric-box"><div class="metric-label">Raw status</div><div>${statusPill(tone(row.raw_level || row.raw_status), escapeHtml(rawStatus(row)))}</div></div>
               <div class="metric-box"><div class="metric-label">Master/Dashboard status</div><div>${statusPill(tone(row.master_level || row.dashboard_read_level || row.dashboard_direct_read), escapeHtml(masterStatus(row)))}</div></div>
             </div>
-            <div class="notice ${action.mode === "repair" ? "danger" : action.mode ? "warning" : "ready"}" style="margin-top:12px">
-              <strong>${action.mode === "dashboard_sync_pending" ? "สถานะ:" : action.mode ? "ปัญหา:" : "สถานะ:"}</strong> ${escapeHtml(action.note)}
+            <div class="notice ${noticeClass} data-health-scope-notice">
+              <strong>${noticeLabel}</strong> ${escapeHtml(action.note)}
             </div>
           </div>
-          <div style="display:grid;gap:8px;justify-items:end;min-width:150px">
+          <div class="data-health-scope-action">
             <div class="list-item-meta">Action ถัดไป</div>
             ${actionControl(row, index)}
           </div>
@@ -171,11 +196,11 @@ function guidanceNotes(data) {
     ...data.recommendations.map((recommendation) => simpleRecommendationText(recommendation)),
   ].filter(Boolean);
   if (!notes.length) return "";
-  return `<article class="surface-card"><div class="card-header"><div><h2 class="card-title">สิ่งที่ระบบพบ</h2><p class="card-description">สรุปให้อ่านง่ายจากผลตรวจล่าสุด</p></div></div><div class="card-body list-stack">${notes.slice(0, 6).map((note) => `<div class="list-item"><div class="list-item-icon">${icon("warning")}</div><div class="list-item-title">${escapeHtml(note)}</div></div>`).join("")}</div></article>`;
+  return `<article class="surface-card data-health-findings"><div class="card-header"><div><h2 class="card-title">สิ่งที่ระบบพบ</h2><p class="card-description">สรุปให้อ่านง่ายจากผลตรวจล่าสุด</p></div></div><div class="card-body list-stack">${notes.slice(0, 6).map((note) => `<div class="list-item"><div class="list-item-icon">${icon("warning")}</div><div class="list-item-title">${escapeHtml(note)}</div></div>`).join("")}</div></article>`;
 }
 
 function advancedDetails(data, checkedAt) {
-  return `<article class="surface-card">
+  return `<article class="surface-card data-health-advanced">
     <details>
       <summary class="card-header" style="cursor:pointer"><div><h2 class="card-title">Advanced Details</h2><p class="card-description">ข้อมูลเทคนิคสำหรับทีมภายใน · Source: ${escapeHtml(data.source)} · Read mode: ${escapeHtml(data.readMode)} · Checked: ${escapeHtml(checkedAt ? new Date(checkedAt).toLocaleString("th-TH") : "-")}</p></div></summary>
       <div class="card-body">
@@ -203,21 +228,22 @@ export function renderDataHealthOverviewPage() {
   const data = health.result ? normalize(health.result) : null;
   const hasDashboardSyncPending = data?.rows.some((row) => normalizedActionStatus(row) === "dashboard_sync_pending");
   const healthy = data?.rows.length && !hasDashboardSyncPending && data.rows.every((row) => !nextAction(row).mode);
-  return `<div class="page-grid">
-    <article class="surface-card">
+  return `<div class="page-grid data-health-page">
+    <article class="surface-card data-health-check-card">
       <div class="card-header"><div><h2 class="card-title">Data Health & Repair</h2><p class="card-description">1. ตรวจสถานะข้อมูล 2. ระบบบอกปัญหา 3. กด Action เดียวเพื่อไปขั้นตอนถัดไป</p></div>${statusPill(health.status, health.status === "idle" ? "ยังไม่ได้ตรวจ" : health.status)}</div>
       <div class="card-body">${filters("health", true)}<div class="toolbar" style="margin-top:14px"><button id="health-run" class="button primary" type="button" ${health.status === "loading" ? "disabled" : ""}>${icon("refresh", "nav-icon")} ตรวจสถานะข้อมูล</button></div>${health.error ? `<div class="notice danger" style="margin-top:12px">${escapeHtml(health.error)}</div>` : ""}</div>
     </article>
-    ${data ? `<article class="surface-card"><div class="card-body">${summaryCards(data)}</div></article>
+    ${data ? `<article class="surface-card data-health-summary-card"><div class="card-body">${summaryCards(data)}</div></article>
       ${healthy ? '<div class="notice ready">ข้อมูลพร้อมใช้งาน ไม่ต้องทำ Action เพิ่มเติม</div>' : ""}
-      ${hasDashboardSyncPending ? '<div class="notice warning">กำลัง Sync Dashboard: Master Build สำเร็จและ hash ตรง Raw แล้ว Dashboard กำลัง sync ข้อมูลรอบล่าสุด ไม่ต้องเปิด Repair</div>' : ""}
-      <article class="surface-card"><div class="card-header"><div><h2 class="card-title">สถานะและ Action ถัดไป</h2><p class="card-description">เลือกดูตาม Game และ Month แล้วทำตาม Action ที่ระบบแนะนำในแต่ละ Scope</p></div></div><div class="card-body">${healthGuidance(data)}</div></article>
+      ${hasDashboardSyncPending ? '<div class="notice warning data-health-sync-notice">กำลัง Sync Dashboard: Master Build สำเร็จและ hash ตรง Raw แล้ว Dashboard กำลัง sync ข้อมูลรอบล่าสุด ไม่ต้องเปิด Repair</div>' : ""}
+      <article class="surface-card data-health-status-card"><div class="card-header"><div><h2 class="card-title">สถานะและ Action ถัดไป</h2><p class="card-description">เลือกดูตาม Game และ Month แล้วทำตาม Action ที่ระบบแนะนำในแต่ละ Scope</p></div></div><div class="card-body">${healthGuidance(data)}</div></article>
       ${guidanceNotes(data)}
       ${advancedDetails(data, health.checkedAt)}` : ""}
   </div>`;
 }
 
-async function run(kind) {
+async function run(kind, { auto = false } = {}) {
+  if (kind === "health" && !auto) resetHealthSyncPolling();
   const game = document.getElementById(`${kind}-game`)?.value || "ALL";
   const month = document.getElementById(`${kind}-month`)?.value || "ALL";
   setFilters({ game, month });
@@ -230,6 +256,31 @@ async function run(kind) {
   } catch (error) {
     setter({ status: "failed", error: error.message || String(error) });
   }
+}
+
+function scheduleHealthSyncPolling() {
+  clearHealthSyncTimer();
+  const state = getState();
+  if (state.route !== "data-health-overview" || state.health.status !== "completed" || !state.health.result) return;
+  const data = normalize(state.health.result);
+  const pendingRows = data.rows.filter((row) => normalizedActionStatus(row) === "dashboard_sync_pending");
+  if (!pendingRows.length) {
+    resetHealthSyncPolling();
+    return;
+  }
+  const scopeKey = pendingRows.map((row) => `${row.game_code || ""}:${row.period_key || ""}`).sort().join("|");
+  if (scopeKey !== healthSyncScopeKey) {
+    healthSyncAttempts = 0;
+    healthSyncScopeKey = scopeKey;
+  }
+  if (healthSyncAttempts >= HEALTH_SYNC_MAX_ATTEMPTS) return;
+  healthSyncTimer = window.setTimeout(async () => {
+    healthSyncTimer = null;
+    const latest = getState();
+    if (latest.route !== "data-health-overview" || latest.health.status !== "completed") return;
+    healthSyncAttempts += 1;
+    await run("health", { auto: true });
+  }, HEALTH_SYNC_POLL_MS);
 }
 
 function repairHashFromRow(row) {
@@ -329,6 +380,7 @@ export function bindDataHealthOverviewPage() {
     }
     setRoute(mode === "first_build" ? "data-control-build" : "data-control-preview");
   }));
+  scheduleHealthSyncPolling();
 }
 
 export function renderPipelineCheckPage() {

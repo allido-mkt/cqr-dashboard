@@ -1377,6 +1377,62 @@ body{overflow-x:hidden}
   }
 }
 
+/* Data Health & Repair: compact operational layout. */
+#page-content .data-health-page{gap:18px}
+#page-content .data-health-page .card-header{padding:20px 22px 0}
+#page-content .data-health-page .card-body{padding:19px 22px 22px}
+#page-content .data-health-summary-card .card-body{padding:16px 22px}
+#page-content .data-health-summary-grid{grid-template-columns:repeat(6,minmax(112px,1fr));gap:10px}
+#page-content .data-health-summary-grid .metric-box,
+#page-content .data-health-scope-metrics .metric-box{padding:10px 11px}
+#page-content .data-health-sync-notice{padding:10px 13px}
+#page-content .data-health-scope-list{display:grid;gap:10px}
+#page-content .data-health-scope-item{
+  min-width:0;
+  display:grid;
+  grid-template-columns:36px minmax(0,1fr) auto;
+  align-items:start;
+  gap:12px;
+  padding:14px 15px;
+  border-radius:15px;
+  background:rgba(255,255,255,.42);
+  box-shadow:var(--shadow-raised-sm)
+}
+#page-content .data-health-scope-icon{width:36px;height:36px}
+#page-content .data-health-scope-main{min-width:0}
+#page-content .data-health-scope-metrics{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-top:13px
+}
+#page-content .data-health-scope-value{font-size:18px}
+#page-content .data-health-scope-notice{margin-top:12px;padding:10px 13px}
+#page-content .data-health-scope-action{
+  min-width:132px;
+  display:grid;
+  gap:7px;
+  justify-items:end
+}
+#page-content .data-health-findings .card-body{padding-top:18px;padding-bottom:18px}
+#page-content .data-health-findings .list-item{padding:12px 13px}
+#page-content .data-health-advanced>details>.card-header{padding:18px 22px}
+#page-content .data-health-advanced>details[open]>.card-header{padding-bottom:10px}
+#page-content .data-health-advanced>details>.card-body{padding:10px 22px 20px}
+@media(max-width:1180px){
+  #page-content .data-health-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #page-content .data-health-scope-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:820px){
+  #page-content .data-health-scope-item{grid-template-columns:36px minmax(0,1fr)}
+  #page-content .data-health-scope-action{grid-column:2;min-width:0;justify-items:start}
+}
+@media(max-width:680px){
+  #page-content .data-health-summary-grid,
+  #page-content .data-health-scope-metrics{grid-template-columns:1fr}
+  #page-content .data-health-page .card-header,
+  #page-content .data-health-page .card-body{padding-left:14px;padding-right:14px}
+}
+
 /* CQR_AI_WARM_MINIMAL_TITLES_FINAL_START */
 /* One heading system for every Copilot/Admin page.
    The topbar sits outside #page-content, so target the real topbar directly. */
