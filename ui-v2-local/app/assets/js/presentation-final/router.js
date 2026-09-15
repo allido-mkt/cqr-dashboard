@@ -1,5 +1,5 @@
 import { hasPermission, PERMISSIONS } from "./permissions.js";
-import { getState, setRoute } from "./state.js?v=3518";
+import { getState, setRoute } from "./state.js?v=3524";
 import { renderDashboardPage, bindDashboardPage } from "./pages/dashboard.js?v=3518";
 import { renderAiInsightPage, bindAiInsightPage } from "./pages/ai-insight.js?v=3518";
 import { renderUserAccessPage, bindUserAccessPage } from "./pages/user-access.js?v=3518";

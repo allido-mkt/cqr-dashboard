@@ -1,4 +1,4 @@
-import { getState, setRoute } from "../state.js?v=3518";
+import { getState, setRoute } from "../state.js?v=3524";
 import { icon, formatNumber, statusPill } from "../ui.js";
 
 function dashboardData(filters) {

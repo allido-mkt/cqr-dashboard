@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { getState, setFilters } from "../state.js?v=3518";
+import { getState, setFilters } from "../state.js?v=3524";
 import { escapeHtml, statusPill, showToast, optionMarkup } from "../ui.js";
 
 const PREF_KEY="cqr_user_preferences";
